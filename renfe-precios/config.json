@@ -1,0 +1,10 @@
+{
+  "origen": "MADRID (TODAS)",
+  "destino": "BARCELONA (TODAS)",
+  "fechas": ["2026-10-16", "2026-10-17"],
+  "precio_min": 0,
+  "precio_max": 40,
+  "hora_desde": "06:00",
+  "hora_hasta": "22:00",
+  "tipos_tren": null
+}
