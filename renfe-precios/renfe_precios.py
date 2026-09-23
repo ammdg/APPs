@@ -96,10 +96,11 @@ class Tren:
     precio: float | None
     disponible: bool
     tipo: str
+    sentido: str = ""  # "ORIGEN>DESTINO", para no mezclar ida y vuelta en el estado
 
     @property
     def clave(self) -> str:
-        return f"{self.fecha.isoformat()} {self.salida} {self.tipo}"
+        return f"{self.fecha.isoformat()} {self.salida} {self.tipo} {self.sentido}".rstrip()
 
 
 def _contador() -> Iterator[int]:
@@ -141,7 +142,7 @@ def _a_precio(valor: Any) -> float | None:
         return None
 
 
-def parsear_trenes(datos: dict[str, Any], fecha: date) -> list[Tren]:
+def parsear_trenes(datos: dict[str, Any], fecha: date, sentido: str = "") -> list[Tren]:
     trenes = []
     # listadoTrenes[0] es la ida; solo pedimos ida.
     for t in datos["listadoTrenes"][0]["listviajeViewEnlaceBean"]:
@@ -161,6 +162,7 @@ def parsear_trenes(datos: dict[str, Any], fecha: date) -> list[Tren]:
                 precio=precio,
                 disponible=bool(disponible),
                 tipo=t.get("tipoTrenUno") or "N/A",
+                sentido=sentido,
             )
         )
     return trenes
@@ -268,14 +270,16 @@ def consultar_renfe(origen: Estacion, destino: Estacion, fecha: date, timeout: i
         ),
     )
     r.raise_for_status()
-    return parsear_trenes(extraer_lista_trenes(r.text), fecha)
+    return parsear_trenes(extraer_lista_trenes(r.text), fecha, f"{origen.codigo}>{destino.codigo}")
 
 
 # --------------------------------------------------------------------------- filtros y avisos
 
 
 @dataclass
-class Config:
+class Viaje:
+    """Un sentido del viaje: origen → destino en unas fechas, con su franja horaria y su rango de precio."""
+
     origen: str
     destino: str
     fechas: list[date]
@@ -283,28 +287,35 @@ class Config:
     precio_max: float
     hora_desde: str = "00:00"
     hora_hasta: str = "23:59"
-    tipos_tren: list[str] | None = None  # p. ej. ["AVE", "AVLO"]; None = todos
+    tipos_tren: list[str] | None = None  # p. ej. ["AVE", "ALVIA"]; None = todos
 
     @classmethod
-    def desde_archivo(cls, path: Path) -> "Config":
-        d = json.loads(path.read_text(encoding="utf-8"))
-        fechas = [datetime.strptime(x, "%Y-%m-%d").date() for x in d["fechas"]]
-        cfg = cls(
+    def desde_dict(cls, d: dict[str, Any], defecto: dict[str, Any]) -> "Viaje":
+        d = {**defecto, **d}
+        fechas = d["fechas"] if isinstance(d.get("fechas"), list) else [d["fecha"]]
+        viaje = cls(
             origen=d["origen"],
             destino=d["destino"],
-            fechas=fechas,
+            fechas=[datetime.strptime(x, "%Y-%m-%d").date() for x in fechas],
             precio_min=float(d.get("precio_min", 0)),
             precio_max=float(d["precio_max"]),
             hora_desde=d.get("hora_desde", "00:00"),
             hora_hasta=d.get("hora_hasta", "23:59"),
             tipos_tren=[t.upper() for t in d["tipos_tren"]] if d.get("tipos_tren") else None,
         )
-        if cfg.precio_min > cfg.precio_max:
-            raise SystemExit("precio_min no puede ser mayor que precio_max")
-        return cfg
+        if viaje.precio_min > viaje.precio_max:
+            raise SystemExit(f"{viaje.origen} → {viaje.destino}: precio_min mayor que precio_max")
+        return viaje
 
 
-def trenes_en_rango(trenes: list[Tren], cfg: Config) -> list[Tren]:
+def cargar_config(path: Path) -> list[Viaje]:
+    """config.json tiene una lista "viajes"; los campos fuera de la lista valen para todos."""
+    d = json.loads(path.read_text(encoding="utf-8"))
+    defecto = {k: v for k, v in d.items() if k != "viajes"}
+    return [Viaje.desde_dict(v, defecto) for v in d.get("viajes", [defecto])]
+
+
+def trenes_en_rango(trenes: list[Tren], cfg: Viaje) -> list[Tren]:
     return [
         t
         for t in trenes
@@ -377,35 +388,47 @@ def notificar(texto: str) -> list[str]:
 # --------------------------------------------------------------------------- orquestación
 
 
-def comprobar(cfg: Config, estado_path: Path) -> int:
-    origen, destino = obtener_estacion(cfg.origen), obtener_estacion(cfg.destino)
+def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
     hoy = date.today()
     en_rango: list[Tren] = []
-    errores = 0
-    for fecha in cfg.fechas:
-        if fecha < hoy:
-            print(f"{fecha}: fecha pasada, se ignora")
-            continue
-        try:
-            trenes = consultar_renfe(origen, destino, fecha)
-        except (requests.RequestException, ErrorRenfe, KeyError, ValueError) as e:
-            errores += 1
-            print(f"{fecha}: ERROR consultando Renfe: {e!r}", file=sys.stderr)
-            continue
-        con_precio = [t for t in trenes if t.disponible and t.precio is not None]
-        minimo = min((t.precio for t in con_precio), default=None)
-        print(
-            f"{fecha}: {len(trenes)} trenes, {len(con_precio)} con plazas"
-            + (f", más barato {minimo:.2f} €" if minimo is not None else "")
-        )
-        en_rango += trenes_en_rango(trenes, cfg)
-        time.sleep(2)  # no encadenar peticiones a Renfe
-
+    avisos: list[str] = []
+    consultas = errores = 0
     estado = cargar_estado(estado_path)
-    nuevos = nuevos_para_avisar(en_rango, estado)
-    print(f"En rango [{cfg.precio_min:.2f}-{cfg.precio_max:.2f} €]: {len(en_rango)}; nuevos: {len(nuevos)}")
-    if nuevos:
-        texto = formatear_aviso(origen.nombre, destino.nombre, nuevos)
+    for viaje in viajes:
+        origen, destino = obtener_estacion(viaje.origen), obtener_estacion(viaje.destino)
+        del_viaje: list[Tren] = []
+        for fecha in viaje.fechas:
+            etiqueta = f"{origen.nombre} → {destino.nombre} {fecha}"
+            if fecha < hoy:
+                print(f"{etiqueta}: fecha pasada, se ignora")
+                continue
+            consultas += 1
+            try:
+                trenes = consultar_renfe(origen, destino, fecha)
+            except (requests.RequestException, ErrorRenfe, KeyError, ValueError) as e:
+                errores += 1
+                print(f"{etiqueta}: ERROR consultando Renfe: {e!r}", file=sys.stderr)
+                continue
+            con_precio = [t for t in trenes if t.disponible and t.precio is not None]
+            minimo = min((t.precio for t in con_precio), default=None)
+            print(
+                f"{etiqueta}: {len(trenes)} trenes, {len(con_precio)} con plazas"
+                + (f", más barato {minimo:.2f} €" if minimo is not None else "")
+            )
+            del_viaje += trenes_en_rango(trenes, viaje)
+            time.sleep(2)  # no encadenar peticiones a Renfe
+        nuevos = nuevos_para_avisar(del_viaje, estado)
+        print(
+            f"{origen.nombre} → {destino.nombre} en rango "
+            f"[{viaje.precio_min:.2f}-{viaje.precio_max:.2f} €, {viaje.hora_desde}-{viaje.hora_hasta}]: "
+            f"{len(del_viaje)}; nuevos: {len(nuevos)}"
+        )
+        if nuevos:
+            avisos.append(formatear_aviso(origen.nombre, destino.nombre, nuevos))
+        en_rango += del_viaje
+
+    if avisos:
+        texto = "\n\n".join(avisos)
         print(texto)
         try:
             notificar(texto)
@@ -417,8 +440,8 @@ def comprobar(cfg: Config, estado_path: Path) -> int:
         json.dumps(actualizar_estado(estado, en_rango, hoy), indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    # Falla solo si no se pudo consultar ninguna fecha, para que GitHub avise del problema.
-    return 1 if errores and errores == len([f for f in cfg.fechas if f >= hoy]) else 0
+    # Falla solo si no se pudo consultar nada, para que GitHub avise del problema.
+    return 1 if consultas and errores == consultas else 0
 
 
 def main() -> int:
@@ -437,12 +460,12 @@ def main() -> int:
     if a.probar_aviso:
         return 0 if notificar("✅ Prueba del vigilante de precios Renfe") else 1
 
-    cfg = Config.desde_archivo(a.config)
+    viajes = cargar_config(a.config)
     if not a.cada:
-        return comprobar(cfg, a.estado)
+        return comprobar(viajes, a.estado)
     while True:
         print(f"--- {datetime.now():%Y-%m-%d %H:%M}")
-        comprobar(cfg, a.estado)
+        comprobar(viajes, a.estado)
         time.sleep(a.cada * 60)
 
 

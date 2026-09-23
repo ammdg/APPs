@@ -27,7 +27,7 @@ FECHA = date(2030, 1, 10)
 def cfg(**kw):
     base = dict(origen="A", destino="B", fechas=[FECHA], precio_min=0, precio_max=40,
                 hora_desde="06:00", hora_hasta="22:00")
-    return rp.Config(**{**base, **kw})
+    return rp.Viaje(**{**base, **kw})
 
 
 def test_parsea_respuesta():
@@ -72,8 +72,40 @@ def test_comprobar_notifica(tmp_path, monkeypatch):
     monkeypatch.setattr(rp.time, "sleep", lambda s: None)
     c = cfg(origen="MADRID (TODAS)", destino="BARCELONA (TODAS)")
     estado = tmp_path / "estado.json"
-    assert rp.comprobar(c, estado) == 0
+    assert rp.comprobar([c], estado) == 0
     assert len(enviados) == 1 and "35.50 €" in enviados[0]
-    assert rp.comprobar(c, estado) == 0
+    assert rp.comprobar([c], estado) == 0
     assert len(enviados) == 1  # la segunda hora no repite el aviso
     assert json.loads(estado.read_text())
+
+
+def test_ida_y_vuelta_en_un_solo_aviso(tmp_path, monkeypatch):
+    enviados = []
+    monkeypatch.setattr(rp, "consultar_renfe",
+                        lambda o, d, f: rp.parsear_trenes(rp.extraer_lista_trenes(RESPUESTA_DWR), f,
+                                                          f"{o.codigo}>{d.codigo}"))
+    monkeypatch.setattr(rp, "notificar", enviados.append)
+    monkeypatch.setattr(rp.time, "sleep", lambda s: None)
+    ida = cfg(origen="MADRID (TODAS)", destino="PAMPLONA/IRUÑA")
+    vuelta = cfg(origen="PAMPLONA/IRUÑA", destino="MADRID (TODAS)")
+    estado = tmp_path / "estado.json"
+    assert rp.comprobar([ida, vuelta], estado) == 0
+    assert len(enviados) == 1
+    assert "MADRID (TODAS) → PAMPLONA/IRUÑA" in enviados[0]
+    assert "PAMPLONA/IRUÑA → MADRID (TODAS)" in enviados[0]
+    assert len(json.loads(estado.read_text())) == 2  # mismo tren/hora, pero sentidos distintos
+
+
+def test_config_con_viajes_y_valores_comunes(tmp_path):
+    f = tmp_path / "config.json"
+    f.write_text(json.dumps({
+        "precio_max": 50, "hora_desde": "16:00",
+        "viajes": [
+            {"origen": "MADRID (TODAS)", "destino": "PAMPLONA/IRUÑA", "fecha": "2030-10-02"},
+            {"origen": "PAMPLONA/IRUÑA", "destino": "MADRID (TODAS)", "fecha": "2030-10-04",
+             "precio_max": 30},
+        ],
+    }))
+    ida, vuelta = rp.cargar_config(f)
+    assert ida.fechas == [date(2030, 10, 2)] and ida.hora_desde == "16:00" and ida.precio_max == 50
+    assert vuelta.precio_max == 30 and vuelta.hora_desde == "16:00"

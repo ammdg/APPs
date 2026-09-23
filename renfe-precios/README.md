@@ -10,20 +10,26 @@ Comprueba cada hora los precios de un trayecto en venta.renfe.com y te avisa (Te
   [renfe-bot](https://github.com/emartinez-dev/renfe-bot) (MIT). Usa el backend interno de la web
   de venta, **no una API pública**, así que puede romperse si Renfe cambia su web.
 
-## 1. Configura el trayecto: `config.json`
+## 1. Configura los viajes: `config.json`
+
+Cada elemento de `viajes` es un sentido (ida, vuelta…) y se consulta como billete sencillo.
+Los campos que pongas fuera de `viajes` valen para todos; los de dentro mandan sobre ellos.
 
 ```json
 {
-  "origen": "MADRID (TODAS)",
-  "destino": "BARCELONA (TODAS)",
-  "fechas": ["2026-10-16", "2026-10-17"],
   "precio_min": 0,
-  "precio_max": 40,
-  "hora_desde": "06:00",
-  "hora_hasta": "22:00",
-  "tipos_tren": null
+  "precio_max": 60,
+  "tipos_tren": null,
+  "viajes": [
+    { "origen": "MADRID (TODAS)", "destino": "PAMPLONA/IRUÑA", "fecha": "2026-10-02" },
+    { "origen": "PAMPLONA/IRUÑA", "destino": "MADRID (TODAS)", "fecha": "2026-10-04",
+      "hora_desde": "16:00" }
+  ]
 }
 ```
+
+Campos: `fecha` (o `fechas`, una lista), `precio_min`, `precio_max`, `hora_desde`, `hora_hasta`
+(por defecto 00:00-23:59, hora de salida del tren) y `tipos_tren`.
 
 Los nombres de estación tienen que ser exactamente los de Renfe. Para buscarlos:
 
