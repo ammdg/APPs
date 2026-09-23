@@ -16,5 +16,26 @@
       "fecha": "2026-10-04",
       "hora_desde": "16:00"
     }
-  ]
+  ],
+  "vuelos": {
+    "activo": true,
+    "aerolineas": [
+      "IB"
+    ],
+    "solo_directos": true,
+    "precio_max": null,
+    "viajes": [
+      {
+        "origen": "MAD",
+        "destino": "PNA",
+        "fecha": "2026-10-02"
+      },
+      {
+        "origen": "PNA",
+        "destino": "MAD",
+        "fecha": "2026-10-04",
+        "hora_desde": "16:00"
+      }
+    ]
+  }
 }

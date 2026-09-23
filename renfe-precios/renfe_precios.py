@@ -1,4 +1,5 @@
-"""Vigila los precios de un trayecto en venta.renfe.com y avisa cuando entran en un rango.
+"""Vigila los precios de un trayecto en venta.renfe.com (y en avión, vía Google Flights) y avisa cuando
+entran en un rango.
 
 La consulta a Renfe está adaptada de renfe-bot (https://github.com/emartinez-dev/renfe-bot,
 licencia MIT, (c) 2023 Francisco Enrique Martínez Díaz). Usa el backend DWR que emplea la
@@ -287,25 +288,90 @@ def consultar_renfe(origen: Estacion, destino: Estacion, fecha: date, timeout: i
     return parsear_trenes(extraer_lista_trenes(r.text), fecha, f"{origen.codigo}>{destino.codigo}")
 
 
+# --------------------------------------------------------------------------- consulta de vuelos
+
+
+def consultar_vuelos(viaje: Viaje, fecha: date) -> list[Tren]:
+    """Vuelos de ida (1 adulto, turista) según Google Flights, vía la librería fast-flights.
+
+    Se reutiliza Tren para que filtros, avisos y estado funcionen igual que con los trenes.
+    """
+    from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query, get_flights
+
+    consulta = create_query(
+        flights=[
+            FlightQuery(
+                date=fecha.isoformat(),
+                from_airport=viaje.origen,
+                to_airport=viaje.destino,
+                max_stops=0 if viaje.solo_directos else None,
+                airlines=viaje.aerolineas,
+            )
+        ],
+        trip="one-way",
+        passengers=Passengers(adults=1),
+        language="es",
+        currency="EUR",
+    )
+    try:
+        resultados = get_flights(consulta)
+    except FlightsNotFound:
+        return []
+
+    vuelos = []
+    for r in resultados:
+        tramos = r.flights
+        if not tramos or (viaje.solo_directos and len(tramos) > 1):
+            continue
+        salida, llegada = tramos[0].departure, tramos[-1].arrival
+        if date(*salida.date) != fecha:
+            continue
+        hs, hl = "%02d:%02d" % salida.time, "%02d:%02d" % llegada.time
+        vuelos.append(
+            Tren(
+                fecha=fecha,
+                salida=hs,
+                llegada=hl,
+                duracion_min=sum(t.duration for t in tramos) or _duracion_por_horas(hs, hl),
+                precio=float(r.price) if r.price else None,
+                disponible=bool(r.price),
+                tipo=", ".join(r.airlines) or "N/A",
+                sentido=f"{viaje.origen}>{viaje.destino} avion",
+            )
+        )
+    # Google puede repetir el mismo vuelo con varias tarifas: nos quedamos con la más barata.
+    mas_baratos: dict[str, Tren] = {}
+    for v in vuelos:
+        if v.clave not in mas_baratos or (v.precio or 1e9) < (mas_baratos[v.clave].precio or 1e9):
+            mas_baratos[v.clave] = v
+    return list(mas_baratos.values())
+
+
 # --------------------------------------------------------------------------- filtros y avisos
 
 
 @dataclass
 class Viaje:
-    """Un sentido del viaje: origen → destino en unas fechas, con su franja horaria y su rango de precio."""
+    """Un sentido del viaje: origen → destino en unas fechas, con su franja horaria y su rango de precio.
+
+    En tren, origen/destino son nombres de estación de Renfe; en avión, códigos de aeropuerto (MAD, PNA).
+    """
 
     origen: str
     destino: str
     fechas: list[date]
     precio_min: float
-    precio_max: float
+    precio_max: float | None  # None = sin límite
     hora_desde: str = "00:00"
     hora_hasta: str = "23:59"
     tipos_tren: list[str] | None = None  # p. ej. ["AVE", "ALVIA"]; None = todos
     duracion_max: int | None = None  # minutos; None = sin límite
+    medio: str = "tren"  # "tren" o "avion"
+    aerolineas: list[str] | None = None  # códigos IATA, p. ej. ["IB"]; None = todas
+    solo_directos: bool = True
 
     @classmethod
-    def desde_dict(cls, d: dict[str, Any], defecto: dict[str, Any]) -> "Viaje":
+    def desde_dict(cls, d: dict[str, Any], defecto: dict[str, Any], medio: str = "tren") -> "Viaje":
         d = {**defecto, **d}
         fechas = d["fechas"] if isinstance(d.get("fechas"), list) else [d["fecha"]]
         viaje = cls(
@@ -313,13 +379,18 @@ class Viaje:
             destino=d["destino"],
             fechas=[datetime.strptime(x, "%Y-%m-%d").date() for x in fechas],
             precio_min=float(d.get("precio_min", 0)),
-            precio_max=float(d["precio_max"]),
+            precio_max=float(d["precio_max"]) if d.get("precio_max") is not None else None,
             hora_desde=d.get("hora_desde", "00:00"),
             hora_hasta=d.get("hora_hasta", "23:59"),
             duracion_max=_a_duracion(d.get("duracion_max")),
             tipos_tren=[t.upper() for t in d["tipos_tren"]] if d.get("tipos_tren") else None,
+            medio=medio,
+            aerolineas=[a.upper() for a in d["aerolineas"]] if d.get("aerolineas") else None,
+            solo_directos=bool(d.get("solo_directos", True)),
         )
-        if viaje.precio_min > viaje.precio_max:
+        if medio == "avion":
+            viaje.origen, viaje.destino = viaje.origen.upper(), viaje.destino.upper()
+        if viaje.precio_max is not None and viaje.precio_min > viaje.precio_max:
             raise SystemExit(f"{viaje.origen} → {viaje.destino}: precio_min mayor que precio_max")
         return viaje
 
@@ -338,10 +409,16 @@ def formatear_duracion(minutos: int) -> str:
 
 
 def cargar_config(path: Path) -> list[Viaje]:
-    """config.json tiene una lista "viajes"; los campos fuera de la lista valen para todos."""
+    """config.json tiene una lista "viajes" (tren) y, opcionalmente, una sección "vuelos" con su
+    propia lista "viajes". Los campos fuera de cada lista valen para todos los de esa lista."""
     d = json.loads(path.read_text(encoding="utf-8"))
-    defecto = {k: v for k, v in d.items() if k != "viajes"}
-    return [Viaje.desde_dict(v, defecto) for v in d.get("viajes", [defecto])]
+    defecto = {k: v for k, v in d.items() if k not in ("viajes", "vuelos")}
+    viajes = [Viaje.desde_dict(v, defecto) for v in d.get("viajes", [defecto])]
+    vuelos = d.get("vuelos") or {}
+    if vuelos.get("activo", True):
+        defecto_vuelos = {k: v for k, v in vuelos.items() if k not in ("viajes", "activo")}
+        viajes += [Viaje.desde_dict(v, defecto_vuelos, medio="avion") for v in vuelos.get("viajes", [])]
+    return viajes
 
 
 def trenes_en_rango(trenes: list[Tren], cfg: Viaje) -> list[Tren]:
@@ -350,7 +427,8 @@ def trenes_en_rango(trenes: list[Tren], cfg: Viaje) -> list[Tren]:
         for t in trenes
         if t.disponible
         and t.precio is not None
-        and cfg.precio_min <= t.precio <= cfg.precio_max
+        and cfg.precio_min <= t.precio
+        and (cfg.precio_max is None or t.precio <= cfg.precio_max)
         and cfg.hora_desde <= t.salida <= cfg.hora_hasta
         and (cfg.tipos_tren is None or t.tipo.upper() in cfg.tipos_tren)
         and (cfg.duracion_max is None or t.duracion_min <= cfg.duracion_max)
@@ -379,14 +457,15 @@ def actualizar_estado(estado: dict[str, float], en_rango: list[Tren], hoy: date)
     }
 
 
-def formatear_aviso(origen: str, destino: str, trenes: list[Tren]) -> str:
-    lineas = [f"🚆 {origen} → {destino}: {len(trenes)} tren(es) en tu rango de precio"]
+def formatear_aviso(origen: str, destino: str, trenes: list[Tren], medio: str = "tren") -> str:
+    que = "✈️ {o} → {d}: {n} vuelo(s)" if medio == "avion" else "🚆 {o} → {d}: {n} tren(es)"
+    lineas = [que.format(o=origen, d=destino, n=len(trenes)) + " en tu rango de precio"]
     for t in sorted(trenes, key=lambda t: (t.fecha, t.salida)):
         lineas.append(
             f"• {t.fecha.strftime('%d/%m')} {t.salida}-{t.llegada} ({formatear_duracion(t.duracion_min)}) "
             f"{t.tipo}: {t.precio:.2f} €"
         )
-    lineas.append("Compra: https://www.renfe.com")
+    lineas.append("Compra: " + ("https://www.iberia.com" if medio == "avion" else "https://www.renfe.com"))
     return "\n".join(lineas)
 
 
@@ -401,6 +480,7 @@ class Consulta:
     en_rango: set[str]  # claves de los trenes que cumplen todos los filtros
     nuevos: set[str]  # claves de los que son nuevos o han bajado de precio
     error: str | None = None
+    medio: str = "tren"
 
 
 def _euros(precio: float) -> str:
@@ -413,15 +493,17 @@ def formatear_resumen(consultas: list[Consulta], ahora: datetime) -> str:
     cabecera = "🔔 ¡Novedades!" if hay_novedades else "🕐 Sin cambios"
     lineas = [f"{cabecera} · {ahora:%H:%M} del {ahora:%d/%m}"]
     for c in consultas:
-        lineas += ["", f"🚆 {c.origen} → {c.destino} · {DIAS[c.fecha.weekday()]} {c.fecha:%d/%m}"]
+        avion = c.medio == "avion"
+        icono = "✈️" if avion else "🚆"
+        lineas += ["", f"{icono} {c.origen} → {c.destino} · {DIAS[c.fecha.weekday()]} {c.fecha:%d/%m}"]
         if c.error:
-            lineas.append(f"⚠️ No se pudo consultar Renfe: {c.error}")
+            lineas.append(f"⚠️ No se pudo consultar {'Google Flights' if avion else 'Renfe'}: {c.error}")
             continue
         disponibles = sorted(
             (t for t in c.trenes if t.disponible and t.precio is not None), key=lambda t: t.salida
         )
         if not disponibles:
-            lineas.append("Ningún tren con plazas.")
+            lineas.append("Ningún vuelo encontrado." if avion else "Ningún tren con plazas.")
         for t in disponibles:
             marca = "✅" if t.clave in c.en_rango else "▫️"
             nuevo = " 🆕" if t.clave in c.nuevos else ""
@@ -432,7 +514,9 @@ def formatear_resumen(consultas: list[Consulta], ahora: datetime) -> str:
         completos = len(c.trenes) - len(disponibles)
         if completos:
             lineas.append(f"(+{completos} sin plazas)")
-    lineas += ["", "✅ cumple tus filtros · 🆕 nuevo o más barato", "Compra: https://www.renfe.com"]
+    lineas += ["", "✅ cumple tus filtros · 🆕 nuevo o más barato", "Trenes: https://www.renfe.com"]
+    if any(c.medio == "avion" for c in consultas):
+        lineas.append("Vuelos: https://www.iberia.com (precios de Google Flights)")
     return "\n".join(lineas)
 
 
@@ -454,7 +538,7 @@ def notificar(texto: str) -> list[str]:
         r = requests.post(
             f"{servidor}/{topic}",
             data=texto.encode("utf-8"),
-            headers={"Title": "Precio Renfe en rango", "Tags": "train"},
+            headers={"Title": "Precios tren y avión", "Tags": "train"},
             timeout=20,
         )
         r.raise_for_status()
@@ -476,48 +560,57 @@ def comprobar(viajes: list[Viaje], estado_path: Path, resumen: bool = False) -> 
     consultas = errores = 0
     estado = cargar_estado(estado_path)
     for viaje in viajes:
-        origen, destino = obtener_estacion(viaje.origen), obtener_estacion(viaje.destino)
+        avion = viaje.medio == "avion"
+        if avion:
+            nombre_o, nombre_d = viaje.origen, viaje.destino
+        else:
+            origen, destino = obtener_estacion(viaje.origen), obtener_estacion(viaje.destino)
+            nombre_o, nombre_d = origen.nombre, destino.nombre
+        fuente = "Google Flights" if avion else "Renfe"
         del_viaje: list[Tren] = []
         de_cada_fecha: list[tuple[Consulta, list[Tren]]] = []
         for fecha in viaje.fechas:
-            etiqueta = f"{origen.nombre} → {destino.nombre} {fecha}"
+            etiqueta = f"{'✈️' if avion else '🚆'} {nombre_o} → {nombre_d} {fecha}"
             if fecha < hoy:
                 print(f"{etiqueta}: fecha pasada, se ignora")
                 continue
             consultas += 1
             try:
-                trenes = consultar_renfe(origen, destino, fecha)
-            except (requests.RequestException, ErrorRenfe, KeyError, ValueError) as e:
+                trenes = consultar_vuelos(viaje, fecha) if avion else consultar_renfe(origen, destino, fecha)
+            except Exception as e:  # noqa: BLE001 - una fuente caída no debe impedir avisar de la otra
                 errores += 1
-                print(f"{etiqueta}: ERROR consultando Renfe: {e!r}", file=sys.stderr)
+                print(f"{etiqueta}: ERROR consultando {fuente}: {e!r}", file=sys.stderr)
                 resultados.append(
-                    Consulta(origen.nombre, destino.nombre, fecha, [], set(), set(), type(e).__name__)
+                    Consulta(nombre_o, nombre_d, fecha, [], set(), set(), type(e).__name__, viaje.medio)
                 )
                 continue
             con_precio = [t for t in trenes if t.disponible and t.precio is not None]
             minimo = min((t.precio for t in con_precio), default=None)
             print(
-                f"{etiqueta}: {len(trenes)} trenes, {len(con_precio)} con plazas"
+                f"{etiqueta}: {len(trenes)} {'vuelos' if avion else 'trenes'}, {len(con_precio)} con precio"
                 + (f", más barato {minimo:.2f} €" if minimo is not None else "")
             )
             filtrados = trenes_en_rango(trenes, viaje)
             del_viaje += filtrados
-            consulta = Consulta(origen.nombre, destino.nombre, fecha, trenes, {t.clave for t in filtrados}, set())
+            consulta = Consulta(
+                nombre_o, nombre_d, fecha, trenes, {t.clave for t in filtrados}, set(), medio=viaje.medio
+            )
             resultados.append(consulta)
             de_cada_fecha.append((consulta, filtrados))
-            time.sleep(2)  # no encadenar peticiones a Renfe
+            time.sleep(2)  # no encadenar peticiones
         nuevos = nuevos_para_avisar(del_viaje, estado)
         for consulta, filtrados in de_cada_fecha:
             consulta.nuevos = {t.clave for t in filtrados if t in nuevos}
+        tope = f"{viaje.precio_max:.2f}" if viaje.precio_max is not None else "∞"
         print(
-            f"{origen.nombre} → {destino.nombre} en rango "
-            f"[{viaje.precio_min:.2f}-{viaje.precio_max:.2f} €, {viaje.hora_desde}-{viaje.hora_hasta}"
+            f"{nombre_o} → {nombre_d} en rango "
+            f"[{viaje.precio_min:.2f}-{tope} €, {viaje.hora_desde}-{viaje.hora_hasta}"
             + (f", máx. {formatear_duracion(viaje.duracion_max)}" if viaje.duracion_max else "")
             + "]: "
             f"{len(del_viaje)}; nuevos: {len(nuevos)}"
         )
         if nuevos:
-            avisos.append(formatear_aviso(origen.nombre, destino.nombre, nuevos))
+            avisos.append(formatear_aviso(nombre_o, nombre_d, nuevos, viaje.medio))
         en_rango += del_viaje
 
     if resumen and resultados:

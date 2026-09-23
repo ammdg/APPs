@@ -1,4 +1,4 @@
-# Vigilante de precios Renfe
+# Vigilante de precios Renfe (y vuelos)
 
 Comprueba cada hora los precios de un trayecto en venta.renfe.com y te avisa (Telegram o
 [ntfy](https://ntfy.sh)) cuando algún tren tiene plazas y su precio está en tu rango.
@@ -51,6 +51,31 @@ todos los trenes con plazas, con horario, duración y precio, aunque no haya cam
 - 🆕 es nuevo o ha bajado de precio desde el último aviso; el mensaje empieza por "🔔 ¡Novedades!".
 
 Con `false` solo recibes mensaje cuando hay novedades.
+
+### Vuelos (Google Flights)
+
+La sección `vuelos` de `config.json` añade al mismo mensaje los vuelos de avión:
+
+```json
+"vuelos": {
+  "activo": true,
+  "aerolineas": ["IB"],
+  "solo_directos": true,
+  "precio_max": null,
+  "viajes": [
+    { "origen": "MAD", "destino": "PNA", "fecha": "2026-10-02" },
+    { "origen": "PNA", "destino": "MAD", "fecha": "2026-10-04", "hora_desde": "16:00" }
+  ]
+}
+```
+
+- `origen`/`destino` son códigos de aeropuerto (MAD, PNA…); `aerolineas`, códigos IATA (IB = Iberia).
+- Admite los mismos filtros que los trenes (`precio_max`, `hora_desde`, `hora_hasta`, `duracion_max`),
+  pero los de fuera de `vuelos` no se aplican a los vuelos. `precio_max: null` = sin límite.
+- Los precios salen de Google Flights con la librería [fast-flights](https://github.com/AWeirdDev/flights):
+  1 adulto, turista, solo ida. Pueden no coincidir al céntimo con iberia.com ni incluir equipaje.
+- Si Google Flights falla, el mensaje lo indica con ⚠️ y los trenes se siguen enviando.
+- `"activo": false` desactiva los vuelos sin borrar la configuración.
 
 ## 2. Elige cómo recibir los avisos
 
