@@ -1,4 +1,5 @@
 {
+  "resumen_cada_hora": true,
   "precio_min": 0,
   "precio_max": 60,
   "tipos_tren": null,

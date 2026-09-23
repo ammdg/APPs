@@ -25,6 +25,7 @@ import unicodedata
 import urllib.parse
 from dataclasses import dataclass
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -45,6 +46,8 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 FECHA = "%d/%m/%Y"
+ZONA = ZoneInfo("Europe/Madrid")
+DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
 
 
 class ErrorRenfe(Exception):
@@ -387,6 +390,52 @@ def formatear_aviso(origen: str, destino: str, trenes: list[Tren]) -> str:
     return "\n".join(lineas)
 
 
+@dataclass
+class Consulta:
+    """Resultado de consultar un sentido en una fecha, para el resumen horario."""
+
+    origen: str
+    destino: str
+    fecha: date
+    trenes: list[Tren]
+    en_rango: set[str]  # claves de los trenes que cumplen todos los filtros
+    nuevos: set[str]  # claves de los que son nuevos o han bajado de precio
+    error: str | None = None
+
+
+def _euros(precio: float) -> str:
+    return f"{precio:.2f} €".replace(".", ",")
+
+
+def formatear_resumen(consultas: list[Consulta], ahora: datetime) -> str:
+    """Listado de todos los trenes con plazas; ✅ = cumple tus filtros, 🆕 = novedad desde el último aviso."""
+    hay_novedades = any(c.nuevos for c in consultas)
+    cabecera = "🔔 ¡Novedades!" if hay_novedades else "🕐 Sin cambios"
+    lineas = [f"{cabecera} · {ahora:%H:%M} del {ahora:%d/%m}"]
+    for c in consultas:
+        lineas += ["", f"🚆 {c.origen} → {c.destino} · {DIAS[c.fecha.weekday()]} {c.fecha:%d/%m}"]
+        if c.error:
+            lineas.append(f"⚠️ No se pudo consultar Renfe: {c.error}")
+            continue
+        disponibles = sorted(
+            (t for t in c.trenes if t.disponible and t.precio is not None), key=lambda t: t.salida
+        )
+        if not disponibles:
+            lineas.append("Ningún tren con plazas.")
+        for t in disponibles:
+            marca = "✅" if t.clave in c.en_rango else "▫️"
+            nuevo = " 🆕" if t.clave in c.nuevos else ""
+            lineas.append(
+                f"{marca} {t.salida}-{t.llegada} ({formatear_duracion(t.duracion_min)}) "
+                f"{t.tipo} {_euros(t.precio)}{nuevo}"
+            )
+        completos = len(c.trenes) - len(disponibles)
+        if completos:
+            lineas.append(f"(+{completos} sin plazas)")
+    lineas += ["", "✅ cumple tus filtros · 🆕 nuevo o más barato", "Compra: https://www.renfe.com"]
+    return "\n".join(lineas)
+
+
 def notificar(texto: str) -> list[str]:
     """Envía el aviso por los canales configurados en variables de entorno. Devuelve los usados."""
     usados = []
@@ -418,15 +467,18 @@ def notificar(texto: str) -> list[str]:
 # --------------------------------------------------------------------------- orquestación
 
 
-def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
+def comprobar(viajes: list[Viaje], estado_path: Path, resumen: bool = False) -> int:
+    """Consulta todos los viajes. Avisa si hay novedades o, con resumen=True, siempre con el listado."""
     hoy = date.today()
     en_rango: list[Tren] = []
     avisos: list[str] = []
+    resultados: list[Consulta] = []
     consultas = errores = 0
     estado = cargar_estado(estado_path)
     for viaje in viajes:
         origen, destino = obtener_estacion(viaje.origen), obtener_estacion(viaje.destino)
         del_viaje: list[Tren] = []
+        de_cada_fecha: list[tuple[Consulta, list[Tren]]] = []
         for fecha in viaje.fechas:
             etiqueta = f"{origen.nombre} → {destino.nombre} {fecha}"
             if fecha < hoy:
@@ -438,6 +490,9 @@ def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
             except (requests.RequestException, ErrorRenfe, KeyError, ValueError) as e:
                 errores += 1
                 print(f"{etiqueta}: ERROR consultando Renfe: {e!r}", file=sys.stderr)
+                resultados.append(
+                    Consulta(origen.nombre, destino.nombre, fecha, [], set(), set(), type(e).__name__)
+                )
                 continue
             con_precio = [t for t in trenes if t.disponible and t.precio is not None]
             minimo = min((t.precio for t in con_precio), default=None)
@@ -445,9 +500,15 @@ def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
                 f"{etiqueta}: {len(trenes)} trenes, {len(con_precio)} con plazas"
                 + (f", más barato {minimo:.2f} €" if minimo is not None else "")
             )
-            del_viaje += trenes_en_rango(trenes, viaje)
+            filtrados = trenes_en_rango(trenes, viaje)
+            del_viaje += filtrados
+            consulta = Consulta(origen.nombre, destino.nombre, fecha, trenes, {t.clave for t in filtrados}, set())
+            resultados.append(consulta)
+            de_cada_fecha.append((consulta, filtrados))
             time.sleep(2)  # no encadenar peticiones a Renfe
         nuevos = nuevos_para_avisar(del_viaje, estado)
+        for consulta, filtrados in de_cada_fecha:
+            consulta.nuevos = {t.clave for t in filtrados if t in nuevos}
         print(
             f"{origen.nombre} → {destino.nombre} en rango "
             f"[{viaje.precio_min:.2f}-{viaje.precio_max:.2f} €, {viaje.hora_desde}-{viaje.hora_hasta}"
@@ -459,8 +520,11 @@ def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
             avisos.append(formatear_aviso(origen.nombre, destino.nombre, nuevos))
         en_rango += del_viaje
 
-    if avisos:
+    if resumen and resultados:
+        texto = formatear_resumen(resultados, datetime.now(ZONA))
+    else:
         texto = "\n\n".join(avisos)
+    if texto:
         print(texto)
         try:
             notificar(texto)
@@ -493,11 +557,12 @@ def main() -> int:
         return 0 if notificar("✅ Prueba del vigilante de precios Renfe") else 1
 
     viajes = cargar_config(a.config)
+    resumen = bool(json.loads(a.config.read_text(encoding="utf-8")).get("resumen_cada_hora", False))
     if not a.cada:
-        return comprobar(viajes, a.estado)
+        return comprobar(viajes, a.estado, resumen)
     while True:
         print(f"--- {datetime.now():%Y-%m-%d %H:%M}")
-        comprobar(viajes, a.estado)
+        comprobar(viajes, a.estado, resumen)
         time.sleep(a.cada * 60)
 
 
