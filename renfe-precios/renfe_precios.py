@@ -142,6 +142,16 @@ def _a_precio(valor: Any) -> float | None:
         return None
 
 
+def _minutos(hhmm: str) -> int:
+    h, m = hhmm.split(":")
+    return int(h) * 60 + int(m)
+
+
+def _duracion_por_horas(salida: str, llegada: str) -> int:
+    """Duración a partir de las horas; si llega pasada la medianoche, suma un día."""
+    return (_minutos(llegada) - _minutos(salida)) % (24 * 60)
+
+
 def parsear_trenes(datos: dict[str, Any], fecha: date, sentido: str = "") -> list[Tren]:
     trenes = []
     # listadoTrenes[0] es la ida; solo pedimos ida.
@@ -158,7 +168,8 @@ def parsear_trenes(datos: dict[str, Any], fecha: date, sentido: str = "") -> lis
                 fecha=fecha,
                 salida=t["horaSalida"],
                 llegada=t["horaLlegada"],
-                duracion_min=int(t.get("duracionViajeTotalEnMinutos") or 0),
+                duracion_min=int(t.get("duracionViajeTotalEnMinutos") or 0)
+                or _duracion_por_horas(t["horaSalida"], t["horaLlegada"]),
                 precio=precio,
                 disponible=bool(disponible),
                 tipo=t.get("tipoTrenUno") or "N/A",
@@ -288,6 +299,7 @@ class Viaje:
     hora_desde: str = "00:00"
     hora_hasta: str = "23:59"
     tipos_tren: list[str] | None = None  # p. ej. ["AVE", "ALVIA"]; None = todos
+    duracion_max: int | None = None  # minutos; None = sin límite
 
     @classmethod
     def desde_dict(cls, d: dict[str, Any], defecto: dict[str, Any]) -> "Viaje":
@@ -301,11 +313,25 @@ class Viaje:
             precio_max=float(d["precio_max"]),
             hora_desde=d.get("hora_desde", "00:00"),
             hora_hasta=d.get("hora_hasta", "23:59"),
+            duracion_max=_a_duracion(d.get("duracion_max")),
             tipos_tren=[t.upper() for t in d["tipos_tren"]] if d.get("tipos_tren") else None,
         )
         if viaje.precio_min > viaje.precio_max:
             raise SystemExit(f"{viaje.origen} → {viaje.destino}: precio_min mayor que precio_max")
         return viaje
+
+
+def _a_duracion(valor: Any) -> int | None:
+    """Acepta minutos (200) o "horas:minutos" ("3:30"). None o "" = sin límite."""
+    if valor in (None, ""):
+        return None
+    if isinstance(valor, str) and ":" in valor:
+        return _minutos(valor)
+    return int(valor)
+
+
+def formatear_duracion(minutos: int) -> str:
+    return f"{minutos // 60}h{minutos % 60:02d}"
 
 
 def cargar_config(path: Path) -> list[Viaje]:
@@ -324,6 +350,7 @@ def trenes_en_rango(trenes: list[Tren], cfg: Viaje) -> list[Tren]:
         and cfg.precio_min <= t.precio <= cfg.precio_max
         and cfg.hora_desde <= t.salida <= cfg.hora_hasta
         and (cfg.tipos_tren is None or t.tipo.upper() in cfg.tipos_tren)
+        and (cfg.duracion_max is None or t.duracion_min <= cfg.duracion_max)
     ]
 
 
@@ -352,7 +379,10 @@ def actualizar_estado(estado: dict[str, float], en_rango: list[Tren], hoy: date)
 def formatear_aviso(origen: str, destino: str, trenes: list[Tren]) -> str:
     lineas = [f"🚆 {origen} → {destino}: {len(trenes)} tren(es) en tu rango de precio"]
     for t in sorted(trenes, key=lambda t: (t.fecha, t.salida)):
-        lineas.append(f"• {t.fecha.strftime('%d/%m')} {t.salida}-{t.llegada} {t.tipo}: {t.precio:.2f} €")
+        lineas.append(
+            f"• {t.fecha.strftime('%d/%m')} {t.salida}-{t.llegada} ({formatear_duracion(t.duracion_min)}) "
+            f"{t.tipo}: {t.precio:.2f} €"
+        )
     lineas.append("Compra: https://www.renfe.com")
     return "\n".join(lineas)
 
@@ -420,7 +450,9 @@ def comprobar(viajes: list[Viaje], estado_path: Path) -> int:
         nuevos = nuevos_para_avisar(del_viaje, estado)
         print(
             f"{origen.nombre} → {destino.nombre} en rango "
-            f"[{viaje.precio_min:.2f}-{viaje.precio_max:.2f} €, {viaje.hora_desde}-{viaje.hora_hasta}]: "
+            f"[{viaje.precio_min:.2f}-{viaje.precio_max:.2f} €, {viaje.hora_desde}-{viaje.hora_hasta}"
+            + (f", máx. {formatear_duracion(viaje.duracion_max)}" if viaje.duracion_max else "")
+            + "]: "
             f"{len(del_viaje)}; nuevos: {len(nuevos)}"
         )
         if nuevos:

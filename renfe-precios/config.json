@@ -2,6 +2,7 @@
   "precio_min": 0,
   "precio_max": 60,
   "tipos_tren": null,
+  "duracion_max": "3:30",
   "viajes": [
     {
       "origen": "MADRID (TODAS)",
