@@ -171,3 +171,97 @@ def test_resumen_muestra_errores_de_consulta(tmp_path, monkeypatch):
     c = cfg(origen="MADRID (TODAS)", destino="PAMPLONA/IRUÑA")
     assert rp.comprobar([c], tmp_path / "estado.json", resumen=True) == 1
     assert "⚠️ No se pudo consultar Renfe" in enviados[0]
+
+
+# ------------------------------------------------------------------ vuelos (Google Flights simulado)
+
+from fast_flights.exceptions import FlightsNotFound
+from fast_flights.model import Airport, CarbonEmission, Flights, SimpleDatetime, SingleFlight
+
+
+def _vuelo(salida, llegada, precio, fecha=(2030, 1, 10), tramos=1, aerolinea="Iberia"):
+    def tramo(h1, h2):
+        return SingleFlight(Airport("Madrid", "MAD"), Airport("Pamplona", "PNA"),
+                            SimpleDatetime(fecha, h1), SimpleDatetime(fecha, h2), 65, "CRJ1000")
+    return Flights("IB", precio, [aerolinea], [tramo(salida, llegada)] * tramos, CarbonEmission(0, 0))
+
+
+def vuelo_cfg(**kw):
+    base = dict(origen="MAD", destino="PNA", fechas=[FECHA], precio_min=0, precio_max=None, medio="avion",
+                aerolineas=["IB"], solo_directos=True)
+    return rp.Viaje(**{**base, **kw})
+
+
+def test_consultar_vuelos_directos_y_mas_baratos(monkeypatch):
+    import fast_flights
+    pedidas = []
+
+    def falso(q):
+        pedidas.append(q)
+        return [_vuelo((7, 5), (8, 10), 89), _vuelo((7, 5), (8, 10), 64),  # misma hora, 2 tarifas
+                _vuelo((15, 40), (16, 45), 120),
+                _vuelo((9, 0), (13, 0), 50, tramos=2),                     # con escala: fuera
+                _vuelo((22, 0), (23, 5), 70, fecha=(2030, 1, 11))]        # otro día: fuera
+    monkeypatch.setattr(fast_flights, "get_flights", falso)
+    vuelos = rp.consultar_vuelos(vuelo_cfg(), FECHA)
+    assert sorted((v.salida, v.precio, v.duracion_min) for v in vuelos) == [
+        ("07:05", 64.0, 65), ("15:40", 120.0, 65)]
+    assert all(v.tipo == "Iberia" and v.sentido == "MAD>PNA avion" for v in vuelos)
+    info = pedidas[0].pb().data[0]
+    assert info.max_stops == 0 and list(info.airlines) == ["IB"]
+    assert pedidas[0].currency == "EUR"
+
+
+def test_consultar_vuelos_sin_resultados(monkeypatch):
+    import fast_flights
+
+    def falso(q):
+        raise FlightsNotFound("nada")
+
+    monkeypatch.setattr(fast_flights, "get_flights", falso)
+    assert rp.consultar_vuelos(vuelo_cfg(), FECHA) == []
+
+
+def test_sin_limite_de_precio_en_vuelos():
+    v = rp.Tren(FECHA, "07:05", "08:10", 65, 350.0, True, "Iberia", "MAD>PNA avion")
+    assert rp.trenes_en_rango([v], vuelo_cfg()) == [v]
+
+
+def test_config_con_vuelos(tmp_path):
+    f = tmp_path / "config.json"
+    f.write_text(json.dumps({
+        "precio_max": 60, "duracion_max": "3:30",
+        "viajes": [{"origen": "MADRID (TODAS)", "destino": "PAMPLONA/IRUÑA", "fecha": "2030-10-02"}],
+        "vuelos": {"aerolineas": ["ib"], "solo_directos": True, "precio_max": None, "viajes": [
+            {"origen": "mad", "destino": "pna", "fecha": "2030-10-02"},
+            {"origen": "PNA", "destino": "MAD", "fecha": "2030-10-04", "hora_desde": "16:00"}]},
+    }))
+    tren, ida, vuelta = rp.cargar_config(f)
+    assert tren.medio == "tren" and tren.precio_max == 60
+    assert (ida.medio, ida.origen, ida.aerolineas, ida.precio_max) == ("avion", "MAD", ["IB"], None)
+    assert ida.duracion_max is None  # los ajustes de trenes no se aplican a los vuelos
+    assert vuelta.hora_desde == "16:00"
+
+
+def test_resumen_con_trenes_y_vuelos_y_fallo_de_google(tmp_path, monkeypatch):
+    enviados = []
+    monkeypatch.setattr(rp, "consultar_renfe",
+                        lambda o, d, f: rp.parsear_trenes(rp.extraer_lista_trenes(RESPUESTA_DWR), f,
+                                                          f"{o.codigo}>{d.codigo}"))
+
+    def vuelos(viaje, fecha):
+        if viaje.origen == "PNA":
+            raise RuntimeError("bloqueado")
+        return [rp.Tren(fecha, "07:05", "08:10", 65, 64.0, True, "Iberia", "MAD>PNA avion")]
+
+    monkeypatch.setattr(rp, "consultar_vuelos", vuelos)
+    monkeypatch.setattr(rp, "notificar", enviados.append)
+    monkeypatch.setattr(rp.time, "sleep", lambda s: None)
+    viajes = [cfg(origen="MADRID (TODAS)", destino="PAMPLONA/IRUÑA"), vuelo_cfg(),
+              vuelo_cfg(origen="PNA", destino="MAD")]
+    assert rp.comprobar(viajes, tmp_path / "estado.json", resumen=True) == 0  # los trenes sí funcionaron
+    texto = enviados[0]
+    assert "🚆 MADRID (TODAS) → PAMPLONA/IRUÑA" in texto
+    assert "✈️ MAD → PNA" in texto and "✅ 07:05-08:10 (1h05) Iberia 64,00 € 🆕" in texto
+    assert "✈️ PNA → MAD" in texto and "⚠️ No se pudo consultar Google Flights: RuntimeError" in texto
+    assert "Vuelos: https://www.iberia.com" in texto
