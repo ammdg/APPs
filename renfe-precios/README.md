@@ -29,7 +29,8 @@ Los campos que pongas fuera de `viajes` valen para todos; los de dentro mandan s
 ```
 
 Campos: `fecha` (o `fechas`, una lista), `precio_min`, `precio_max`, `hora_desde`, `hora_hasta`
-(por defecto 00:00-23:59, hora de salida del tren) y `tipos_tren`.
+(por defecto 00:00-23:59, hora de salida del tren), `tipos_tren` y `duracion_max` (duración máxima
+del trayecto, en `"horas:minutos"` como `"3:30"` o en minutos como `210`; `null` = sin límite).
 
 Los nombres de estación tienen que ser exactamente los de Renfe. Para buscarlos:
 

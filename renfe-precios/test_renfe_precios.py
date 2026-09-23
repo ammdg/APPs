@@ -103,9 +103,35 @@ def test_config_con_viajes_y_valores_comunes(tmp_path):
         "viajes": [
             {"origen": "MADRID (TODAS)", "destino": "PAMPLONA/IRUÑA", "fecha": "2030-10-02"},
             {"origen": "PAMPLONA/IRUÑA", "destino": "MADRID (TODAS)", "fecha": "2030-10-04",
-             "precio_max": 30},
+             "precio_max": 30, "duracion_max": "3:30"},
         ],
     }))
     ida, vuelta = rp.cargar_config(f)
     assert ida.fechas == [date(2030, 10, 2)] and ida.hora_desde == "16:00" and ida.precio_max == 50
     assert vuelta.precio_max == 30 and vuelta.hora_desde == "16:00"
+    assert ida.duracion_max is None and vuelta.duracion_max == 210
+
+
+def test_duracion_maxima():
+    trenes = rp.parsear_trenes(rp.extraer_lista_trenes(RESPUESTA_DWR), FECHA)
+    assert [t.salida for t in rp.trenes_en_rango(trenes, cfg(duracion_max=150))] == ["07:00"]
+    assert rp.trenes_en_rango(trenes, cfg(duracion_max=149)) == []
+
+
+def test_formatos_de_duracion():
+    assert rp._a_duracion("3:30") == 210
+    assert rp._a_duracion(200) == 200
+    assert rp._a_duracion(None) is None
+    assert rp.formatear_duracion(204) == "3h24"
+
+
+def test_duracion_se_calcula_si_renfe_no_la_da():
+    datos = {"listadoTrenes": [{"listviajeViewEnlaceBean": [
+        {"horaSalida": "22:30", "horaLlegada": "01:10", "tarifaMinima": "30,00", "completo": False,
+         "razonNoDisponible": "", "soloPlazaH": False, "tipoTrenUno": "ALVIA"}]}]}
+    assert rp.parsear_trenes(datos, FECHA)[0].duracion_min == 160
+
+
+def test_aviso_muestra_duracion():
+    t = rp.Tren(FECHA, "07:32", "10:56", 204, 39.6, True, "ALVIA")
+    assert "07:32-10:56 (3h24) ALVIA: 39.60 €" in rp.formatear_aviso("A", "B", [t])
