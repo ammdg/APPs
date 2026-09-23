@@ -41,6 +41,17 @@ python renfe_precios.py --buscar-estacion sevilla
 `tipos_tren` puede ser `null` (todos) o una lista, p. ej. `["AVE", "AVLO"]`. El texto es el que
 devuelve Renfe; revisa la salida de una ejecución para ver los valores reales.
 
+### Resumen cada hora
+
+Con `"resumen_cada_hora": true` (arriba del todo en `config.json`) recibes cada hora el listado de
+todos los trenes con plazas, con horario, duración y precio, aunque no haya cambios:
+
+- ✅ cumple tus filtros (precio, horario, duración, tipo de tren).
+- ▫️ tiene plazas pero no cumple algún filtro.
+- 🆕 es nuevo o ha bajado de precio desde el último aviso; el mensaje empieza por "🔔 ¡Novedades!".
+
+Con `false` solo recibes mensaje cuando hay novedades.
+
 ## 2. Elige cómo recibir los avisos
 
 **Telegram**: habla con @BotFather, crea un bot y copia el token. Escribe algo a tu bot y abre

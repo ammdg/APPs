@@ -135,3 +135,39 @@ def test_duracion_se_calcula_si_renfe_no_la_da():
 def test_aviso_muestra_duracion():
     t = rp.Tren(FECHA, "07:32", "10:56", 204, 39.6, True, "ALVIA")
     assert "07:32-10:56 (3h24) ALVIA: 39.60 €" in rp.formatear_aviso("A", "B", [t])
+
+
+def test_resumen_cada_hora_aunque_no_haya_cambios(tmp_path, monkeypatch):
+    enviados = []
+    monkeypatch.setattr(rp, "consultar_renfe",
+                        lambda o, d, f: rp.parsear_trenes(rp.extraer_lista_trenes(RESPUESTA_DWR), f,
+                                                          f"{o.codigo}>{d.codigo}"))
+    monkeypatch.setattr(rp, "notificar", enviados.append)
+    monkeypatch.setattr(rp.time, "sleep", lambda s: None)
+    c = cfg(origen="MADRID (TODAS)", destino="PAMPLONA/IRUÑA")
+    estado = tmp_path / "estado.json"
+    assert rp.comprobar([c], estado, resumen=True) == 0
+    assert rp.comprobar([c], estado, resumen=True) == 0
+    assert len(enviados) == 2
+    primero, segundo = enviados
+    assert primero.startswith("🔔 ¡Novedades!") and "AVLO 35,50 € 🆕" in primero
+    assert segundo.startswith("🕐 Sin cambios")
+    assert not [linea for linea in segundo.splitlines() if linea.endswith("🆕")]
+    # lista todos los trenes con plazas (también los que no cumplen filtros), con duración
+    assert "✅ 07:00-09:30 (2h30) AVLO 35,50 €" in segundo
+    assert "▫️ 08:00-10:30 (2h30) AVE 62,10 €" in segundo
+    assert "▫️ 23:00-01:30 (2h30) AVE 20,00 €" in segundo
+    assert "(+1 sin plazas)" in segundo
+
+
+def test_resumen_muestra_errores_de_consulta(tmp_path, monkeypatch):
+    enviados = []
+
+    def falla(o, d, f):
+        raise rp.ErrorRenfe("x")
+
+    monkeypatch.setattr(rp, "consultar_renfe", falla)
+    monkeypatch.setattr(rp, "notificar", enviados.append)
+    c = cfg(origen="MADRID (TODAS)", destino="PAMPLONA/IRUÑA")
+    assert rp.comprobar([c], tmp_path / "estado.json", resumen=True) == 1
+    assert "⚠️ No se pudo consultar Renfe" in enviados[0]
