@@ -38,7 +38,7 @@ Los siguientes más baratos (por encima del límite):
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 
 Google Flights solo admite un destino por consulta, así que se hacen dos fases: primero la ida de
-todos los destinos y después la vuelta solo de los que ya caben en el presupuesto. Con ~100 destinos
+todos los destinos y después la vuelta solo de los que ya caben en el presupuesto. Con ~90 destinos
 son unas 200-250 consultas y tarda ~15-20 minutos. Si Google falla 6 veces seguidas, la búsqueda se
 interrumpe y el mensaje lo indica con ⚠️.
 
