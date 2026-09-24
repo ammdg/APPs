@@ -116,3 +116,43 @@ def test_config_real_valida():
     assert c.origen == "MAD" and c.pasajeros == 4 and c.precio_max_persona == 150 and c.solo_directos
     assert c.fechas_ida == [I1, I2] and c.fechas_vuelta == [V1, V2]
     assert all(len(k) == 3 and k.isalpha() for k in c.destinos)
+
+
+# --------------------------------------------------------------- lectura de Google Flights (simulada)
+
+import fast_flights
+import fast_flights.parser
+
+
+def _google(monkeypatch, html, parse):
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
+    monkeypatch.setattr(fast_flights.parser, "parse", parse)
+
+
+def test_dia_sin_vuelos_directos_no_es_error(monkeypatch):
+    # Así falló en la primera ejecución real: TypeError("'NoneType' object is not subscriptable").
+    def sin_lista(html):
+        return None[0]
+
+    _google(monkeypatch, '<script class="ds:1">...</script>', sin_lista)
+    assert vb.buscar_vuelo_mas_barato("MAD", "VGO", I1, True) is None
+
+
+def test_pagina_sin_datos_si_es_error(monkeypatch):
+    _google(monkeypatch, "<html>captcha</html>", lambda h: [])
+    try:
+        vb.buscar_vuelo_mas_barato("MAD", "LIS", I1, True)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("debería contar como fallo de Google")
+
+
+def test_muchos_destinos_sin_vuelos_no_interrumpen(monkeypatch):
+    def solo_lisboa(o, d, f, directos):
+        return falso(o, d, f, directos) if "LIS" in (o, d) else None
+
+    destinos = {f"X{i:02d}": "Sin vuelos" for i in range(20)} | {"LIS": "Lisboa"}
+    resultados, avisos = vb.buscar(cfg(destinos=destinos), solo_lisboa)
+    assert avisos == []
+    assert {r.destino: r.precio for r in resultados}["LIS"] == 95

@@ -95,7 +95,8 @@ class Resultado:
 
 def buscar_vuelo_mas_barato(origen: str, destino: str, fecha: date, solo_directos: bool) -> Vuelo | None:
     """El vuelo más barato de un día (1 adulto, turista, solo ida). None si no hay ninguno."""
-    from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query, get_flights
+    from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query, fetch_flights_html
+    from fast_flights.parser import parse
 
     consulta = create_query(
         flights=[
@@ -111,9 +112,15 @@ def buscar_vuelo_mas_barato(origen: str, destino: str, fecha: date, solo_directo
         language="es",
         currency="EUR",
     )
+    # Los errores de red se propagan (cuentan como fallo de Google). En cambio, cuando un día no hay
+    # vuelos que cumplan el filtro, Google devuelve la página sin lista y fast-flights 3.1.0 falla al
+    # leerla con TypeError/IndexError: eso es "sin vuelos", no un error.
+    html = fetch_flights_html(consulta)
+    if "ds:1" not in html:  # el bloque de datos que lee fast-flights
+        raise RuntimeError("Google Flights no devolvió resultados (¿bloqueo o cambio en la web?)")
     try:
-        resultados = get_flights(consulta)
-    except FlightsNotFound:
+        resultados = parse(html)
+    except (FlightsNotFound, TypeError, IndexError):
         return None
 
     mejor: Vuelo | None = None
