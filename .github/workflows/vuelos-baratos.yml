@@ -2,7 +2,10 @@ name: Vuelos baratos
 
 on:
   schedule:
-    - cron: "17 6 * * *" # una vez al día, 08:17 hora de Madrid en verano (07:17 en invierno)
+    # GitHub programa en UTC y no sigue el cambio de hora, así que hay dos horarios y cada día
+    # solo se ejecuta el que cae a las 07:00 de Madrid (ver el job "hora").
+    - cron: "0 5 * * *" # 07:00 en Madrid con horario de verano (UTC+2)
+    - cron: "0 6 * * *" # 07:00 en Madrid con horario de invierno (UTC+1)
   workflow_dispatch:
 
 concurrency:
@@ -10,7 +13,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  hora:
+    runs-on: ubuntu-latest
+    outputs:
+      toca: ${{ steps.decidir.outputs.toca }}
+    steps:
+      - id: decidir
+        env:
+          HORARIO: ${{ github.event.schedule }}
+        run: |
+          # Lanzado a mano: siempre. Programado: solo el horario que corresponde al cambio de hora
+          # vigente en Madrid (se mira qué cron lo lanzó, no la hora real, por si GitHub se retrasa).
+          desfase=$(TZ=Europe/Madrid date +%z)
+          if [ -z "$HORARIO" ] \
+             || { [ "$HORARIO" = "0 5 * * *" ] && [ "$desfase" = "+0200" ]; } \
+             || { [ "$HORARIO" = "0 6 * * *" ] && [ "$desfase" = "+0100" ]; }; then
+            echo "toca=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "toca=false" >> "$GITHUB_OUTPUT"
+            echo "Horario '$HORARIO' no corresponde a las 07:00 de Madrid (desfase $desfase); se omite."
+          fi
+
   buscar:
+    needs: hora
+    if: needs.hora.outputs.toca == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:

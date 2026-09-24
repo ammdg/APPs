@@ -46,7 +46,8 @@ La lista de destinos inicial es aproximada: si un destino no tiene vuelo directo
 
 ## Ejecución
 
-- Automática: `.github/workflows/vuelos-baratos.yml`, cada día a las 08:17 (hora de Madrid en verano).
+- Automática: `.github/workflows/vuelos-baratos.yml`, cada día a las 07:00 hora de Madrid, en verano
+  y en invierno (el mensaje llega unos minutos después, lo que tarda la búsqueda).
 - Manual: *Actions → Vuelos baratos → Run workflow*.
 - Para pararlo: *Actions → Vuelos baratos → ⋯ → Disable workflow*.
 - En local: `pip install -r requirements.txt && python vuelos_baratos.py`.
