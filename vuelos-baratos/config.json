@@ -10,7 +10,8 @@
   ],
   "pasajeros": 4,
   "precio_max_persona": 150,
-  "solo_directos": true,
+  "incluir_escalas": true,
+  "escala_max_minutos": 180,
   "mostrar_por_encima": 5,
   "pausa_segundos": 2,
   "destinos": {

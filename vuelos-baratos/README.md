@@ -18,6 +18,9 @@ Los siguientes más baratos (por encima del límite):
 ...
 ```
 
+- ✅ DIRECTOS: ida y vuelta sin escalas. 🔁 CON 1 ESCALA: la combinación más barata con escala
+  (de como mucho `escala_max_minutos`) en algún trayecto, solo si sale más barata que la directa.
+  Se descartan los billetes separados y el "autotransbordo". Una sola consulta a Google trae ambos tipos.
 - 🆕 destino que aparece por primera vez; 📉/📈 el precio ha bajado/subido desde el día anterior.
 - Precio = ida más barata + vuelta más barata (dos billetes de solo ida), por persona; el total
   multiplica por el número de pasajeros. Un billete de ida y vuelta puede salir distinto.
@@ -32,7 +35,8 @@ Los siguientes más baratos (por encima del límite):
 | `fechas_ida`, `fechas_vuelta` | Fechas posibles (AAAA-MM-DD); se elige la combinación más barata |
 | `pasajeros` | Para calcular el total |
 | `precio_max_persona` | Límite de "barato", ida y vuelta por persona |
-| `solo_directos` | `true` = solo vuelos sin escalas |
+| `incluir_escalas` | `true` = además de los directos, busca vuelos con 1 escala (apartado 🔁) |
+| `escala_max_minutos` | Espera máxima en la escala, en minutos (180 = 3 h) |
 | `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia |
 | `pausa_segundos` | Espera entre consultas a Google (no bajarla mucho) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
