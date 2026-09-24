@@ -1,0 +1,48 @@
+name: Vuelos baratos
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # una vez al día, 08:17 hora de Madrid en verano (07:17 en invierno)
+  workflow_dispatch:
+
+concurrency:
+  group: vuelos-baratos
+  cancel-in-progress: false
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      # Recupera el precio anterior de cada destino para marcar bajadas (📉) y novedades (🆕).
+      - uses: actions/cache/restore@v4
+        with:
+          path: vuelos-baratos/historial.json
+          key: vuelos-historial-${{ github.run_id }}
+          restore-keys: vuelos-historial-
+
+      - name: Buscar vuelos
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python vuelos_baratos.py
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: vuelos-baratos/historial.json
+          key: vuelos-historial-${{ github.run_id }}
