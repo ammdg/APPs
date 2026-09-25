@@ -193,7 +193,6 @@ def vuelo_cfg(**kw):
 
 
 def test_consultar_vuelos_directos_y_mas_baratos(monkeypatch):
-    import fast_flights
     pedidas = []
 
     def falso(q):
@@ -202,7 +201,7 @@ def test_consultar_vuelos_directos_y_mas_baratos(monkeypatch):
                 _vuelo((15, 40), (16, 45), 120),
                 _vuelo((9, 0), (13, 0), 50, tramos=2),                     # con escala: fuera
                 _vuelo((22, 0), (23, 5), 70, fecha=(2030, 1, 11))]        # otro día: fuera
-    monkeypatch.setattr(fast_flights, "get_flights", falso)
+    monkeypatch.setattr(rp, "obtener_vuelos", falso)
     vuelos = rp.consultar_vuelos(vuelo_cfg(), FECHA)
     assert sorted((v.salida, v.precio, v.duracion_min) for v in vuelos) == [
         ("07:05", 64.0, 65), ("15:40", 120.0, 65)]
@@ -213,12 +212,10 @@ def test_consultar_vuelos_directos_y_mas_baratos(monkeypatch):
 
 
 def test_consultar_vuelos_sin_resultados(monkeypatch):
-    import fast_flights
-
     def falso(q):
         raise FlightsNotFound("nada")
 
-    monkeypatch.setattr(fast_flights, "get_flights", falso)
+    monkeypatch.setattr(rp, "obtener_vuelos", falso)
     assert rp.consultar_vuelos(vuelo_cfg(), FECHA) == []
 
 
@@ -265,3 +262,29 @@ def test_resumen_con_trenes_y_vuelos_y_fallo_de_google(tmp_path, monkeypatch):
     assert "✈️ MAD → PNA" in texto and "✅ 07:05-08:10 (1h05) Iberia 64,00 € 🆕" in texto
     assert "✈️ PNA → MAD" in texto and "⚠️ No se pudo consultar Google Flights: RuntimeError" in texto
     assert "Vuelos: https://www.iberia.com" in texto
+
+
+def _itinerario_google(precio, hora):
+    tramo = [None] * 22
+    tramo[3], tramo[4], tramo[5], tramo[6] = "MAD", "Madrid", "Pamplona", "PNA"
+    tramo[8], tramo[10], tramo[11], tramo[17] = [hora], [hora + 1], 65, "CRJ1000"
+    tramo[20], tramo[21] = list(FECHA.timetuple()[:3]), list(FECHA.timetuple()[:3])
+    vuelo = [None] * 23
+    vuelo[0], vuelo[1], vuelo[2] = "IB", ["Iberia"], [tramo]
+    vuelo[22] = [None] * 9
+    return [vuelo, [[None, precio]]]
+
+
+def test_lee_tambien_las_mejores_opciones(monkeypatch):
+    # fast-flights 3.1.0 solo lee payload[3]; lo más barato suele estar en payload[2] ("mejores opciones").
+    import fast_flights
+
+    payload = [None] * 8
+    payload[2] = [[_itinerario_google(64, 7), []]]  # el segundo, sin precio legible, se descarta
+    payload[3] = [[_itinerario_google(120, 15)]]
+    payload[7] = [None, [[], []]]
+    html = (f'<script class="ds:1">AF_initDataCallback({{key: \'ds:1\', data:{json.dumps(payload)}, '
+            f'sideChannel: {{}}}});</script>')
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
+    vuelos = rp.consultar_vuelos(vuelo_cfg(), FECHA)
+    assert sorted((v.salida, v.precio) for v in vuelos) == [("07:00", 64.0), ("15:00", 120.0)]
