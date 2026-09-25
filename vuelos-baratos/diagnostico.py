@@ -16,6 +16,8 @@ from fast_flights import FlightQuery, Passengers, create_query, fetch_flights_ht
 from fast_flights.parser import parse
 from selectolax.lexbor import LexborHTMLParser
 
+from vuelos_baratos import juntar_mejores_opciones
+
 
 def resumen_itinerario(k) -> str:
     try:
@@ -56,6 +58,11 @@ def diagnosticar(origen: str, destino: str, fecha: date, max_stops: int | None, 
         print("fast-flights parse ->", len(r), "itinerarios")
     except Exception as e:  # noqa: BLE001
         print("fast-flights parse -> EXCEPCIÓN", type(e).__name__, e)
+    try:
+        r = parse(juntar_mejores_opciones(html))
+        print("con mejores opciones ->", len(r), "itinerarios, mínimo", min((x.price for x in r), default=None))
+    except Exception as e:  # noqa: BLE001
+        print("con mejores opciones -> EXCEPCIÓN", type(e).__name__, e)
 
     script = LexborHTMLParser(html).css_first(r"script.ds\:1")
     if script is None:
@@ -82,13 +89,7 @@ def main() -> int:
         ruta, f = arg.split(":")
         o, d = ruta.split("-")
         fecha = date.fromisoformat(f)
-        pruebas = [
-            dict(max_stops=1, layover=180, intento=1),
-            dict(max_stops=1, layover=180, intento=2),
-            dict(max_stops=1, layover=180, intento=3),
-            dict(max_stops=None, layover=None),
-            dict(max_stops=None, layover=None, vuelta=date(2027, 6, 27)) if o == "MAD" else None,
-        ]
+        pruebas = [dict(max_stops=1, layover=180)]
         for p in filter(None, pruebas):
             try:
                 diagnosticar(o, d, fecha, **p)

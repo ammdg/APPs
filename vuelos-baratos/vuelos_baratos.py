@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import random
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -152,6 +153,43 @@ def _minutos_entre(llegada, salida) -> int:
     return int((b - a).total_seconds() // 60)
 
 
+def _con_precio(itinerario: Any) -> bool:
+    try:
+        return itinerario[1][0][1] is not None
+    except (TypeError, IndexError):
+        return False
+
+
+def juntar_mejores_opciones(html: str) -> str:
+    """Hace que fast-flights lea también el bloque "Mejores opciones" de Google Flights.
+
+    Google reparte los vuelos en dos listas: "mejores opciones" (payload[2]) y el resto (payload[3]).
+    fast-flights 3.1.0 solo lee la segunda, y en la primera suelen estar los más baratos (p. ej. MAD-OPO a
+    32 € salía a 44 €). Aquí se juntan ambas en payload[3] y se quitan los itinerarios sin precio, que
+    harían fallar la lectura de toda la página. Si el HTML no tiene la forma esperada, se devuelve igual.
+    """
+    m = re.search(r'(<script[^>]*class="ds:1"[^>]*>)(.*?)(</script>)', html, re.S)
+    if not m:
+        return html
+    try:
+        cabeza, resto = m.group(2).split("data:", 1)
+        datos, cola = resto.rsplit(",", 1)
+        payload = json.loads(datos)
+        mejores = (payload[2] or [None])[0] or []
+        otros = (payload[3] or [None])[0] or []
+    except (ValueError, TypeError, IndexError, KeyError):
+        return html
+    todos = [k for k in [*mejores, *otros] if _con_precio(k)]
+    if not todos:
+        return html
+    if payload[3]:
+        payload[3][0] = todos
+    else:
+        payload[3] = [todos]
+    js = cabeza + "data:" + json.dumps(payload, ensure_ascii=False).replace("</", "<\\/") + "," + cola
+    return html[: m.start(2)] + js + html[m.end(2) :]
+
+
 def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opciones:
     """Lo más barato de un día (1 adulto, turista, solo ida): directo y, si se piden, con 1 escala corta.
 
@@ -184,7 +222,7 @@ def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opci
     if "ds:1" not in html:  # el bloque de datos que lee fast-flights
         raise RuntimeError("Google Flights no devolvió resultados (¿bloqueo o cambio en la web?)")
     try:
-        resultados = parse(html)
+        resultados = parse(juntar_mejores_opciones(html))
     except (FlightsNotFound, TypeError, IndexError):
         return Opciones()
 
