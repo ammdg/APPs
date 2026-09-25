@@ -12,7 +12,7 @@
   "precio_max_persona": 150,
   "incluir_escalas": true,
   "escala_max_minutos": 180,
-  "mostrar_por_encima": 5,
+  "mostrar_por_encima": 0,
   "pausa_segundos": 2,
   "destinos": {
     "LIS": "Lisboa",
