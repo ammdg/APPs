@@ -37,7 +37,7 @@ Los siguientes más baratos (por encima del límite):
 | `precio_max_persona` | Límite de "barato", ida y vuelta por persona |
 | `incluir_escalas` | `true` = además de los directos, busca vuelos con 1 escala (apartado 🔁) |
 | `escala_max_minutos` | Espera máxima en la escala, en minutos (180 = 3 h) |
-| `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia |
+| `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia en cada apartado (directos y con escala) |
 | `pausa_segundos` | Espera entre consultas a Google (no bajarla mucho) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 

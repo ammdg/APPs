@@ -302,12 +302,13 @@ def formatear_mensaje(
     escalas = sorted(((r, r.con_escala) for r in resultados if r.con_escala), key=lambda x: x[1].precio)
     directos_baratos = [x for x in directos if x[1].precio < limite]
     escalas_baratas = [x for x in escalas if x[1].precio < limite]
-    # Referencia: los destinos más baratos por encima del límite, con su mejor opción.
+    # Referencia en cada apartado: los siguientes más baratos por encima del límite, sin repetir
+    # destinos que ya tienen alguna opción por debajo.
     con_barato = {r.destino for r, _ in directos_baratos + escalas_baratas}
-    caros = sorted(
-        ((r, r.mejor) for r in resultados if r.mejor and r.destino not in con_barato),
-        key=lambda x: x[1].precio,
-    )[: cfg.mostrar_por_encima]
+    directos_caros = [x for x in directos if x[1].precio >= limite and x[0].destino not in con_barato]
+    escalas_caras = [x for x in escalas if x[1].precio >= limite and x[0].destino not in con_barato]
+    directos_caros = directos_caros[: cfg.mostrar_por_encima]
+    escalas_caras = escalas_caras[: cfg.mostrar_por_encima]
 
     ida = "/".join(f"{f:%d}" for f in cfg.fechas_ida)
     vuelta = "/".join(f"{f:%d}" for f in cfg.fechas_vuelta)
@@ -338,6 +339,10 @@ def formatear_mensaje(
         lineas += bloque(r, c)
     if not directos_baratos:
         lineas.append("Ninguno hoy.")
+    if directos_caros:
+        lineas += ["", "Siguientes directos más baratos (por encima del límite):"]
+        for r, c in directos_caros:
+            lineas += bloque(r, c)
 
     if cfg.incluir_escalas:
         horas = f"{cfg.escala_max_minutos // 60}h" + (
@@ -348,11 +353,10 @@ def formatear_mensaje(
             lineas += bloque(r, c)
         if not escalas_baratas:
             lineas.append("Ninguno hoy.")
-
-    if caros:
-        lineas += ["", "Los siguientes más baratos (por encima del límite):"]
-        for r, c in caros:
-            lineas += bloque(r, c)
+        if escalas_caras:
+            lineas += ["", "Siguientes con escala más baratos (por encima del límite):"]
+            for r, c in escalas_caras:
+                lineas += bloque(r, c)
     for a in avisos:
         lineas += ["", f"⚠️ {a}"]
     lineas += [
