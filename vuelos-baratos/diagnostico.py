@@ -7,7 +7,9 @@ Solo lee la página; no manda avisos.
 from __future__ import annotations
 
 import json
+import re
 import sys
+import time
 from datetime import date
 
 from fast_flights import FlightQuery, Passengers, create_query, fetch_flights_html
@@ -30,16 +32,25 @@ def resumen_itinerario(k) -> str:
         return f"(no se pudo leer: {type(e).__name__}: {e})"
 
 
-def diagnosticar(origen: str, destino: str, fecha: date, max_stops: int, layover: int | None) -> None:
-    print(f"\n===== {origen}-{destino} {fecha} max_stops={max_stops} layover={layover}")
+def diagnosticar(origen: str, destino: str, fecha: date, max_stops: int | None, layover: int | None,
+                 vuelta: date | None = None, intento: int = 1) -> None:
+    print(f"\n===== {origen}-{destino} {fecha} vuelta={vuelta} max_stops={max_stops} "
+          f"layover={layover} intento={intento}")
+    tramos = [FlightQuery(date=fecha.isoformat(), from_airport=origen, to_airport=destino,
+                          max_stops=max_stops, max_layover_minutes=layover)]
+    if vuelta:
+        tramos.append(FlightQuery(date=vuelta.isoformat(), from_airport=destino, to_airport=origen,
+                                  max_stops=max_stops, max_layover_minutes=layover))
     consulta = create_query(
-        flights=[FlightQuery(date=fecha.isoformat(), from_airport=origen, to_airport=destino,
-                             max_stops=max_stops, max_layover_minutes=layover)],
-        trip="one-way", passengers=Passengers(adults=1), language="es", currency="EUR",
+        flights=tramos, trip="round-trip" if vuelta else "one-way",
+        passengers=Passengers(adults=1), language="es", currency="EUR",
         hide_separate_and_self_transfer=True,
     )
     html = fetch_flights_html(consulta)
     print("tamaño html:", len(html), "| tiene ds:1:", "ds:1" in html)
+    bloques = re.findall(r"<script[^>]*class=\"ds:(\d+)\"", html)
+    print("bloques ds:", bloques, "| veces que sale", destino, ":", html.count(destino),
+          "| 'GetShoppingResults' en html:", "GetShoppingResults" in html)
     try:
         r = parse(html)
         print("fast-flights parse ->", len(r), "itinerarios")
@@ -71,11 +82,19 @@ def main() -> int:
         ruta, f = arg.split(":")
         o, d = ruta.split("-")
         fecha = date.fromisoformat(f)
-        for max_stops, layover in ((1, 180), (1, None)):
+        pruebas = [
+            dict(max_stops=1, layover=180, intento=1),
+            dict(max_stops=1, layover=180, intento=2),
+            dict(max_stops=1, layover=180, intento=3),
+            dict(max_stops=None, layover=None),
+            dict(max_stops=None, layover=None, vuelta=date(2027, 6, 27)) if o == "MAD" else None,
+        ]
+        for p in filter(None, pruebas):
             try:
-                diagnosticar(o, d, fecha, max_stops, layover)
+                diagnosticar(o, d, fecha, **p)
             except Exception as e:  # noqa: BLE001
                 print("ERROR", type(e).__name__, e)
+            time.sleep(4)
     return 0
 
 
