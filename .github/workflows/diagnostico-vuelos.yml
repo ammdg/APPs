@@ -6,7 +6,7 @@ on:
     inputs:
       rutas:
         description: "Rutas ORIGEN-DESTINO:fecha separadas por espacios"
-        default: "MAD-HAJ:2027-06-19 HAJ-MAD:2027-06-27 MAD-SXB:2027-06-19 MAD-ORK:2027-06-19 MAD-BTS:2027-06-19"
+        default: "MAD-HAJ:2027-06-19 MAD-ORK:2027-06-19 MAD-OPO:2027-06-19"
 
 jobs:
   diagnostico:

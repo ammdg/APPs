@@ -244,3 +244,46 @@ def test_muchos_destinos_sin_vuelos_no_interrumpen():
     resultados, avisos = vb.buscar(cfg(destinos=destinos), falso)
     assert avisos == []
     assert por_destino(resultados)["LIS"].directo.precio == 95
+
+
+def _itinerario_google(precio, destino, hora):
+    tramo = [None] * 22
+    tramo[3], tramo[4], tramo[5], tramo[6] = "MAD", "Madrid", destino, destino
+    tramo[8], tramo[10], tramo[11], tramo[17] = [hora], [hora + 2], 120, "A320"
+    tramo[20], tramo[21] = [2027, 6, 19], [2027, 6, 19]
+    vuelo = [None] * 23
+    vuelo[0], vuelo[1], vuelo[2] = "x", ["Aerolínea"], [tramo]
+    vuelo[22] = [None] * 9
+    return [vuelo, [[None, precio]]]
+
+
+def _pagina_google(mejores, otros):
+    payload = [None] * 8
+    payload[2] = [mejores] if mejores is not None else None
+    payload[3] = [otros] if otros is not None else None
+    payload[7] = [None, [[], []]]
+    datos = json.dumps(payload)
+    return f'<html><script class="ds:1" nonce="n">AF_initDataCallback({{key: \'ds:1\', data:{datos}, sideChannel: {{}}}});</script></html>'
+
+
+def test_lee_tambien_las_mejores_opciones(monkeypatch):
+    # fast-flights 3.1.0 solo lee payload[3]; lo más barato suele estar en payload[2] ("mejores opciones").
+    html = _pagina_google(
+        [_itinerario_google(32, "OPO", 6), [["roto"], None]],  # el segundo, sin precio, se descarta
+        [_itinerario_google(44, "OPO", 11)],
+    )
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
+    op = vb.buscar_opciones("MAD", "OPO", I1, cfg())
+    assert (op.directo.precio, op.directo.salida) == (32, "06:00")
+
+
+def test_solo_mejores_opciones(monkeypatch):
+    html = _pagina_google([_itinerario_google(50, "OPO", 9)], None)
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
+    assert vb.buscar_opciones("MAD", "OPO", I1, cfg()).directo.precio == 50
+
+
+def test_pagina_sin_ninguna_lista_es_sin_vuelos(monkeypatch):
+    html = _pagina_google(None, None)
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
+    assert vb.buscar_opciones("MAD", "HAJ", I1, cfg()) == vb.Opciones()
