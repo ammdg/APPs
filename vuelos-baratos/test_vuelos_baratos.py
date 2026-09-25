@@ -78,16 +78,34 @@ def test_mensaje_con_dos_apartados():
     resultados, avisos = vb.buscar(cfg(), falso)
     texto = vb.formatear_mensaje(cfg(), resultados, {"LIS": 120.0, "CDG+escala": 120.0}, avisos, AHORA)
     directos = texto.index("✅ DIRECTOS")
+    directos_ref = texto.index("Siguientes directos más baratos (por encima del límite):")
     escalas = texto.index("🔁 CON 1 ESCALA (máx. 3h)")
-    referencia = texto.index("Los siguientes")
-    assert directos < texto.index("Lisboa (LIS): 95 €/pers · 380 € total 📉 antes 120 €") < escalas
-    assert escalas < texto.index("Oslo (OSL): 115 €/pers · 460 € total 🆕") < referencia
-    assert escalas < texto.index("París (CDG): 130 €/pers · 520 € total 📈 antes 120 €") < referencia
+    assert directos < texto.index("Lisboa (LIS): 95 €/pers · 380 € total 📉 antes 120 €") < directos_ref
+    assert directos_ref < texto.index("Nueva York (JFK): 800 €") < escalas
+    assert escalas < texto.index("Oslo (OSL): 115 €/pers · 460 € total 🆕")
+    assert escalas < texto.index("París (CDG): 130 €/pers · 520 € total 📈 antes 120 €")
     assert "ida sáb 19/06 07:00-12:30 Otra (escala CPH 1h35)" in texto
     assert "vuelta sáb 26/06 08:00-09:10 Aerolínea" in texto  # tramo directo dentro de una combinación
-    assert texto.index("Nueva York (JFK): 800 €") > referencia
     assert "París (CDG): 170" not in texto  # el directo caro no se repite si hay opción barata con escala
     assert "Marrakech" not in texto
+
+
+def test_escalas_por_encima_del_limite_se_muestran_como_referencia():
+    # Con límite 100 no hay ninguna opción con escala barata, pero se enseñan las siguientes.
+    c = cfg(precio_max_persona=100)
+    resultados, _ = vb.buscar(c, falso)
+    texto = vb.formatear_mensaje(c, resultados, {}, [], AHORA)
+    escalas = texto.index("🔁 CON 1 ESCALA")
+    ref = texto.index("Siguientes con escala más baratos (por encima del límite):")
+    assert escalas < texto.index("Ninguno hoy.", escalas) < ref
+    assert ref < texto.index("Oslo (OSL): 115 €") < texto.index("París (CDG): 130 €")
+    assert "Lisboa (LIS): 95" in texto and texto.count("Lisboa") == 1  # barato directo: no se repite
+
+
+def test_referencia_limitada_a_mostrar_por_encima():
+    resultados, _ = vb.buscar(cfg(precio_max_persona=10), falso)
+    texto = vb.formatear_mensaje(cfg(precio_max_persona=10, mostrar_por_encima=1), resultados, {}, [], AHORA)
+    assert "Oslo (OSL)" in texto and "París (CDG): 130" not in texto
 
 
 def test_sin_escalas_no_hay_apartado():
