@@ -1,0 +1,28 @@
+name: Diagnóstico vuelos
+
+# Solo a mano: muestra qué devuelve Google Flights para unas rutas (no manda avisos).
+on:
+  workflow_dispatch:
+    inputs:
+      rutas:
+        description: "Rutas ORIGEN-DESTINO:fecha separadas por espacios"
+        default: "MAD-HAJ:2027-06-19 HAJ-MAD:2027-06-27 MAD-SXB:2027-06-19 MAD-ORK:2027-06-19 MAD-BTS:2027-06-19"
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python diagnostico.py $RUTAS
+        env:
+          RUTAS: ${{ inputs.rutas }}
