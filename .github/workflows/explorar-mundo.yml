@@ -1,0 +1,111 @@
+name: Explorar aeropuertos del mundo
+
+# Exploración puntual (solo a mano): consulta todos los aeropuertos de vuelos-baratos/aeropuertos_mundo.json
+# repartidos en partes que se ejecutan a la vez, y manda un informe por Telegram.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: explorar-mundo
+  cancel-in-progress: false
+
+env:
+  PARTES_IDA: 20
+  PARTES_VUELTA: 10
+
+jobs:
+  ida:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python explorar.py ida --parte ${{ matrix.parte }} --de $PARTES_IDA
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ida-${{ matrix.parte }}
+          path: vuelos-baratos/ida_${{ matrix.parte }}.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  vuelta:
+    needs: ida
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ida-*
+          path: vuelos-baratos
+          merge-multiple: true
+      - run: python explorar.py vuelta --parte ${{ matrix.parte }} --de $PARTES_VUELTA
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vuelta-${{ matrix.parte }}
+          path: vuelos-baratos/vuelta_${{ matrix.parte }}.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  informe:
+    needs: vuelta
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*-*"
+          path: vuelos-baratos
+          merge-multiple: true
+      - name: Informe
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python explorar.py informe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exploracion
+          path: |
+            vuelos-baratos/exploracion.json
+            vuelos-baratos/exploracion.md
+          retention-days: 90

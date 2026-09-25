@@ -1,2 +1,6 @@
 historial.json
 __pycache__/
+ida_*.json
+vuelta_*.json
+exploracion.json
+exploracion.md
