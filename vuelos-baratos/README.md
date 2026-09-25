@@ -57,3 +57,19 @@ La lista de destinos inicial es aproximada: si un destino no tiene vuelo directo
 - En local: `pip install -r requirements.txt && python vuelos_baratos.py`.
 
 Pruebas: `pip install pytest && python -m pytest -q`.
+
+## Exploración mundial (puntual)
+
+`explorar.py` + `.github/workflows/explorar-mundo.yml` (*Actions → Explorar aeropuertos del mundo → Run
+workflow*, solo a mano) consultan **todos** los aeropuertos de `aeropuertos_mundo.json`: 3.202 aeropuertos
+medianos y grandes con vuelos regulares y código IATA, sin España, sacados de
+[OurAirports](https://github.com/davidmegginson/ourairports-data) (dominio público), con su distancia a Madrid.
+
+1. **Ida** en 20 partes a la vez: ida más barata (directa o 1 escala ≤ 3 h) de cada aeropuerto.
+2. **Vuelta** en 10 partes, solo para los que tienen ida por debajo del precio máximo.
+3. **Informe** por Telegram (en varios mensajes si hace falta): destinos por debajo de 150 €/persona,
+   cuántos hay por tramos de distancia y el más lejano. Los que bajan de 250 € se guardan en
+   `exploracion.json` (artefacto de la ejecución) para ampliar la lista de la búsqueda diaria.
+
+Usa las fechas, escalas y precio de `config.json`. Si Google corta una parte, el informe lista los
+aeropuertos que no se pudieron consultar.
