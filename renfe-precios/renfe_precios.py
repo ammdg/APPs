@@ -291,12 +291,58 @@ def consultar_renfe(origen: Estacion, destino: Estacion, fecha: date, timeout: i
 # --------------------------------------------------------------------------- consulta de vuelos
 
 
+def _precio_legible(itinerario: Any) -> bool:
+    try:
+        itinerario[1][0][1]
+        return True
+    except (TypeError, IndexError):
+        return False
+
+
+def juntar_mejores_opciones(html: str) -> str:
+    """Hace que fast-flights lea también el bloque "Mejores opciones" de Google Flights.
+
+    Google reparte los vuelos en dos listas: "mejores opciones" (payload[2]) y el resto (payload[3]).
+    fast-flights 3.1.0 solo lee la segunda, y en la primera suelen estar los más baratos. Aquí se juntan
+    ambas en payload[3] y se quitan los itinerarios cuyo precio no se puede leer, que harían fallar la
+    lectura de toda la página. Si el HTML no tiene la forma esperada, se devuelve igual.
+    """
+    m = re.search(r'(<script[^>]*class="ds:1"[^>]*>)(.*?)(</script>)', html, re.S)
+    if not m:
+        return html
+    try:
+        cabeza, resto = m.group(2).split("data:", 1)
+        datos, cola = resto.rsplit(",", 1)
+        payload = json.loads(datos)
+        mejores = (payload[2] or [None])[0] or []
+        otros = (payload[3] or [None])[0] or []
+    except (ValueError, TypeError, IndexError, KeyError):
+        return html
+    todos = [k for k in [*mejores, *otros] if _precio_legible(k)]
+    if not todos:
+        return html
+    if payload[3]:
+        payload[3][0] = todos
+    else:
+        payload[3] = [todos]
+    js = cabeza + "data:" + json.dumps(payload, ensure_ascii=False).replace("</", "<\\/") + "," + cola
+    return html[: m.start(2)] + js + html[m.end(2) :]
+
+
+def obtener_vuelos(consulta: Any) -> list[Any]:
+    """Descarga la página de Google Flights y la lee con fast-flights, incluidas las "mejores opciones"."""
+    from fast_flights import fetch_flights_html
+    from fast_flights.parser import parse
+
+    return parse(juntar_mejores_opciones(fetch_flights_html(consulta)))
+
+
 def consultar_vuelos(viaje: Viaje, fecha: date) -> list[Tren]:
     """Vuelos de ida (1 adulto, turista) según Google Flights, vía la librería fast-flights.
 
     Se reutiliza Tren para que filtros, avisos y estado funcionen igual que con los trenes.
     """
-    from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query, get_flights
+    from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query
 
     consulta = create_query(
         flights=[
@@ -314,7 +360,7 @@ def consultar_vuelos(viaje: Viaje, fecha: date) -> list[Tren]:
         currency="EUR",
     )
     try:
-        resultados = get_flights(consulta)
+        resultados = obtener_vuelos(consulta)
     except FlightsNotFound:
         return []
 
