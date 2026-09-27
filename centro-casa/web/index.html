@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B6B64">
+<meta name="description" content="Centro de control de los aparatos de casa: Netatmo, Rain Bird, Wemo y cámaras YI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%230B6B64%22/%3E%3Cpath d=%22M7 16 16 8l9 8v8H19v-6h-6v6H7z%22 fill=%22%23fff%22/%3E%3C/svg%3E">
+<title>Mi casa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --surface2:#F3F6F5;
+  --ink:#12201E; --ink2:#41524F; --muted:#5B6D6A; --line:#D7DFDD;
+  --accent:#0B6B64; --accent-ink:#FFFFFF; --accent-soft:rgba(11,107,100,.13);
+  --water:#1D5FA8; --water-ink:#FFFFFF; --water-soft:rgba(29,95,168,.14);
+  --warm:#C2410C; --warm-soft:rgba(194,65,12,.14); --danger:#B42318;
+  --shadow:0 1px 2px rgba(18,32,30,.06),0 10px 28px rgba(18,32,30,.07);
+  --display:'Bricolage Grotesque','DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1413; --surface:#15201E; --surface2:#1B2927;
+    --ink:#E7F0EE; --ink2:#B4C4C0; --muted:#8CA09B; --line:#283735;
+    --accent:#4FC3B8; --accent-ink:#06201D; --accent-soft:rgba(79,195,184,.16);
+    --water:#6AA8EE; --water-ink:#0A1E33; --water-soft:rgba(106,168,238,.18);
+    --warm:#FB923C; --warm-soft:rgba(251,146,60,.2); --danger:#F97066;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1413; --surface:#15201E; --surface2:#1B2927;
+  --ink:#E7F0EE; --ink2:#B4C4C0; --muted:#8CA09B; --line:#283735;
+  --accent:#4FC3B8; --accent-ink:#06201D; --accent-soft:rgba(79,195,184,.16);
+  --water:#6AA8EE; --water-ink:#0A1E33; --water-soft:rgba(106,168,238,.18);
+  --warm:#FB923C; --warm-soft:rgba(251,146,60,.2); --danger:#F97066;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-.01em}
+.app{max-width:1100px;margin:0 auto;padding:14px 16px 48px;display:flex;flex-direction:column;gap:22px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{font-size:1.5rem}
+.top-actions{display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted);padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.pill[data-s="ok"]::before{background:var(--accent)}
+.pill[data-s="error"]::before{background:var(--danger)}
+.pill[data-s="demo"]::before{background:var(--warm)}
+.icon-btn{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.avisos{display:flex;flex-direction:column;gap:6px}
+.aviso{font-size:.85rem;color:var(--ink2);background:var(--warm-soft);border-radius:12px;padding:8px 12px}
+
+main{display:flex;flex-direction:column;gap:26px}
+section{display:flex;flex-direction:column;gap:10px}
+section>h2{font-size:1.05rem;color:var(--ink2)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.off{opacity:.6}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card h3{font-size:1rem;overflow-wrap:anywhere}
+.meta{font-size:.75rem;color:var(--muted)}
+.big{font-family:var(--display);font-size:2.1rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:1rem;color:var(--muted);font-weight:500}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;color:var(--ink2)}
+.stats b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.switch{position:relative;width:52px;height:30px;flex:none;border-radius:999px;border:0;background:var(--line);transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--accent)}
+.switch[aria-checked="true"]::after{transform:translateX(22px)}
+.switch:disabled{opacity:.5;cursor:default}
+
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:6px 12px;font-size:.85rem;font-weight:500;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.water{background:var(--water);color:var(--water-ink);border-color:transparent}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper .btn{width:38px;height:38px;padding:0;font-size:1.2rem;border-radius:12px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:5px 8px;font-size:.85rem}
+
+.zonas{display:flex;flex-direction:column;gap:6px}
+.zona{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:12px;background:var(--surface2)}
+.zona.on{background:var(--water-soft)}
+.zona .nombre{font-size:.9rem;min-width:0;overflow-wrap:anywhere}
+.zona.on .nombre::before{content:"💧 "}
+
+.cam img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;background:var(--surface2);display:block}
+
+.vacio{color:var(--muted);text-align:center;padding:40px 0}
+.login{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:16px;z-index:10}
+.login form{background:var(--surface);box-shadow:var(--shadow);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px}
+.login input{border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:10px 12px}
+.error{color:var(--danger);font-size:.85rem;min-height:1.2em;margin:0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:.9rem;max-width:calc(100% - 32px);z-index:20}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>Mi casa</h1>
+    <div class="top-actions">
+      <span class="pill" id="estado">Cargando…</span>
+      <button class="icon-btn" id="recargar" aria-label="Actualizar" title="Actualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="avisos" id="avisos"></div>
+  <main id="contenido"></main>
+</div>
+
+<div class="login" id="login" hidden>
+  <form id="form-login">
+    <h2>Mi casa</h2>
+    <label for="clave" class="meta">Clave de acceso (la de config.json)</label>
+    <input id="clave" type="password" autocomplete="current-password" required>
+    <p class="error" id="login-error"></p>
+    <button class="btn primary" type="submit">Entrar</button>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SECCIONES = [
+  {titulo: 'Clima', tipos: ['termostato', 'sensor']},
+  {titulo: 'Enchufes e interruptores', tipos: ['enchufe']},
+  {titulo: 'Riego', tipos: ['riego']},
+  {titulo: 'Cámaras', tipos: ['camara']},
+];
+const REFRESCO_MS = 30000;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (v, d = 1) => v == null ? '–' : Number(v).toLocaleString('es-ES', {maximumFractionDigits: d});
+let datos = {dispositivos: [], avisos: []};
+let ocupado = false;
+
+async function api(ruta, cuerpo) {
+  const r = await fetch(ruta, cuerpo === undefined ? {} : {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cuerpo)});
+  if (r.status === 401 && ruta !== '/api/entrar') { $('#login').hidden = false; throw new Error('sin sesión'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `error ${r.status}`);
+  return j;
+}
+
+function aviso(texto) {
+  const t = $('#toast');
+  t.textContent = texto; t.hidden = false;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => t.hidden = true, 4000);
+}
+
+async function cargar() {
+  if (ocupado) return;
+  ocupado = true;
+  $('#recargar').classList.add('spin');
+  try {
+    datos = await api('/api/estado');
+    const hora = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+    $('#estado').dataset.s = datos.demo ? 'demo' : 'ok';
+    $('#estado').textContent = datos.demo ? `Demostración · ${hora}` : `Actualizado ${hora}`;
+    pintar();
+  } catch (e) {
+    if (e.message !== 'sin sesión') {
+      $('#estado').dataset.s = 'error';
+      $('#estado').textContent = 'Sin conexión con el servidor';
+    }
+  } finally {
+    ocupado = false;
+    $('#recargar').classList.remove('spin');
+  }
+}
+
+async function hacer(id, accion, cuerpo = {}) {
+  try {
+    await api(`/api/dispositivos/${encodeURIComponent(id)}/${accion}`, cuerpo);
+  } catch (e) {
+    if (e.message !== 'sin sesión') aviso(e.message);
+  }
+  await cargar();
+}
+
+function tarjeta(d, cuerpo, extra = '') {
+  const off = d.estado.conectado === false;
+  return `<article class="card${off ? ' off' : ''}" data-id="${esc(d.id)}">
+    <div class="card-head"><div><h3>${esc(d.nombre)}</h3>
+    <div class="meta">${[d.marca, d.grupo].filter(Boolean).map(esc).join(' · ')}${off ? ' · sin conexión' : ''}</div></div>${extra}</div>
+    ${cuerpo}</article>`;
+}
+
+const PINTAR = {
+  sensor(d) {
+    const e = d.estado;
+    const s = [
+      e.humedad != null && `Humedad <b>${num(e.humedad, 0)} %</b>`,
+      e.co2 != null && `CO₂ <b>${num(e.co2, 0)} ppm</b>`,
+      e.ruido != null && `Ruido <b>${num(e.ruido, 0)} dB</b>`,
+      e.presion != null && `Presión <b>${num(e.presion, 0)} hPa</b>`,
+      e.lluvia_1h != null && `Lluvia 1 h <b>${num(e.lluvia_1h)} mm</b>`,
+      e.viento != null && `Viento <b>${num(e.viento, 0)} km/h</b>`,
+      e.bateria != null && `Batería <b>${num(e.bateria, 0)} %</b>`,
+    ].filter(Boolean).map(x => `<span>${x}</span>`).join('');
+    return tarjeta(d, `<div class="big">${num(e.temperatura)}<small> °C</small></div><div class="stats">${s}</div>`);
+  },
+  termostato(d) {
+    const e = d.estado;
+    const modo = {manual: 'Manual', schedule: 'Según programa', home: 'Según programa', away: 'Ausente', hg: 'Antiheladas', off: 'Apagado', max: 'Máximo'}[e.modo] || e.modo || '';
+    return tarjeta(d, `<div class="big">${num(e.temperatura)}<small> °C</small></div>
+      <div class="stats"><span>Consigna <b>${num(e.consigna)} °C</b></span><span>${esc(modo)}</span></div>
+      <div class="row">
+        <div class="stepper">
+          <button class="btn" data-act="bajar" aria-label="Bajar medio grado">−</button>
+          <button class="btn" data-act="subir" aria-label="Subir medio grado">+</button>
+        </div>
+        ${e.modo === 'manual' ? '<button class="btn" data-act="programa">Volver al programa</button>' : ''}
+      </div>`);
+  },
+  enchufe(d) {
+    const e = d.estado, off = e.conectado === false;
+    const s = [
+      e.potencia_w != null && `Consumo <b>${num(e.potencia_w)} W</b>`,
+      e.hoy_kwh != null && `Hoy <b>${num(e.hoy_kwh, 2)} kWh</b>`,
+    ].filter(Boolean).map(x => `<span>${x}</span>`).join('');
+    const brillo = e.brillo != null ? `<label class="meta">Brillo ${num(e.brillo, 0)} %
+      <input type="range" min="1" max="100" value="${e.brillo}" data-act="brillo"></label>` : '';
+    const sw = `<button class="switch" role="switch" aria-checked="${!!e.encendido}" aria-label="Encender o apagar" data-act="interruptor"${off ? ' disabled' : ''}></button>`;
+    return tarjeta(d, (s ? `<div class="stats">${s}</div>` : '') + brillo, sw);
+  },
+  riego(d) {
+    const e = d.estado;
+    const zonas = (e.zonas || []).map(z => `<div class="zona${z.regando ? ' on' : ''}">
+      <span class="nombre">${esc(z.nombre)}</span>
+      ${z.regando ? '<span class="meta">Regando</span>' : `<button class="btn water" data-act="regar" data-zona="${z.numero}">Regar</button>`}
+    </div>`).join('');
+    const regando = (e.zonas || []).some(z => z.regando);
+    const s = [
+      e.lluvia_detectada ? 'Sensor: <b>lluvia detectada</b>' : 'Sensor: <b>seco</b>',
+      `Retraso por lluvia <b>${e.retraso_lluvia_dias || 0} días</b>`,
+    ].map(x => `<span>${x}</span>`).join('');
+    const opcionesMin = [5, 10, 15, 20, 30, 45, 60].map(m => `<option value="${m}"${m === 10 ? ' selected' : ''}>${m} min</option>`).join('');
+    const opcionesDias = [0, 1, 2, 3, 5, 7, 14].map(n => `<option value="${n}"${n === (e.retraso_lluvia_dias || 0) ? ' selected' : ''}>${n ? n + ' días' : 'Sin retraso'}</option>`).join('');
+    return tarjeta(d, `<div class="stats">${s}</div>
+      <div class="row"><span class="meta">Tiempo</span><select data-campo="minutos" aria-label="Minutos de riego">${opcionesMin}</select>
+        ${regando ? '<button class="btn" data-act="parar">Parar riego</button>' : ''}</div>
+      <div class="zonas">${zonas}</div>
+      <div class="row"><span class="meta">Retraso por lluvia</span><select data-act="retraso" aria-label="Días de retraso">${opcionesDias}</select></div>`);
+  },
+  camara(d) {
+    const src = `/api/dispositivos/${encodeURIComponent(d.id)}/foto?t=${Date.now()}`;
+    return tarjeta(d, `<div class="cam"><img alt="Foto de ${esc(d.nombre)}" src="${src}" loading="lazy"
+      onerror="this.alt='La cámara no respondió'"></div>
+      <div class="row"><button class="btn" data-act="foto">Nueva foto</button></div>`);
+  },
+};
+
+function pintar() {
+  $('#avisos').innerHTML = datos.avisos.map(a => `<div class="aviso">${esc(a)}</div>`).join('');
+  const html = SECCIONES.map(sec => {
+    const lista = datos.dispositivos.filter(d => sec.tipos.includes(d.tipo))
+      .sort((a, b) => sec.tipos.indexOf(a.tipo) - sec.tipos.indexOf(b.tipo));
+    if (!lista.length) return '';
+    return `<section><h2>${sec.titulo}</h2><div class="grid">${lista.map(d => PINTAR[d.tipo](d)).join('')}</div></section>`;
+  }).join('');
+  // Las cámaras no se repintan en cada refresco para no pedir fotos sin parar
+  const fotos = new Map([...document.querySelectorAll('.cam img')].map(i => [i.closest('.card').dataset.id, i.src]));
+  $('#contenido').innerHTML = html || '<p class="vacio">No hay aparatos. Revisa config.json y los avisos de arriba.</p>';
+  document.querySelectorAll('.cam img').forEach(i => {
+    const previa = fotos.get(i.closest('.card').dataset.id);
+    if (previa) i.src = previa;
+  });
+}
+
+$('#contenido').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const card = b.closest('.card'), id = card.dataset.id;
+  const d = datos.dispositivos.find(x => x.id === id);
+  const act = b.dataset.act;
+  if (act === 'interruptor') {
+    b.setAttribute('aria-checked', String(!d.estado.encendido));
+    hacer(id, d.estado.encendido ? 'apagar' : 'encender');
+  } else if (act === 'subir' || act === 'bajar') {
+    const t = Math.round(((d.estado.consigna ?? 20) + (act === 'subir' ? .5 : -.5)) * 2) / 2;
+    hacer(id, 'consigna', {temperatura: Math.min(30, Math.max(5, t))});
+  } else if (act === 'programa' || act === 'parar') {
+    hacer(id, act);
+  } else if (act === 'regar') {
+    const minutos = Number(card.querySelector('[data-campo="minutos"]').value);
+    hacer(id, 'regar', {zona: Number(b.dataset.zona), minutos});
+  } else if (act === 'foto') {
+    card.querySelector('.cam img').src = `/api/dispositivos/${encodeURIComponent(id)}/foto?t=${Date.now()}`;
+  }
+});
+$('#contenido').addEventListener('change', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const id = el.closest('.card').dataset.id;
+  if (el.dataset.act === 'brillo') hacer(id, 'brillo', {brillo: Number(el.value)});
+  if (el.dataset.act === 'retraso') hacer(id, 'retraso', {dias: Number(el.value)});
+});
+$('#recargar').addEventListener('click', cargar);
+$('#form-login').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await api('/api/entrar', {clave: $('#clave').value});
+    $('#login').hidden = true; $('#login-error').textContent = '';
+    cargar();
+  } catch (err) { $('#login-error').textContent = err.message; }
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+setInterval(() => { if (!document.hidden) cargar(); }, REFRESCO_MS);
+cargar();
+</script>
+</body>
+</html>

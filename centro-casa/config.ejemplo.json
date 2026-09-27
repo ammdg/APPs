@@ -1,0 +1,38 @@
+{
+  "clave_acceso": "cambia-esta-clave",
+
+  "netatmo": {
+    "client_id": "TU_CLIENT_ID",
+    "client_secret": "TU_CLIENT_SECRET",
+    "refresh_token": "EL_REFRESH_TOKEN_GENERADO_EN_DEV_NETATMO",
+    "estaciones": true,
+    "termostatos": true,
+    "camaras": true
+  },
+
+  "rainbird": {
+    "controladores": [
+      {
+        "nombre": "Jardín",
+        "ip": "192.168.1.60",
+        "clave": "LA_CONTRASEÑA_DE_LA_APP_RAIN_BIRD",
+        "zonas": { "1": "Césped delantero", "2": "Setos", "3": "Huerto" }
+      }
+    ]
+  },
+
+  "wemo": {
+    "buscar": true,
+    "ips": []
+  },
+
+  "camaras": [
+    {
+      "nombre": "Entrada",
+      "marca": "YI",
+      "url_foto": "http://192.168.1.70:8080/cgi-bin/snapshot.sh?res=low",
+      "usuario": "",
+      "clave": ""
+    }
+  ]
+}

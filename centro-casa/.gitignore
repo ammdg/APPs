@@ -1,0 +1,5 @@
+# Contienen claves: no se suben al repositorio
+config.json
+netatmo_token.json
+.venv/
+__pycache__/
