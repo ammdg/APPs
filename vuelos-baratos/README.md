@@ -1,6 +1,6 @@
 # Buscador de vuelos baratos
 
-Una vez al día busca en Google Flights los vuelos de ida y vuelta más baratos desde Madrid a una lista
+Una vez al día busca en Google Flights el **billete de ida y vuelta** más barato desde Madrid a una lista
 de destinos y te manda el ranking por Telegram (o ntfy), usando los mismos secretos que el
 vigilante de Renfe.
 
@@ -8,24 +8,37 @@ vigilante de Renfe.
 
 ```
 ✈️ Vuelos baratos desde MAD · ida 19/20 → vuelta 26/27 06/2027 · 4 pers.
-🕐 24/09 08:17 · 87 de 109 destinos con vuelo de ida · solo directos
+🕐 27/09 07:12 · 80 de 91 destinos con billete de ida y vuelta
 
-✅ Por debajo de 150 €/persona ida y vuelta:
-• Lisboa (LIS): 95 €/pers · 380 € total 📉 antes 120 €
-   ida dom 20/06 08:00-09:10 TAP · vuelta dom 27/06 20:00-21:10 Iberia
-...
-Los siguientes más baratos (por encima del límite):
+✅ DIRECTOS por debajo de 150 €/persona ida y vuelta:
+• Berlín (BER): 137 €/pers · 548 € total 📉 antes 140 €
+   ida sáb 19/06 20:10-23:10 Iberia
+   vuelta sáb 26/06, horario a elegir en Google Flights
 ...
 ```
 
-- ✅ DIRECTOS: ida y vuelta sin escalas. 🔁 CON 1 ESCALA: la combinación más barata con escala
-  (de como mucho `escala_max_minutos`) en algún trayecto, solo si sale más barata que la directa.
-  Se descartan los billetes separados y el "autotransbordo". Una sola consulta a Google trae ambos tipos.
+- ✅ DIRECTOS: billete de ida y vuelta sin escalas. 🔁 CON 1 ESCALA: el billete más barato con escala
+  (de como mucho `escala_max_minutos`) en algún trayecto, solo si sale más barato que el directo.
+  Se descartan los billetes separados y el "autotransbordo".
 - 🆕 destino que aparece por primera vez; 📉/📈 el precio ha bajado/subido desde el día anterior.
-- Precio = ida más barata + vuelta más barata (dos billetes de solo ida), por persona; el total
-  multiplica por el número de pasajeros. Un billete de ida y vuelta puede salir distinto.
+- Precio = billete de ida y vuelta más barato (nunca dos de solo ida), por persona; el total
+  multiplica por el número de pasajeros. Google da el precio del billete completo y el horario de la
+  ida; el de la vuelta se elige al reservar (si la ida es directa y el billete lleva escala, la escala
+  está en la vuelta y el mensaje dice "con escala").
 - Se consulta 1 adulto: Google no garantiza que ese precio esté disponible para todos los pasajeros.
 - Sin equipaje facturado. Los precios pueden no coincidir al céntimo con la web de la aerolínea.
+
+## Mapa
+
+Cada mañana, además del mensaje, se publica un mapa interactivo en https://ammdg.github.io/APPs/vuelos-baratos/mapa/ con los
+destinos y su precio por persona (billete de ida y vuelta). Al pinchar en una ciudad se ven los vuelos
+(horario de la ida, fecha de la vuelta, total para todos) y un enlace a Google Flights con esa búsqueda.
+Se puede cambiar el precio máximo y ver solo directos o solo con escala. Es una página pública.
+
+GitHub Pages ya publica la rama `main`, así que el workflow solo guarda cada mañana `mapa/datos.json`
+en `main` (un commit al día de github-actions) y pide que se vuelva a publicar. Los datos los genera
+`vuelos_baratos.py` junto con el mensaje; las coordenadas de los aeropuertos están en `coordenadas.json`
+(de OurAirports).
 
 ## Configuración: `config.json`
 
@@ -39,11 +52,13 @@ Los siguientes más baratos (por encima del límite):
 | `escala_max_minutos` | Espera máxima en la escala, en minutos (180 = 3 h) |
 | `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia en cada apartado (directos y con escala) |
 | `pausa_segundos` | Espera entre consultas a Google (no bajarla mucho) |
+| `url_mapa` | Enlace al mapa que se añade al final del mensaje (vacío = sin enlace) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 
-Google Flights solo admite un destino por consulta, así que se hacen dos fases: primero la ida de
-todos los destinos y después la vuelta solo de los que ya caben en el presupuesto. Con ~90 destinos
-son unas 200-250 consultas y tarda ~15-20 minutos. Si Google falla 6 veces seguidas, la búsqueda se
+Google Flights solo admite un destino y unas fechas por consulta: cada destino son 4 combinaciones de
+fechas × (directo + con escala) = 8 consultas; con ~90 destinos, unas 730. Para que no tarde casi una
+hora, GitHub Actions reparte los destinos en 4 partes que se consultan a la vez y un último paso junta
+los resultados y manda el mensaje. Si Google falla 6 veces seguidas en una parte, esa parte se
 interrumpe y el mensaje lo indica con ⚠️.
 
 La lista de destinos inicial es aproximada: si un destino no tiene vuelo directo, simplemente no sale.
@@ -54,7 +69,7 @@ La lista de destinos inicial es aproximada: si un destino no tiene vuelo directo
   y en invierno (el mensaje llega unos minutos después, lo que tarda la búsqueda).
 - Manual: *Actions → Vuelos baratos → Run workflow*.
 - Para pararlo: *Actions → Vuelos baratos → ⋯ → Disable workflow*.
-- En local: `pip install -r requirements.txt && python vuelos_baratos.py`.
+- En local: `pip install -r requirements.txt && python vuelos_baratos.py` (todo en un proceso, ~45 min).
 
 Pruebas: `pip install pytest && python -m pytest -q`.
 
