@@ -38,6 +38,7 @@ Los siguientes más baratos (por encima del límite):
 | `incluir_escalas` | `true` = además de los directos, busca vuelos con 1 escala (apartado 🔁) |
 | `escala_max_minutos` | Espera máxima en la escala, en minutos (180 = 3 h) |
 | `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia en cada apartado (directos y con escala) |
+| `comprobar_ida_vuelta` | `true` = para los destinos cuya ida es barata pero la suma de dos solo idas no baja del límite, consulta también el billete de ida y vuelta (🎫), que a veces es más barato (p. ej. Iberia MAD-BER: 137 € frente a 78 + 73 €). Google solo da el horario de la ida; el de la vuelta se elige en Google Flights |
 | `pausa_segundos` | Espera entre consultas a Google (no bajarla mucho) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 

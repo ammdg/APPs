@@ -287,3 +287,64 @@ def test_pagina_sin_ninguna_lista_es_sin_vuelos(monkeypatch):
     html = _pagina_google(None, None)
     monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: html)
     assert vb.buscar_opciones("MAD", "HAJ", I1, cfg()) == vb.Opciones()
+
+
+# ------------------------------------------------------------------ billete de ida y vuelta (fase 3)
+
+BER = {("MAD", "BER", I1): vb.Opciones(d(I1, 78), e(I1, 109)), ("BER", "MAD", V1): vb.Opciones(d(V1, 73))}
+
+
+def billete(precio, fecha_ida=I1, fecha_vuelta=V1, escala_vuelta=None):
+    ida = vb.Vuelo(fecha_ida, "20:10", "23:10", float(precio), "Iberia")
+    return vb.Combinacion(ida, vb.Vuelo(fecha_vuelta, "", "", 0.0, "Iberia", escala_vuelta), billete_unico=True)
+
+
+def test_billete_ida_y_vuelta_mas_barato_que_dos_solo_idas():
+    # Caso real: MAD-BER 78 + 73 = 151 € en solo idas; Iberia ida y vuelta, 137 €.
+    pedidas = []
+
+    def falso_billete(o, dst, i, v, escalas, c):
+        pedidas.append((dst, i, v, escalas))
+        return billete(137) if (i, v, escalas) == (I1, V1, False) else None
+
+    c = cfg(destinos={"BER": "Berlín"}, comprobar_ida_vuelta=True)
+    r = por_destino(vb.buscar(c, lambda o, dst, f, c: BER.get((o, dst, f), vb.Opciones()), falso_billete)[0])
+    assert r["BER"].directo.precio == 137 and r["BER"].directo.billete_unico
+    assert r["BER"].con_escala is None
+    assert len(pedidas) == 8  # 4 combinaciones de fechas, directos y con escala (la ida tiene escala)
+    texto = vb.formatear_mensaje(c, list(r.values()), {}, [], AHORA)
+    assert "Berlín (BER): 137 €/pers · 548 € total · 🎫 billete ida y vuelta" in texto
+    assert "vuelta sáb 26/06 Iberia, horario a elegir en Google Flights" in texto
+
+
+def test_billete_solo_si_hace_falta():
+    pedidas = []
+
+    def falso_billete(o, dst, i, v, escalas, c):
+        pedidas.append(dst)
+        return None
+
+    vb.buscar(cfg(comprobar_ida_vuelta=True), falso, falso_billete)
+    # LIS (95) y OSL (115) ya cumplen, JFK y XXX no tienen ida barata, RAK no tiene vuelta: solo RAK.
+    assert set(pedidas) == {"RAK"}
+    pedidas.clear()
+    vb.buscar(cfg(comprobar_ida_vuelta=False), falso, falso_billete)
+    assert pedidas == []
+
+
+def test_billete_con_escala_solo_si_mejora_al_directo():
+    r = vb.Resultado("BER", "Berlín", billete_directo=billete(137),
+                     billete_escala=billete(140, escala_vuelta="?"))
+    assert r.directo.precio == 137 and r.con_escala is None
+    r.billete_escala = billete(120, escala_vuelta="?")
+    assert r.con_escala.precio == 120 and r.mejor.precio == 120
+
+
+def test_buscar_billete_lee_la_pagina_de_ida_y_vuelta(monkeypatch):
+    pedidas = []
+    html = _pagina_google([_itinerario_google(137, "BER", 20)], [_itinerario_google(160, "BER", 7)])
+    monkeypatch.setattr(fast_flights, "fetch_flights_html", lambda q: pedidas.append(q) or html)
+    c = vb.buscar_billete("MAD", "BER", I1, V1, False, cfg())
+    assert (c.precio, c.ida.salida, c.vuelta.fecha, c.billete_unico, c.con_escala) == (137, "20:00", V1, True, False)
+    info = pedidas[0].pb()
+    assert len(info.data) == 2 and info.data[1].max_stops == 0

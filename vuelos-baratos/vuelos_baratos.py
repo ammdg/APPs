@@ -9,6 +9,11 @@ Google solo admite un destino por consulta, así que se busca destino a destino 
 El precio de ida y vuelta es la suma de la ida y la vuelta más baratas (dos billetes de solo ida),
 por persona, y el total se calcula multiplicando por el número de pasajeros.
 
+3. Billete de ida y vuelta (si "comprobar_ida_vuelta" está activo): muchas aerolíneas (Iberia, Lufthansa…)
+   venden el billete de ida y vuelta más barato que dos de solo ida. Para los destinos cuya ida cabe en el
+   presupuesto pero la suma de solo idas no, se consulta también el billete de ida y vuelta. Google solo
+   da el horario de la ida y el precio total; el horario de la vuelta se elige en Google Flights.
+
 Uso:
     python vuelos_baratos.py                 # una búsqueda (lo que hace GitHub Actions)
     python vuelos_baratos.py --probar-aviso  # envía una notificación de prueba
@@ -69,6 +74,7 @@ class Config:
     escala_max_minutos: int = 180  # espera máxima en la escala
     mostrar_por_encima: int = 5  # cuántos destinos por encima del precio máximo enseñar como referencia
     pausa_segundos: float = 2
+    comprobar_ida_vuelta: bool = False  # consultar también el billete de ida y vuelta (fase 3)
 
     @classmethod
     def desde_archivo(cls, path: Path) -> "Config":
@@ -85,6 +91,7 @@ class Config:
             escala_max_minutos=int(d.get("escala_max_minutos", 180)),
             mostrar_por_encima=int(d.get("mostrar_por_encima", 5)),
             pausa_segundos=float(d.get("pausa_segundos", 2)),
+            comprobar_ida_vuelta=bool(d.get("comprobar_ida_vuelta", False)),
         )
 
 
@@ -92,11 +99,14 @@ class Config:
 class Combinacion:
     ida: Vuelo
     vuelta: Vuelo
+    # True = un solo billete de ida y vuelta: ida.precio ya es el total y de la vuelta solo se sabe la fecha
+    # (y, si Google la ofrece solo con escala, escala="?").
+    billete_unico: bool = False
 
     @property
     def precio(self) -> float:
         """Ida y vuelta, por persona."""
-        return self.ida.precio + self.vuelta.precio
+        return self.ida.precio if self.billete_unico else self.ida.precio + self.vuelta.precio
 
     @property
     def con_escala(self) -> bool:
@@ -108,6 +118,10 @@ def _mas_barato(*vuelos: Vuelo | None) -> Vuelo | None:
     return min((v for v in vuelos if v), key=lambda v: v.precio, default=None)
 
 
+def _mas_barata(*combinaciones: Combinacion | None) -> Combinacion | None:
+    return min((c for c in combinaciones if c), key=lambda c: c.precio, default=None)
+
+
 @dataclass
 class Resultado:
     destino: str
@@ -116,6 +130,8 @@ class Resultado:
     ida_escala: Vuelo | None = None
     vuelta_directo: Vuelo | None = None
     vuelta_escala: Vuelo | None = None
+    billete_directo: Combinacion | None = None  # billete de ida y vuelta, ambos trayectos directos
+    billete_escala: Combinacion | None = None  # billete de ida y vuelta con 1 escala como máximo
 
     @property
     def ida(self) -> Vuelo | None:
@@ -124,9 +140,11 @@ class Resultado:
 
     @property
     def directo(self) -> Combinacion | None:
+        """Lo más barato con los dos trayectos directos: dos solo idas o un billete de ida y vuelta."""
+        sueltos = None
         if self.ida_directo and self.vuelta_directo:
-            return Combinacion(self.ida_directo, self.vuelta_directo)
-        return None
+            sueltos = Combinacion(self.ida_directo, self.vuelta_directo)
+        return _mas_barata(sueltos, self.billete_directo)
 
     @property
     def con_escala(self) -> Combinacion | None:
@@ -134,10 +152,13 @@ class Resultado:
         directa (o no hay directa): si no, no aporta nada."""
         ida = _mas_barato(self.ida_directo, self.ida_escala)
         vuelta = _mas_barato(self.vuelta_directo, self.vuelta_escala)
-        if not ida or not vuelta:
+        sueltos = Combinacion(ida, vuelta) if ida and vuelta else None
+        opciones = [c for c in (sueltos, self.billete_escala) if c and c.con_escala]
+        mejor = _mas_barata(*opciones)
+        directo = self.directo
+        if mejor and directo and directo.precio <= mejor.precio:
             return None
-        combinacion = Combinacion(ida, vuelta)
-        return combinacion if combinacion.con_escala else None
+        return mejor
 
     @property
     def mejor(self) -> Combinacion | None:
@@ -190,10 +211,11 @@ def juntar_mejores_opciones(html: str) -> str:
     return html[: m.start(2)] + js + html[m.end(2) :]
 
 
-def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opciones:
-    """Lo más barato de un día (1 adulto, turista, solo ida): directo y, si se piden, con 1 escala corta.
+def _itinerarios(tramos: list[tuple[str, str, date]], escalas: bool, cfg: Config) -> list[Any]:
+    """Consulta Google Flights (1 adulto, turista) y devuelve los itinerarios que lee fast-flights.
 
-    Una sola consulta a Google devuelve ambos tipos ("1 escala como máximo" incluye los directos).
+    Un tramo = solo ida; dos tramos = billete de ida y vuelta (los precios son del billete completo y los
+    itinerarios, los de la ida). escalas=False pide solo directos; True, 1 escala corta como máximo.
     """
     from fast_flights import FlightQuery, FlightsNotFound, Passengers, create_query, fetch_flights_html
     from fast_flights.parser import parse
@@ -202,13 +224,14 @@ def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opci
         flights=[
             FlightQuery(
                 date=fecha.isoformat(),
-                from_airport=origen,
-                to_airport=destino,
-                max_stops=1 if cfg.incluir_escalas else 0,
-                max_layover_minutes=cfg.escala_max_minutos if cfg.incluir_escalas else None,
+                from_airport=o,
+                to_airport=d,
+                max_stops=1 if escalas else 0,
+                max_layover_minutes=cfg.escala_max_minutos if escalas else None,
             )
+            for o, d, fecha in tramos
         ],
-        trip="one-way",
+        trip="round-trip" if len(tramos) == 2 else "one-way",
         passengers=Passengers(adults=1),
         language="es",
         currency="EUR",
@@ -222,69 +245,122 @@ def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opci
     if "ds:1" not in html:  # el bloque de datos que lee fast-flights
         raise RuntimeError("Google Flights no devolvió resultados (¿bloqueo o cambio en la web?)")
     try:
-        resultados = parse(juntar_mejores_opciones(html))
+        return list(parse(juntar_mejores_opciones(html)))
     except (FlightsNotFound, TypeError, IndexError):
-        return Opciones()
+        return []
 
+
+def _vuelo(r: Any, fecha: date, cfg: Config) -> Vuelo | None:
+    """El itinerario como Vuelo si sale ese día y es directo o con 1 escala dentro del límite."""
+    tramos = r.flights
+    if not tramos or not r.price or len(tramos) > 2:
+        return None
+    if date(*tramos[0].departure.date) != fecha:
+        return None
+    datos = dict(
+        fecha=fecha,
+        salida="%02d:%02d" % tramos[0].departure.time,
+        llegada="%02d:%02d" % tramos[-1].arrival.time,
+        precio=float(r.price),
+        aerolinea=", ".join(r.airlines) or "?",
+    )
+    if len(tramos) == 1:
+        return Vuelo(**datos)
+    espera = _minutos_entre(tramos[0].arrival, tramos[1].departure)
+    if cfg.incluir_escalas and 0 <= espera <= cfg.escala_max_minutos:
+        return Vuelo(**datos, escala=tramos[0].to_airport.code, espera_min=espera)
+    return None
+
+
+def buscar_opciones(origen: str, destino: str, fecha: date, cfg: Config) -> Opciones:
+    """Lo más barato de un día (1 adulto, turista, solo ida): directo y, si se piden, con 1 escala corta.
+
+    Una sola consulta a Google devuelve ambos tipos ("1 escala como máximo" incluye los directos).
+    """
     directo: Vuelo | None = None
     escala: Vuelo | None = None
-    for r in resultados:
-        tramos = r.flights
-        if not tramos or not r.price or len(tramos) > 2:
-            continue
-        if date(*tramos[0].departure.date) != fecha:
-            continue
-        datos = dict(
-            fecha=fecha,
-            salida="%02d:%02d" % tramos[0].departure.time,
-            llegada="%02d:%02d" % tramos[-1].arrival.time,
-            precio=float(r.price),
-            aerolinea=", ".join(r.airlines) or "?",
-        )
-        if len(tramos) == 1:
-            directo = _mas_barato(directo, Vuelo(**datos))
-        elif cfg.incluir_escalas:
-            espera = _minutos_entre(tramos[0].arrival, tramos[1].departure)
-            if 0 <= espera <= cfg.escala_max_minutos:
-                vuelo = Vuelo(**datos, escala=tramos[0].to_airport.code, espera_min=espera)
-                escala = _mas_barato(escala, vuelo)
+    for r in _itinerarios([(origen, destino, fecha)], cfg.incluir_escalas, cfg):
+        v = _vuelo(r, fecha, cfg)
+        if v and v.escala:
+            escala = _mas_barato(escala, v)
+        elif v:
+            directo = _mas_barato(directo, v)
     return Opciones(directo, escala)
+
+
+def buscar_billete(origen: str, destino: str, ida: date, vuelta: date, escalas: bool,
+                   cfg: Config) -> Combinacion | None:
+    """El billete de ida y vuelta más barato para esas fechas (1 adulto), solo directos o con escala.
+
+    Google solo devuelve el horario de la ida; de la vuelta se sabe la fecha. Con escalas=True solo se
+    devuelve si lleva escala en algún trayecto (si no, ya lo cubre la consulta de directos).
+    """
+    mejor: Combinacion | None = None
+    for r in _itinerarios([(origen, destino, ida), (destino, origen, vuelta)], escalas, cfg):
+        v = _vuelo(r, ida, cfg)
+        if not v:
+            continue
+        # Si la ida es directa en la consulta con escalas, la escala está en la vuelta.
+        escala_vuelta = "?" if escalas and not v.escala else None
+        c = Combinacion(v, Vuelo(vuelta, "", "", 0.0, v.aerolinea, escala=escala_vuelta), billete_unico=True)
+        mejor = _mas_barata(mejor, c)
+    return mejor
 
 
 # --------------------------------------------------------------------------- búsqueda
 
 
 Buscador = Callable[[str, str, date, Config], Opciones]
+BuscadorBillete = Callable[[str, str, date, date, bool, Config], "Combinacion | None"]
 
 
-def buscar(cfg: Config, buscador: Buscador = buscar_opciones) -> tuple[list[Resultado], list[str]]:
+def buscar(
+    cfg: Config, buscador: Buscador = buscar_opciones, buscador_billete: BuscadorBillete = buscar_billete
+) -> tuple[list[Resultado], list[str]]:
     """Devuelve los resultados por destino y una lista de avisos (errores) para el mensaje."""
     avisos: list[str] = []
     errores_seguidos = 0
     bloqueado = False
 
+    def intentar(descripcion: str, consulta: Callable[[], Any]) -> Any:
+        """Hace una consulta a Google; si falla, lo apunta y devuelve None (un destino que falla no debe
+        parar el resto). Tras MAX_ERRORES_SEGUIDOS fallos seguidos se deja de consultar."""
+        nonlocal errores_seguidos, bloqueado
+        if bloqueado:
+            return None
+        try:
+            resultado = consulta()
+            errores_seguidos = 0
+            return resultado
+        except Exception as e:  # noqa: BLE001
+            errores_seguidos += 1
+            print(f"ERROR {descripcion}: {e!r}", file=sys.stderr)
+            if errores_seguidos >= MAX_ERRORES_SEGUIDOS:
+                bloqueado = True
+                avisos.append(f"Google Flights falló {errores_seguidos} veces seguidas "
+                              f"({type(e).__name__}); búsqueda interrumpida.")
+            return None
+        finally:
+            time.sleep(cfg.pausa_segundos * random.uniform(0.7, 1.3))
+
     def consultar(o: str, d: str, fechas: list[date]) -> tuple[Vuelo | None, Vuelo | None]:
         """Directo y con escala más baratos entre todas las fechas."""
-        nonlocal errores_seguidos, bloqueado
         directos, escalas = [], []
         for f in fechas:
-            if bloqueado:
-                break
-            try:
-                op = buscador(o, d, f, cfg)
+            op = intentar(f"{o}→{d} {f}", lambda: buscador(o, d, f, cfg))
+            if op:
                 directos.append(op.directo)
                 escalas.append(op.escala)
-                errores_seguidos = 0
-            except Exception as e:  # noqa: BLE001 - un destino que falla no debe parar el resto
-                errores_seguidos += 1
-                print(f"ERROR {o}→{d} {f}: {e!r}", file=sys.stderr)
-                if errores_seguidos >= MAX_ERRORES_SEGUIDOS:
-                    bloqueado = True
-                    avisos.append(f"Google Flights falló {errores_seguidos} veces seguidas "
-                                  f"({type(e).__name__}); búsqueda interrumpida.")
-            finally:
-                time.sleep(cfg.pausa_segundos * random.uniform(0.7, 1.3))
         return _mas_barato(*directos), _mas_barato(*escalas)
+
+    def billete(d: str, escalas: bool) -> Combinacion | None:
+        """El billete de ida y vuelta más barato entre todas las combinaciones de fechas."""
+        opciones = [
+            intentar(f"{cfg.origen}⇄{d} {i}/{v}", lambda: buscador_billete(cfg.origen, d, i, v, escalas, cfg))
+            for i in cfg.fechas_ida
+            for v in cfg.fechas_vuelta
+        ]
+        return _mas_barata(*opciones)
 
     def texto(v: Vuelo | None) -> str:
         return f"{v.precio:.0f} €" if v else "—"
@@ -303,6 +379,23 @@ def buscar(cfg: Config, buscador: Buscador = buscar_opciones) -> tuple[list[Resu
     for r in baratos + referencia:
         r.vuelta_directo, r.vuelta_escala = consultar(r.destino, cfg.origen, cfg.fechas_vuelta)
         print(f"vuelta {r.destino}: directo {texto(r.vuelta_directo)} · escala {texto(r.vuelta_escala)}")
+
+    # Fase 3: billete de ida y vuelta, que a veces sale más barato que dos solo idas (p. ej. Iberia
+    # MAD-BER: 78 + 73 = 151 € en solo idas, 137 € ida y vuelta). Solo para los destinos cuya ida cabe en
+    # el presupuesto pero que aún no tienen ninguna opción por debajo, y sin pasar del doble del límite
+    # (un descuento mayor sería raro y así se ahorran consultas).
+    if cfg.comprobar_ida_vuelta:
+        limite = cfg.precio_max_persona
+        for r in baratos:
+            mejor = r.mejor
+            if mejor and (mejor.precio < limite or mejor.precio >= 2 * limite):
+                continue
+            r.billete_directo = billete(r.destino, escalas=False)
+            if cfg.incluir_escalas and (r.ida_escala or r.vuelta_escala):
+                r.billete_escala = billete(r.destino, escalas=True)
+            print(f"ida y vuelta {r.destino}: directo "
+                  f"{texto(r.billete_directo.ida if r.billete_directo else None)} · escala "
+                  f"{texto(r.billete_escala.ida if r.billete_escala else None)}")
 
     return resultados, avisos
 
@@ -326,7 +419,11 @@ def _euros(x: float) -> str:
 
 
 def _tramo(v: Vuelo) -> str:
-    texto = f"{DIAS[v.fecha.weekday()]} {v.fecha:%d/%m} {v.salida}-{v.llegada} {v.aerolinea}"
+    dia = f"{DIAS[v.fecha.weekday()]} {v.fecha:%d/%m}"
+    if not v.salida:  # vuelta de un billete de ida y vuelta: Google no da el horario
+        texto = f"{dia} {v.aerolinea}, horario a elegir en Google Flights"
+        return texto + (" (con escala)" if v.escala else "")
+    texto = f"{dia} {v.salida}-{v.llegada} {v.aerolinea}"
     if v.escala:
         texto += f" (escala {v.escala} {v.espera_min // 60}h{v.espera_min % 60:02d})"
     return texto
@@ -366,8 +463,10 @@ def formatear_mensaje(
             marca = f" 📉 antes {_euros(anterior)}"
         elif c.precio > anterior + 0.5:
             marca = f" 📈 antes {_euros(anterior)}"
+        billete = " · 🎫 billete ida y vuelta" if c.billete_unico else ""
         return [
-            f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total{marca}",
+            f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total"
+            f"{billete}{marca}",
             f"   ida {_tramo(c.ida)}",
             f"   vuelta {_tramo(c.vuelta)}",
         ]
@@ -399,7 +498,8 @@ def formatear_mensaje(
         lineas += ["", f"⚠️ {a}"]
     lineas += [
         "",
-        f"Precio = ida + vuelta más baratas, por persona (1 adulto) × {cfg.pasajeros}. "
+        f"Precio = ida + vuelta más baratas, por persona (1 adulto) × {cfg.pasajeros}; 🎫 = un solo billete "
+        "de ida y vuelta, más barato que dos de solo ida. "
         "Google Flights; sin equipaje facturado. Comprueba que quedan plazas para todos antes de comprar.",
     ]
     texto = "\n".join(lineas)
@@ -448,9 +548,14 @@ def notificar(texto: str) -> list[str]:
     return usados
 
 
-def ejecutar(cfg: Config, historial_path: Path, buscador: Buscador = buscar_opciones) -> int:
+def ejecutar(
+    cfg: Config,
+    historial_path: Path,
+    buscador: Buscador = buscar_opciones,
+    buscador_billete: BuscadorBillete = buscar_billete,
+) -> int:
     historial = cargar_historial(historial_path)
-    resultados, avisos = buscar(cfg, buscador)
+    resultados, avisos = buscar(cfg, buscador, buscador_billete)
     texto = formatear_mensaje(cfg, resultados, historial, avisos, datetime.now(ZONA))
     print(texto)
     notificar(texto)
