@@ -14,7 +14,6 @@
   "escala_max_minutos": 180,
   "mostrar_por_encima": 0,
   "pausa_segundos": 2,
-  "comprobar_ida_vuelta": true,
   "destinos": {
     "LIS": "Lisboa",
     "OPO": "Oporto",

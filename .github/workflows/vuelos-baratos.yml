@@ -34,24 +34,58 @@ jobs:
             echo "Horario '$HORARIO' no corresponde a las 07:00 de Madrid (desfase $desfase); se omite."
           fi
 
+  # Los destinos se reparten en partes que se consultan a la vez (cada destino son 8 consultas de billete de
+  # ida y vuelta: 4 combinaciones de fechas, directo y con escala); luego "informe" junta y manda el mensaje.
   buscar:
     needs: hora
     if: needs.hora.outputs.toca == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [0, 1, 2, 3]
     defaults:
       run:
         working-directory: vuelos-baratos
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: vuelos-baratos/requirements.txt
-
       - run: pip install -r requirements.txt
+      - run: python vuelos_baratos.py --parte ${{ matrix.parte }} --de 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parte-${{ matrix.parte }}
+          path: vuelos-baratos/parte_${{ matrix.parte }}.json
+          retention-days: 7
+
+  informe:
+    needs: [hora, buscar]
+    # Aunque falle alguna parte se manda el mensaje con el resto (y el aviso de lo que falta).
+    if: always() && needs.hora.outputs.toca == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: vuelos-baratos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vuelos-baratos/requirements.txt
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: parte-*
+          path: vuelos-baratos
+          merge-multiple: true
 
       # Recupera el precio anterior de cada destino para marcar bajadas (📉) y novedades (🆕).
       - uses: actions/cache/restore@v4
@@ -60,12 +94,12 @@ jobs:
           key: vuelos-historial-${{ github.run_id }}
           restore-keys: vuelos-historial-
 
-      - name: Buscar vuelos
+      - name: Mandar mensaje
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: python vuelos_baratos.py
+        run: python vuelos_baratos.py --informe parte_*.json
 
       - uses: actions/cache/save@v4
         if: always()

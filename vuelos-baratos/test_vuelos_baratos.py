@@ -19,24 +19,29 @@ def e(f, precio, escala="FRA", espera=80):
     return vb.Vuelo(f, "07:00", "12:30", float(precio), "Otra", escala, espera)
 
 
-# (origen, destino, fecha) -> Opciones(directo, escala)
-OPCIONES = {
-    # Lisboa: directo 45+50=95; con escala no mejora.
-    ("MAD", "LIS", I1): vb.Opciones(d(I1, 60), e(I1, 70)), ("MAD", "LIS", I2): vb.Opciones(d(I2, 45)),
-    ("LIS", "MAD", V1): vb.Opciones(d(V1, 70)), ("LIS", "MAD", V2): vb.Opciones(d(V2, 50)),
-    # Oslo: sin directo; con escala 60+55=115.
-    ("MAD", "OSL", I1): vb.Opciones(None, e(I1, 60, "CPH", 95)), ("OSL", "MAD", V2): vb.Opciones(None, e(V2, 55)),
-    # París: directo 80+90=170; ida con escala 40 -> 40+90=130 (más barato y bajo el límite).
-    ("MAD", "CDG", I1): vb.Opciones(d(I1, 80), e(I1, 40, "BCN", 60)), ("CDG", "MAD", V1): vb.Opciones(d(V1, 90)),
+def b(precio, ida=I1, vuelta=V1, escala_ida=None, escala_vuelta=None, aerolinea="Aerolínea"):
+    """Billete de ida y vuelta como lo devuelve buscar_billete (de la vuelta solo se sabe la fecha)."""
+    v_ida = vb.Vuelo(ida, "08:00", "09:10", float(precio), aerolinea, escala_ida, 95 if escala_ida else None)
+    return vb.Combinacion(v_ida, vb.Vuelo(vuelta, "", "", 0.0, aerolinea, escala_vuelta), billete_unico=True)
+
+
+# (destino, fecha ida, fecha vuelta, con escalas) -> billete de ida y vuelta más barato
+BILLETES = {
+    # Lisboa: directo 120 o 95 según fechas; con escala 110 no mejora.
+    ("LIS", I1, V1, False): b(120), ("LIS", I2, V2, False): b(95, I2, V2), ("LIS", I1, V1, True): b(110, escala_ida="OPO"),
+    # Oslo: sin directo; con escala 115.
+    ("OSL", I1, V2, True): b(115, I1, V2, escala_ida="CPH"),
+    # París: directo 170; con escala en la vuelta 130.
+    ("CDG", I1, V1, False): b(170), ("CDG", I1, V1, True): b(130, escala_vuelta="?"),
     # Nueva York: caro.
-    ("MAD", "JFK", I1): vb.Opciones(d(I1, 420)), ("JFK", "MAD", V2): vb.Opciones(d(V2, 380)),
-    # Marrakech: sin vuelta.
-    ("MAD", "RAK", I1): vb.Opciones(d(I1, 30)),
+    ("JFK", I1, V2, False): b(800, I1, V2),
+    # Berlín (caso real): Iberia ida y vuelta 137 € (en solo idas salía 78 + 73 = 151 €).
+    ("BER", I1, V1, False): b(137, aerolinea="Iberia"),
 }
 
 
-def falso(o, dst, f, cfg):
-    return OPCIONES.get((o, dst, f), vb.Opciones())
+def falso(o, dst, ida, vuelta, escalas, c):
+    return BILLETES.get((dst, ida, vuelta, escalas))
 
 
 def cfg(**kw):
@@ -44,7 +49,7 @@ def cfg(**kw):
                 precio_max_persona=150, incluir_escalas=True, escala_max_minutos=180,
                 mostrar_por_encima=5, pausa_segundos=0,
                 destinos={"LIS": "Lisboa", "OSL": "Oslo", "CDG": "París", "JFK": "Nueva York",
-                          "RAK": "Marrakech", "XXX": "Sin vuelos"})
+                          "BER": "Berlín", "RAK": "Marrakech", "XXX": "Sin vuelos"})
     return vb.Config(**{**base, **kw})
 
 
@@ -52,42 +57,50 @@ def por_destino(resultados):
     return {r.destino: r for r in resultados}
 
 
-def test_combinaciones_directas_y_con_escala():
+def test_siempre_billete_de_ida_y_vuelta():
     r = por_destino(vb.buscar(cfg(), falso)[0])
     assert r["LIS"].directo.precio == 95 and r["LIS"].con_escala is None  # la escala no mejora
     assert r["LIS"].directo.ida.fecha == I2 and r["LIS"].directo.vuelta.fecha == V2
     assert r["OSL"].directo is None and r["OSL"].con_escala.precio == 115
     assert r["CDG"].directo.precio == 170 and r["CDG"].con_escala.precio == 130
-    assert r["CDG"].con_escala.ida.escala == "BCN" and r["CDG"].con_escala.vuelta.escala is None
-    assert r["RAK"].mejor is None and r["XXX"].ida is None
+    assert r["BER"].directo.precio == 137
+    assert all(c.billete_unico for x in r.values() for c in (x.directo, x.con_escala) if c)
+    assert r["RAK"].mejor is None and r["XXX"].mejor is None
 
 
-def test_no_busca_vuelta_si_la_ida_ya_es_cara():
+def test_consulta_todas_las_fechas_directo_y_con_escala():
     pedidas = []
 
-    def contar(o, dst, f, c):
-        pedidas.append((o, dst, f))
-        return falso(o, dst, f, c)
+    def contar(o, dst, i, v, escalas, c):
+        pedidas.append((o, dst, i, v, escalas))
+        return falso(o, dst, i, v, escalas, c)
 
-    vb.buscar(cfg(mostrar_por_encima=0), contar)
-    assert not [p for p in pedidas if p[0] == "JFK"]
-    assert ("OSL", "MAD", V1) in pedidas  # la ida con escala cuenta para seguir buscando
+    vb.buscar(cfg(), contar)
+    assert len(pedidas) == 7 * 4 * 2 and all(p[0] == "MAD" for p in pedidas)
+    assert ("MAD", "BER", I2, V1, True) in pedidas
+    pedidas.clear()
+    vb.buscar(cfg(incluir_escalas=False), contar)
+    assert len(pedidas) == 7 * 4 and not any(p[4] for p in pedidas)
 
 
 def test_mensaje_con_dos_apartados():
     resultados, avisos = vb.buscar(cfg(), falso)
-    texto = vb.formatear_mensaje(cfg(), resultados, {"LIS": 120.0, "CDG+escala": 120.0}, avisos, AHORA)
+    texto = vb.formatear_mensaje(cfg(), resultados, {"iv:LIS": 120.0, "iv:CDG+escala": 120.0}, avisos, AHORA)
+    assert "5 de 7 destinos con billete de ida y vuelta" in texto
     directos = texto.index("✅ DIRECTOS")
     directos_ref = texto.index("Siguientes directos más baratos (por encima del límite):")
     escalas = texto.index("🔁 CON 1 ESCALA (máx. 3h)")
     assert directos < texto.index("Lisboa (LIS): 95 €/pers · 380 € total 📉 antes 120 €") < directos_ref
+    assert directos < texto.index("Berlín (BER): 137 €/pers · 548 € total 🆕") < directos_ref
     assert directos_ref < texto.index("Nueva York (JFK): 800 €") < escalas
     assert escalas < texto.index("Oslo (OSL): 115 €/pers · 460 € total 🆕")
     assert escalas < texto.index("París (CDG): 130 €/pers · 520 € total 📈 antes 120 €")
-    assert "ida sáb 19/06 07:00-12:30 Otra (escala CPH 1h35)" in texto
-    assert "vuelta sáb 26/06 08:00-09:10 Aerolínea" in texto  # tramo directo dentro de una combinación
+    assert "ida sáb 19/06 08:00-09:10 Aerolínea (escala CPH 1h35)" in texto
+    assert "vuelta dom 27/06, horario a elegir en Google Flights" in texto
+    assert "vuelta sáb 26/06, horario a elegir en Google Flights (con escala)" in texto  # París
     assert "París (CDG): 170" not in texto  # el directo caro no se repite si hay opción barata con escala
     assert "Marrakech" not in texto
+    assert "billete de ida y vuelta más barato, por persona (1 adulto) × 4" in texto
 
 
 def test_escalas_por_encima_del_limite_se_muestran_como_referencia():
@@ -125,7 +138,7 @@ def test_sin_baratos():
 def test_interrumpe_si_google_bloquea():
     llamadas = []
 
-    def roto(o, dst, f, c):
+    def roto(*a):
         llamadas.append(1)
         raise RuntimeError("429")
 
@@ -139,25 +152,34 @@ def test_ejecutar_guarda_historial_y_notifica(tmp_path, monkeypatch):
     monkeypatch.setattr(vb, "notificar", enviados.append)
     h = tmp_path / "historial.json"
     assert vb.ejecutar(cfg(), h, falso) == 0
-    assert json.loads(h.read_text()) == {"LIS": 95.0, "OSL+escala": 115.0, "CDG": 170.0,
-                                         "CDG+escala": 130.0, "JFK": 800.0}
+    assert json.loads(h.read_text()) == {"iv:LIS": 95.0, "iv:OSL+escala": 115.0, "iv:CDG": 170.0,
+                                         "iv:CDG+escala": 130.0, "iv:JFK": 800.0, "iv:BER": 137.0}
     vb.ejecutar(cfg(), h, falso)
     assert "🆕" not in enviados[1]
+
+
+def test_historial_de_solo_idas_no_se_compara(tmp_path, monkeypatch):
+    # El historial antiguo (suma de dos solo idas, sin "iv:") no debe dar 📉/📈 falsos.
+    enviados = []
+    monkeypatch.setattr(vb, "notificar", enviados.append)
+    h = tmp_path / "historial.json"
+    h.write_text('{"BER": 151.0}')
+    vb.ejecutar(cfg(), h, falso)
+    assert "Berlín (BER): 137 €/pers · 548 € total 🆕" in enviados[0]
 
 
 def test_ejecutar_falla_si_no_hay_ningun_vuelo(tmp_path, monkeypatch):
     monkeypatch.setattr(vb, "notificar", lambda t: [])
     h = tmp_path / "historial.json"
-    h.write_text('{"LIS": 90}')
-    assert vb.ejecutar(cfg(), h, lambda *a: vb.Opciones()) == 1
-    assert json.loads(h.read_text()) == {"LIS": 90}
+    h.write_text('{"iv:LIS": 90}')
+    assert vb.ejecutar(cfg(), h, lambda *a: None) == 1
+    assert json.loads(h.read_text()) == {"iv:LIS": 90}
 
 
 def test_mensaje_largo_se_recorta():
     muchos = {f"X{i:02d}": f"Destino {i}" for i in range(90)}
     c = cfg(destinos=muchos)
-    resultados = [vb.Resultado(k, v, ida_directo=d(I1, 10 + i), vuelta_directo=d(V1, 10))
-                  for i, (k, v) in enumerate(muchos.items())]
+    resultados = [vb.Resultado(k, v, billete_directo=b(10 + i)) for i, (k, v) in enumerate(muchos.items())]
     texto = vb.formatear_mensaje(c, resultados, {}, [], AHORA)
     assert len(texto) <= vb.LIMITE_TELEGRAM and texto.endswith("(lista recortada)")
 
@@ -167,7 +189,34 @@ def test_config_real_valida():
     assert c.origen == "MAD" and c.pasajeros == 4 and c.precio_max_persona == 150
     assert c.incluir_escalas and c.escala_max_minutos == 180
     assert c.fechas_ida == [I1, I2] and c.fechas_vuelta == [V1, V2]
-    assert "BCN" not in c.destinos and "PMI" not in c.destinos
+    assert "BCN" not in c.destinos and "PMI" not in c.destinos and "BER" in c.destinos
+
+
+# --------------------------------------------------------------- partes (varios jobs a la vez)
+
+
+def test_partes_cubren_todos_los_destinos_una_vez():
+    destinos = cfg().destinos
+    partes = [vb.partes_de(destinos, i, 4) for i in range(4)]
+    assert sorted(k for p in partes for k in p) == sorted(destinos)
+
+
+def test_partes_se_guardan_y_se_juntan(tmp_path):
+    c = cfg()
+    paths = []
+    for i in range(3):
+        sub = cfg(destinos=vb.partes_de(c.destinos, i, 3))
+        resultados, avisos = vb.buscar(sub, falso)
+        paths.append(tmp_path / f"parte_{i}.json")
+        vb.guardar_parte(paths[-1], resultados, avisos + ([f"aviso {i}"] if i == 1 else []))
+    juntos, avisos = vb.leer_partes(c, paths)
+    solos, _ = vb.buscar(c, falso)
+    assert [r.destino for r in juntos] == list(c.destinos)
+    assert vb.formatear_mensaje(c, juntos, {}, [], AHORA) == vb.formatear_mensaje(c, solos, {}, [], AHORA)
+    assert avisos == ["aviso 1"]
+    # Si falta una parte, se manda lo demás y se avisa.
+    juntos, avisos = vb.leer_partes(c, paths[:2])
+    assert len(juntos) < 7 and "Sin datos de" in avisos[-1]
 
 
 # --------------------------------------------------------------- lectura de Google Flights (simulada)
@@ -239,13 +288,6 @@ def test_pagina_sin_datos_si_es_error(monkeypatch):
         vb.buscar_opciones("MAD", "LIS", I1, cfg())
 
 
-def test_muchos_destinos_sin_vuelos_no_interrumpen():
-    destinos = {f"X{i:02d}": "Sin vuelos" for i in range(20)} | {"LIS": "Lisboa"}
-    resultados, avisos = vb.buscar(cfg(destinos=destinos), falso)
-    assert avisos == []
-    assert por_destino(resultados)["LIS"].directo.precio == 95
-
-
 def _itinerario_google(precio, destino, hora):
     tramo = [None] * 22
     tramo[3], tramo[4], tramo[5], tramo[6] = "MAD", "Madrid", destino, destino
@@ -289,54 +331,13 @@ def test_pagina_sin_ninguna_lista_es_sin_vuelos(monkeypatch):
     assert vb.buscar_opciones("MAD", "HAJ", I1, cfg()) == vb.Opciones()
 
 
-# ------------------------------------------------------------------ billete de ida y vuelta (fase 3)
-
-BER = {("MAD", "BER", I1): vb.Opciones(d(I1, 78), e(I1, 109)), ("BER", "MAD", V1): vb.Opciones(d(V1, 73))}
-
-
-def billete(precio, fecha_ida=I1, fecha_vuelta=V1, escala_vuelta=None):
-    ida = vb.Vuelo(fecha_ida, "20:10", "23:10", float(precio), "Iberia")
-    return vb.Combinacion(ida, vb.Vuelo(fecha_vuelta, "", "", 0.0, "Iberia", escala_vuelta), billete_unico=True)
-
-
-def test_billete_ida_y_vuelta_mas_barato_que_dos_solo_idas():
-    # Caso real: MAD-BER 78 + 73 = 151 € en solo idas; Iberia ida y vuelta, 137 €.
-    pedidas = []
-
-    def falso_billete(o, dst, i, v, escalas, c):
-        pedidas.append((dst, i, v, escalas))
-        return billete(137) if (i, v, escalas) == (I1, V1, False) else None
-
-    c = cfg(destinos={"BER": "Berlín"}, comprobar_ida_vuelta=True)
-    r = por_destino(vb.buscar(c, lambda o, dst, f, c: BER.get((o, dst, f), vb.Opciones()), falso_billete)[0])
-    assert r["BER"].directo.precio == 137 and r["BER"].directo.billete_unico
-    assert r["BER"].con_escala is None
-    assert len(pedidas) == 8  # 4 combinaciones de fechas, directos y con escala (la ida tiene escala)
-    texto = vb.formatear_mensaje(c, list(r.values()), {}, [], AHORA)
-    assert "Berlín (BER): 137 €/pers · 548 € total · 🎫 billete ida y vuelta" in texto
-    assert "vuelta sáb 26/06 Iberia, horario a elegir en Google Flights" in texto
-
-
-def test_billete_solo_si_hace_falta():
-    pedidas = []
-
-    def falso_billete(o, dst, i, v, escalas, c):
-        pedidas.append(dst)
-        return None
-
-    vb.buscar(cfg(comprobar_ida_vuelta=True), falso, falso_billete)
-    # LIS (95) y OSL (115) ya cumplen, JFK y XXX no tienen ida barata, RAK no tiene vuelta: solo RAK.
-    assert set(pedidas) == {"RAK"}
-    pedidas.clear()
-    vb.buscar(cfg(comprobar_ida_vuelta=False), falso, falso_billete)
-    assert pedidas == []
+# ------------------------------------------------------------------ billete de ida y vuelta
 
 
 def test_billete_con_escala_solo_si_mejora_al_directo():
-    r = vb.Resultado("BER", "Berlín", billete_directo=billete(137),
-                     billete_escala=billete(140, escala_vuelta="?"))
+    r = vb.Resultado("BER", "Berlín", billete_directo=b(137), billete_escala=b(140, escala_vuelta="?"))
     assert r.directo.precio == 137 and r.con_escala is None
-    r.billete_escala = billete(120, escala_vuelta="?")
+    r.billete_escala = b(120, escala_vuelta="?")
     assert r.con_escala.precio == 120 and r.mejor.precio == 120
 
 

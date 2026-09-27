@@ -1,27 +1,22 @@
-"""Busca los vuelos de ida y vuelta más baratos desde un aeropuerto a muchos destinos y los manda a Telegram.
+"""Busca el billete de ida y vuelta más barato desde un aeropuerto a muchos destinos y lo manda a Telegram.
 
 Los precios salen de Google Flights con la librería fast-flights (https://github.com/AWeirdDev/flights).
-Google solo admite un destino por consulta, así que se busca destino a destino en dos fases:
-
-1. Ida: se consultan todas las fechas de ida de cada destino.
-2. Vuelta: solo para los destinos cuya ida más barata ya está por debajo del precio máximo.
-
-El precio de ida y vuelta es la suma de la ida y la vuelta más baratas (dos billetes de solo ida),
-por persona, y el total se calcula multiplicando por el número de pasajeros.
-
-3. Billete de ida y vuelta (si "comprobar_ida_vuelta" está activo): muchas aerolíneas (Iberia, Lufthansa…)
-   venden el billete de ida y vuelta más barato que dos de solo ida. Para los destinos cuya ida cabe en el
-   presupuesto pero la suma de solo idas no, se consulta también el billete de ida y vuelta. Google solo
-   da el horario de la ida y el precio total; el horario de la vuelta se elige en Google Flights.
+Siempre se valora el billete de ida y vuelta (no dos de solo ida): para cada destino y cada combinación de
+fechas de ida y vuelta se pide a Google el billete más barato solo con directos y, si se piden escalas,
+con 1 escala corta como máximo. El precio es por persona (1 adulto) y el total se multiplica por el número
+de pasajeros. Google solo da el horario de la ida; el de la vuelta se elige al reservar.
 
 Uso:
-    python vuelos_baratos.py                 # una búsqueda (lo que hace GitHub Actions)
-    python vuelos_baratos.py --probar-aviso  # envía una notificación de prueba
+    python vuelos_baratos.py                          # búsqueda completa en un solo proceso
+    python vuelos_baratos.py --parte 0 --de 4         # una parte de los destinos -> parte_0.json
+    python vuelos_baratos.py --informe parte_*.json   # junta las partes y manda el mensaje
+    python vuelos_baratos.py --probar-aviso           # envía una notificación de prueba
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
 import random
@@ -74,7 +69,6 @@ class Config:
     escala_max_minutos: int = 180  # espera máxima en la escala
     mostrar_por_encima: int = 5  # cuántos destinos por encima del precio máximo enseñar como referencia
     pausa_segundos: float = 2
-    comprobar_ida_vuelta: bool = False  # consultar también el billete de ida y vuelta (fase 3)
 
     @classmethod
     def desde_archivo(cls, path: Path) -> "Config":
@@ -91,7 +85,6 @@ class Config:
             escala_max_minutos=int(d.get("escala_max_minutos", 180)),
             mostrar_por_encima=int(d.get("mostrar_por_encima", 5)),
             pausa_segundos=float(d.get("pausa_segundos", 2)),
-            comprobar_ida_vuelta=bool(d.get("comprobar_ida_vuelta", False)),
         )
 
 
@@ -314,10 +307,17 @@ Buscador = Callable[[str, str, date, Config], Opciones]
 BuscadorBillete = Callable[[str, str, date, date, bool, Config], "Combinacion | None"]
 
 
+def partes_de(destinos: dict[str, str], parte: int, de: int) -> dict[str, str]:
+    """Reparte los destinos en `de` partes (para consultarlas a la vez en varios jobs)."""
+    codigos = list(destinos)[parte::de]
+    return {c: destinos[c] for c in codigos}
+
+
 def buscar(
-    cfg: Config, buscador: Buscador = buscar_opciones, buscador_billete: BuscadorBillete = buscar_billete
+    cfg: Config, buscador_billete: BuscadorBillete = buscar_billete
 ) -> tuple[list[Resultado], list[str]]:
-    """Devuelve los resultados por destino y una lista de avisos (errores) para el mensaje."""
+    """Billete de ida y vuelta más barato de cada destino (directo y con escala) entre todas las
+    combinaciones de fechas. Devuelve los resultados y una lista de avisos (errores) para el mensaje."""
     avisos: list[str] = []
     errores_seguidos = 0
     bloqueado = False
@@ -343,18 +343,7 @@ def buscar(
         finally:
             time.sleep(cfg.pausa_segundos * random.uniform(0.7, 1.3))
 
-    def consultar(o: str, d: str, fechas: list[date]) -> tuple[Vuelo | None, Vuelo | None]:
-        """Directo y con escala más baratos entre todas las fechas."""
-        directos, escalas = [], []
-        for f in fechas:
-            op = intentar(f"{o}→{d} {f}", lambda: buscador(o, d, f, cfg))
-            if op:
-                directos.append(op.directo)
-                escalas.append(op.escala)
-        return _mas_barato(*directos), _mas_barato(*escalas)
-
     def billete(d: str, escalas: bool) -> Combinacion | None:
-        """El billete de ida y vuelta más barato entre todas las combinaciones de fechas."""
         opciones = [
             intentar(f"{cfg.origen}⇄{d} {i}/{v}", lambda: buscador_billete(cfg.origen, d, i, v, escalas, cfg))
             for i in cfg.fechas_ida
@@ -362,42 +351,70 @@ def buscar(
         ]
         return _mas_barata(*opciones)
 
-    def texto(v: Vuelo | None) -> str:
-        return f"{v.precio:.0f} €" if v else "—"
+    def texto(c: Combinacion | None) -> str:
+        return f"{c.precio:.0f} €" if c else "—"
 
-    resultados = [Resultado(codigo, nombre) for codigo, nombre in cfg.destinos.items()]
-
-    # Fase 1: idas.
-    for r in resultados:
-        r.ida_directo, r.ida_escala = consultar(cfg.origen, r.destino, cfg.fechas_ida)
-        print(f"ida {r.destino}: directo {texto(r.ida_directo)} · escala {texto(r.ida_escala)}")
-
-    # Fase 2: vueltas, solo si la ida ya cabe en el presupuesto (o para tener referencias por encima).
-    candidatos = sorted((r for r in resultados if r.ida), key=lambda r: r.ida.precio)
-    baratos = [r for r in candidatos if r.ida.precio < cfg.precio_max_persona]
-    referencia = [r for r in candidatos if r not in baratos][: cfg.mostrar_por_encima]
-    for r in baratos + referencia:
-        r.vuelta_directo, r.vuelta_escala = consultar(r.destino, cfg.origen, cfg.fechas_vuelta)
-        print(f"vuelta {r.destino}: directo {texto(r.vuelta_directo)} · escala {texto(r.vuelta_escala)}")
-
-    # Fase 3: billete de ida y vuelta, que a veces sale más barato que dos solo idas (p. ej. Iberia
-    # MAD-BER: 78 + 73 = 151 € en solo idas, 137 € ida y vuelta). Solo para los destinos cuya ida cabe en
-    # el presupuesto pero que aún no tienen ninguna opción por debajo, y sin pasar del doble del límite
-    # (un descuento mayor sería raro y así se ahorran consultas).
-    if cfg.comprobar_ida_vuelta:
-        limite = cfg.precio_max_persona
-        for r in baratos:
-            mejor = r.mejor
-            if mejor and (mejor.precio < limite or mejor.precio >= 2 * limite):
-                continue
-            r.billete_directo = billete(r.destino, escalas=False)
-            if cfg.incluir_escalas and (r.ida_escala or r.vuelta_escala):
-                r.billete_escala = billete(r.destino, escalas=True)
-            print(f"ida y vuelta {r.destino}: directo "
-                  f"{texto(r.billete_directo.ida if r.billete_directo else None)} · escala "
-                  f"{texto(r.billete_escala.ida if r.billete_escala else None)}")
-
+    resultados = []
+    for codigo, nombre in cfg.destinos.items():
+        r = Resultado(codigo, nombre)
+        r.billete_directo = billete(codigo, escalas=False)
+        if cfg.incluir_escalas:
+            r.billete_escala = billete(codigo, escalas=True)
+        print(f"{codigo}: directo {texto(r.billete_directo)} · escala {texto(r.billete_escala)}")
+        resultados.append(r)
     return resultados, avisos
+
+
+# --------------------------------------------------------------------------- partes (varios jobs a la vez)
+
+
+def _vuelo_a_dict(v: Vuelo) -> dict:
+    return {**dataclasses.asdict(v), "fecha": v.fecha.isoformat()}
+
+
+def _vuelo_de_dict(d: dict) -> Vuelo:
+    return Vuelo(**{**d, "fecha": date.fromisoformat(d["fecha"])})
+
+
+def _combinacion_a_dict(c: Combinacion | None) -> dict | None:
+    if not c:
+        return None
+    return {"ida": _vuelo_a_dict(c.ida), "vuelta": _vuelo_a_dict(c.vuelta), "billete_unico": c.billete_unico}
+
+
+def _combinacion_de_dict(d: dict | None) -> Combinacion | None:
+    if not d:
+        return None
+    return Combinacion(_vuelo_de_dict(d["ida"]), _vuelo_de_dict(d["vuelta"]), d["billete_unico"])
+
+
+def guardar_parte(path: Path, resultados: list[Resultado], avisos: list[str]) -> None:
+    datos = {
+        "resultados": [
+            {"destino": r.destino, "nombre": r.nombre, "directo": _combinacion_a_dict(r.billete_directo),
+             "escala": _combinacion_a_dict(r.billete_escala)}
+            for r in resultados
+        ],
+        "avisos": avisos,
+    }
+    path.write_text(json.dumps(datos, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
+def leer_partes(cfg: Config, paths: list[Path]) -> tuple[list[Resultado], list[str]]:
+    """Junta las partes en el orden de config.json. Si falta alguna, lo avisa."""
+    por_destino: dict[str, Resultado] = {}
+    avisos: list[str] = []
+    for path in paths:
+        datos = json.loads(path.read_text(encoding="utf-8"))
+        avisos += datos["avisos"]
+        for x in datos["resultados"]:
+            por_destino[x["destino"]] = Resultado(
+                x["destino"], x["nombre"], billete_directo=_combinacion_de_dict(x["directo"]),
+                billete_escala=_combinacion_de_dict(x["escala"]))
+    faltan = [c for c in cfg.destinos if c not in por_destino]
+    if faltan:
+        avisos.append(f"Sin datos de {len(faltan)} destinos (falló alguna parte): {', '.join(faltan)}.")
+    return [por_destino[c] for c in cfg.destinos if c in por_destino], avisos
 
 
 # --------------------------------------------------------------------------- historial y mensaje
@@ -411,7 +428,9 @@ def cargar_historial(path: Path) -> dict[str, float]:
 
 
 def _clave(r: Resultado, c: Combinacion) -> str:
-    return f"{r.destino}+escala" if c.con_escala else r.destino
+    # "iv:" = precio de billete de ida y vuelta (antes se guardaba la suma de dos solo idas; así no se
+    # comparan precios de distinto tipo).
+    return f"iv:{r.destino}+escala" if c.con_escala else f"iv:{r.destino}"
 
 
 def _euros(x: float) -> str:
@@ -421,7 +440,7 @@ def _euros(x: float) -> str:
 def _tramo(v: Vuelo) -> str:
     dia = f"{DIAS[v.fecha.weekday()]} {v.fecha:%d/%m}"
     if not v.salida:  # vuelta de un billete de ida y vuelta: Google no da el horario
-        texto = f"{dia} {v.aerolinea}, horario a elegir en Google Flights"
+        texto = f"{dia}, horario a elegir en Google Flights"
         return texto + (" (con escala)" if v.escala else "")
     texto = f"{dia} {v.salida}-{v.llegada} {v.aerolinea}"
     if v.escala:
@@ -450,8 +469,8 @@ def formatear_mensaje(
     lineas = [
         f"✈️ Vuelos baratos desde {cfg.origen} · ida {ida} → vuelta {vuelta} "
         f"{cfg.fechas_vuelta[0]:%m/%Y} · {cfg.pasajeros} pers.",
-        f"🕐 {ahora:%d/%m %H:%M} · {sum(1 for r in resultados if r.ida)} de {len(cfg.destinos)} destinos "
-        "con vuelo de ida",
+        f"🕐 {ahora:%d/%m %H:%M} · {sum(1 for r in resultados if r.mejor)} de {len(cfg.destinos)} destinos "
+        "con billete de ida y vuelta",
     ]
 
     def bloque(r: Resultado, c: Combinacion) -> list[str]:
@@ -463,10 +482,8 @@ def formatear_mensaje(
             marca = f" 📉 antes {_euros(anterior)}"
         elif c.precio > anterior + 0.5:
             marca = f" 📈 antes {_euros(anterior)}"
-        billete = " · 🎫 billete ida y vuelta" if c.billete_unico else ""
         return [
-            f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total"
-            f"{billete}{marca}",
+            f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total{marca}",
             f"   ida {_tramo(c.ida)}",
             f"   vuelta {_tramo(c.vuelta)}",
         ]
@@ -498,9 +515,9 @@ def formatear_mensaje(
         lineas += ["", f"⚠️ {a}"]
     lineas += [
         "",
-        f"Precio = ida + vuelta más baratas, por persona (1 adulto) × {cfg.pasajeros}; 🎫 = un solo billete "
-        "de ida y vuelta, más barato que dos de solo ida. "
-        "Google Flights; sin equipaje facturado. Comprueba que quedan plazas para todos antes de comprar.",
+        f"Precio = billete de ida y vuelta más barato, por persona (1 adulto) × {cfg.pasajeros}. Google Flights "
+        "solo da el horario de la ida; el de la vuelta se elige al reservar. Sin equipaje facturado. "
+        "Comprueba que quedan plazas para todos antes de comprar.",
     ]
     texto = "\n".join(lineas)
     if len(texto) > LIMITE_TELEGRAM:
@@ -548,14 +565,9 @@ def notificar(texto: str) -> list[str]:
     return usados
 
 
-def ejecutar(
-    cfg: Config,
-    historial_path: Path,
-    buscador: Buscador = buscar_opciones,
-    buscador_billete: BuscadorBillete = buscar_billete,
-) -> int:
+def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avisos: list[str]) -> int:
+    """Manda el mensaje y actualiza el historial."""
     historial = cargar_historial(historial_path)
-    resultados, avisos = buscar(cfg, buscador, buscador_billete)
     texto = formatear_mensaje(cfg, resultados, historial, avisos, datetime.now(ZONA))
     print(texto)
     notificar(texto)
@@ -563,7 +575,13 @@ def ejecutar(
     if nuevo:  # si todo falló, se conserva el historial anterior
         historial_path.write_text(json.dumps(nuevo, indent=2, ensure_ascii=False), encoding="utf-8")
     # Falla (y GitHub lo marca en rojo) solo si no se obtuvo ningún vuelo.
-    return 0 if any(r.ida for r in resultados) else 1
+    return 0 if any(r.mejor for r in resultados) else 1
+
+
+def ejecutar(cfg: Config, historial_path: Path, buscador_billete: BuscadorBillete = buscar_billete) -> int:
+    """Búsqueda completa en un solo proceso (para usarlo en tu ordenador)."""
+    resultados, avisos = buscar(cfg, buscador_billete)
+    return informar(cfg, historial_path, resultados, avisos)
 
 
 def main() -> int:
@@ -571,10 +589,22 @@ def main() -> int:
     p.add_argument("--config", type=Path, default=AQUI / "config.json")
     p.add_argument("--historial", type=Path, default=AQUI / "historial.json")
     p.add_argument("--probar-aviso", action="store_true")
+    p.add_argument("--parte", type=int, help="consulta solo esta parte de los destinos y la guarda en parte_N.json")
+    p.add_argument("--de", type=int, default=1, help="número total de partes")
+    p.add_argument("--informe", nargs="+", type=Path, metavar="PARTE_JSON",
+                   help="junta las partes ya consultadas y manda el mensaje")
     a = p.parse_args()
     if a.probar_aviso:
         return 0 if notificar("✅ Prueba del buscador de vuelos baratos") else 1
-    return ejecutar(Config.desde_archivo(a.config), a.historial)
+    cfg = Config.desde_archivo(a.config)
+    if a.parte is not None:
+        cfg.destinos = partes_de(cfg.destinos, a.parte, a.de)
+        resultados, avisos = buscar(cfg)
+        guardar_parte(AQUI / f"parte_{a.parte}.json", resultados, avisos)
+        return 0
+    if a.informe:
+        return informar(cfg, a.historial, *leer_partes(cfg, a.informe))
+    return ejecutar(cfg, a.historial)
 
 
 if __name__ == "__main__":
