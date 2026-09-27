@@ -80,16 +80,17 @@ def diagnosticar(origen: str, destino: str, fecha: date, max_stops: int | None, 
         except (TypeError, IndexError):
             lista = None
         print(f"payload[{i}][0]:", "None" if lista is None else f"{len(lista)} itinerarios")
-        for k in (lista or [])[:6]:
+        for k in (lista or [])[:12]:
             print("   ", resumen_itinerario(k))
 
 
 def main() -> int:
     for arg in sys.argv[1:]:
-        ruta, f = arg.split(":")
+        ruta, f, *v = arg.split(":")
         o, d = ruta.split("-")
         fecha = date.fromisoformat(f)
-        pruebas = [dict(max_stops=1, layover=180)]
+        vuelta = date.fromisoformat(v[0]) if v else None
+        pruebas = [dict(max_stops=0, layover=None, vuelta=vuelta), dict(max_stops=1, layover=180, vuelta=vuelta)]
         for p in filter(None, pruebas):
             try:
                 diagnosticar(o, d, fecha, **p)
