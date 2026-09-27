@@ -131,10 +131,9 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
   .catch(() => {});
 
 // Mapa de fondo con nombres de países y ciudades. Si uno no carga (bloqueado, caído…), se prueba el siguiente.
+// (CARTO se quitó: pide clave y devuelve una imagen de "API KEY REQUIRED" en lugar de un error.)
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 const FONDOS = [
-  { url: `https://{s}.basemaps.cartocdn.com/${oscuro() ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`,
-    opciones: { subdomains: "abcd", attribution: `${OSM} &copy; <a href="https://carto.com/">CARTO</a>` } },
   { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opciones: { attribution: OSM } },
   { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
     opciones: { attribution: "Tiles &copy; Esri" } },
