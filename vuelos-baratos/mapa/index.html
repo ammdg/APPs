@@ -6,7 +6,7 @@
 <title>Vuelos baratos</title>
 <meta name="description" content="Destinos desde Madrid con billete de ida y vuelta por debajo del límite, en un mapa.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✈️%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -104,7 +104,8 @@
   <div class="pie" id="pie">Billete de ida y vuelta, 1 adulto, sin equipaje facturado. Datos de Google Flights.</div>
 </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script>
 const euros = x => Math.round(x).toLocaleString("es-ES") + " €";
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
@@ -114,10 +115,41 @@ const oscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 
 const mapa = L.map("mapa", { zoomControl: false, worldCopyJump: true }).setView([46, 10], 4);
 L.control.zoom({ position: "bottomright" }).addTo(mapa);
-L.tileLayer(`https://{s}.basemaps.cartocdn.com/${oscuro() ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`, {
-  maxZoom: 12, subdomains: "abcd",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-}).addTo(mapa);
+
+// Base propia con los contornos de los países: se ve siempre, aunque fallen los mapas de fondo.
+mapa.createPane("paises").style.zIndex = 150;
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+  .then(r => r.json())
+  .then(mundo => {
+    const css = getComputedStyle(document.documentElement);
+    L.geoJSON(topojson.feature(mundo, mundo.objects.countries), {
+      pane: "paises", interactive: false,
+      style: { color: css.getPropertyValue("--suave").trim(), weight: .8, opacity: .6,
+               fillColor: css.getPropertyValue("--panel").trim(), fillOpacity: 1 },
+    }).addTo(mapa);
+  })
+  .catch(() => {});
+
+// Mapa de fondo con nombres de países y ciudades. Si uno no carga (bloqueado, caído…), se prueba el siguiente.
+const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const FONDOS = [
+  { url: `https://{s}.basemaps.cartocdn.com/${oscuro() ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`,
+    opciones: { subdomains: "abcd", attribution: `${OSM} &copy; <a href="https://carto.com/">CARTO</a>` } },
+  { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opciones: { attribution: OSM } },
+  { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    opciones: { attribution: "Tiles &copy; Esri" } },
+];
+function ponerFondo(i) {
+  if (i >= FONDOS.length) return;
+  let cargadas = 0, errores = 0;
+  const capaFondo = L.tileLayer(FONDOS[i].url, { maxZoom: 12, ...FONDOS[i].opciones })
+    .on("tileload", () => { cargadas++; })
+    .on("tileerror", () => {
+      if (++errores >= 4 && cargadas === 0) { mapa.removeLayer(capaFondo); ponerFondo(i + 1); }
+    })
+    .addTo(mapa);
+}
+ponerFondo(0);
 
 let datos = null, capa = L.layerGroup().addTo(mapa), marcadores = {};
 let precioMax = 150, tipo = "todos";
@@ -156,7 +188,13 @@ function popup(d) {
     ${d.escala ? bloque("🔁 Con 1 escala", d.escala) : ""}</div>`;
 }
 
+// Con el mapa alejado (sobre todo en el móvil) las etiquetas se pisan: solo el precio; al acercarse, también la ciudad.
+const conNombre = () => mapa.getZoom() >= (matchMedia("(max-width: 640px)").matches ? 6 : 5);
+let conNombreAntes = null;
+mapa.on("zoomend", () => { if (datos && conNombre() !== conNombreAntes) pintar(); });
+
 function pintar() {
+  conNombreAntes = conNombre();
   capa.clearLayers(); marcadores = {};
   const o = datos.origen;
   L.marker([o.lat, o.lon], { icon: L.divIcon({ className: "", html: '<div class="origen"></div>' }), interactive: false }).addTo(capa);
@@ -168,7 +206,7 @@ function pintar() {
     const c = color(op.b.precio);
     L.polyline([[o.lat, o.lon], [d.lat, d.lon]], { color: c, weight: 1.5, opacity: .45, dashArray: "4 6", interactive: false }).addTo(capa);
     const m = L.marker([d.lat, d.lon], {
-      icon: L.divIcon({ className: "", html: `<div class="etiqueta${op.escala ? " escala" : ""}" style="background:${c}">${esc(d.nombre)} · ${euros(op.b.precio)}</div>` }),
+      icon: L.divIcon({ className: "", html: `<div class="etiqueta${op.escala ? " escala" : ""}" style="background:${c}">${conNombre() ? esc(d.nombre) + " · " : ""}${euros(op.b.precio)}</div>` }),
       title: `${d.nombre}: ${euros(op.b.precio)} por persona`, riseOnHover: true,
     }).bindPopup(() => popup(d), { maxWidth: 320 }).addTo(capa);
     marcadores[d.codigo] = m;
