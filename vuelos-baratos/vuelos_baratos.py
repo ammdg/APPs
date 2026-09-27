@@ -69,6 +69,7 @@ class Config:
     escala_max_minutos: int = 180  # espera máxima en la escala
     mostrar_por_encima: int = 5  # cuántos destinos por encima del precio máximo enseñar como referencia
     pausa_segundos: float = 2
+    url_mapa: str = ""  # enlace al mapa (GitHub Pages) que se añade al mensaje
 
     @classmethod
     def desde_archivo(cls, path: Path) -> "Config":
@@ -85,6 +86,7 @@ class Config:
             escala_max_minutos=int(d.get("escala_max_minutos", 180)),
             mostrar_por_encima=int(d.get("mostrar_por_encima", 5)),
             pausa_segundos=float(d.get("pausa_segundos", 2)),
+            url_mapa=d.get("url_mapa", ""),
         )
 
 
@@ -511,6 +513,8 @@ def formatear_mensaje(
             lineas += ["", "Siguientes con escala más baratos (por encima del límite):"]
             for r, c in escalas_caras:
                 lineas += bloque(r, c)
+    if cfg.url_mapa:
+        lineas += ["", f"🗺️ Mapa: {cfg.url_mapa}"]
     for a in avisos:
         lineas += ["", f"⚠️ {a}"]
     lineas += [
@@ -523,6 +527,46 @@ def formatear_mensaje(
     if len(texto) > LIMITE_TELEGRAM:
         texto = texto[: LIMITE_TELEGRAM - 30].rsplit("\n", 1)[0] + "\n… (lista recortada)"
     return texto
+
+
+def enlace_google_flights(origen: str, destino: str, ida: date, vuelta: date) -> str:
+    q = f"Flights from {origen} to {destino} on {ida.isoformat()} through {vuelta.isoformat()}"
+    return "https://www.google.com/travel/flights?hl=es&curr=EUR&q=" + requests.utils.quote(q)
+
+
+def datos_mapa(cfg: Config, resultados: list[Resultado], ahora: datetime, coordenadas: dict) -> dict:
+    """Lo que pinta el mapa (mapa/index.html): origen y, por destino, su mejor billete directo y con escala."""
+
+    def billete(c: Combinacion | None) -> dict | None:
+        if not c:
+            return None
+        return {
+            "precio": round(c.precio, 2),
+            "total": round(c.precio * cfg.pasajeros, 2),
+            "ida": {"fecha": c.ida.fecha.isoformat(), "salida": c.ida.salida, "llegada": c.ida.llegada,
+                    "aerolinea": c.ida.aerolinea, "escala": c.ida.escala, "espera_min": c.ida.espera_min},
+            "vuelta": {"fecha": c.vuelta.fecha.isoformat(), "con_escala": bool(c.vuelta.escala)},
+            "google_flights": enlace_google_flights(cfg.origen, r.destino, c.ida.fecha, c.vuelta.fecha),
+        }
+
+    destinos = []
+    for r in resultados:
+        if r.destino not in coordenadas or not r.mejor:
+            continue
+        destinos.append({
+            "codigo": r.destino, "nombre": r.nombre, "lat": coordenadas[r.destino][0],
+            "lon": coordenadas[r.destino][1], "directo": billete(r.directo), "escala": billete(r.con_escala),
+        })
+    return {
+        "actualizado": ahora.isoformat(timespec="minutes"),
+        "origen": {"codigo": cfg.origen, "lat": coordenadas.get(cfg.origen, [0, 0])[0],
+                   "lon": coordenadas.get(cfg.origen, [0, 0])[1]},
+        "pasajeros": cfg.pasajeros,
+        "precio_max_persona": cfg.precio_max_persona,
+        "fechas_ida": [f.isoformat() for f in cfg.fechas_ida],
+        "fechas_vuelta": [f.isoformat() for f in cfg.fechas_vuelta],
+        "destinos": sorted(destinos, key=lambda d: min(b["precio"] for b in (d["directo"], d["escala"]) if b)),
+    }
 
 
 def actualizar_historial(resultados: list[Resultado]) -> dict[str, float]:
@@ -565,10 +609,18 @@ def notificar(texto: str) -> list[str]:
     return usados
 
 
-def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avisos: list[str]) -> int:
-    """Manda el mensaje y actualiza el historial."""
+MAPA_DATOS = AQUI / "mapa" / "datos.json"
+
+
+def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avisos: list[str],
+             mapa_path: Path = MAPA_DATOS) -> int:
+    """Manda el mensaje, guarda los datos del mapa y actualiza el historial."""
     historial = cargar_historial(historial_path)
-    texto = formatear_mensaje(cfg, resultados, historial, avisos, datetime.now(ZONA))
+    ahora = datetime.now(ZONA)
+    coordenadas = json.loads((AQUI / "coordenadas.json").read_text(encoding="utf-8"))
+    mapa_path.write_text(
+        json.dumps(datos_mapa(cfg, resultados, ahora, coordenadas), indent=1, ensure_ascii=False), encoding="utf-8")
+    texto = formatear_mensaje(cfg, resultados, historial, avisos, ahora)
     print(texto)
     notificar(texto)
     nuevo = actualizar_historial(resultados)
@@ -578,10 +630,11 @@ def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avi
     return 0 if any(r.mejor for r in resultados) else 1
 
 
-def ejecutar(cfg: Config, historial_path: Path, buscador_billete: BuscadorBillete = buscar_billete) -> int:
+def ejecutar(cfg: Config, historial_path: Path, buscador_billete: BuscadorBillete = buscar_billete,
+             mapa_path: Path = MAPA_DATOS) -> int:
     """Búsqueda completa en un solo proceso (para usarlo en tu ordenador)."""
     resultados, avisos = buscar(cfg, buscador_billete)
-    return informar(cfg, historial_path, resultados, avisos)
+    return informar(cfg, historial_path, resultados, avisos, mapa_path)
 
 
 def main() -> int:

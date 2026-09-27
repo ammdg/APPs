@@ -151,10 +151,10 @@ def test_ejecutar_guarda_historial_y_notifica(tmp_path, monkeypatch):
     enviados = []
     monkeypatch.setattr(vb, "notificar", enviados.append)
     h = tmp_path / "historial.json"
-    assert vb.ejecutar(cfg(), h, falso) == 0
+    assert vb.ejecutar(cfg(), h, falso, tmp_path / 'datos.json') == 0
     assert json.loads(h.read_text()) == {"iv:LIS": 95.0, "iv:OSL+escala": 115.0, "iv:CDG": 170.0,
                                          "iv:CDG+escala": 130.0, "iv:JFK": 800.0, "iv:BER": 137.0}
-    vb.ejecutar(cfg(), h, falso)
+    vb.ejecutar(cfg(), h, falso, tmp_path / 'datos.json')
     assert "🆕" not in enviados[1]
 
 
@@ -164,7 +164,7 @@ def test_historial_de_solo_idas_no_se_compara(tmp_path, monkeypatch):
     monkeypatch.setattr(vb, "notificar", enviados.append)
     h = tmp_path / "historial.json"
     h.write_text('{"BER": 151.0}')
-    vb.ejecutar(cfg(), h, falso)
+    vb.ejecutar(cfg(), h, falso, tmp_path / 'datos.json')
     assert "Berlín (BER): 137 €/pers · 548 € total 🆕" in enviados[0]
 
 
@@ -172,7 +172,7 @@ def test_ejecutar_falla_si_no_hay_ningun_vuelo(tmp_path, monkeypatch):
     monkeypatch.setattr(vb, "notificar", lambda t: [])
     h = tmp_path / "historial.json"
     h.write_text('{"iv:LIS": 90}')
-    assert vb.ejecutar(cfg(), h, lambda *a: None) == 1
+    assert vb.ejecutar(cfg(), h, lambda *a: None, tmp_path / 'datos.json') == 1
     assert json.loads(h.read_text()) == {"iv:LIS": 90}
 
 
@@ -349,3 +349,35 @@ def test_buscar_billete_lee_la_pagina_de_ida_y_vuelta(monkeypatch):
     assert (c.precio, c.ida.salida, c.vuelta.fecha, c.billete_unico, c.con_escala) == (137, "20:00", V1, True, False)
     info = pedidas[0].pb()
     assert len(info.data) == 2 and info.data[1].max_stops == 0
+
+
+# ------------------------------------------------------------------ mapa
+
+
+def test_datos_del_mapa(tmp_path, monkeypatch):
+    monkeypatch.setattr(vb, "notificar", lambda t: [])
+    mapa = tmp_path / "datos.json"
+    vb.ejecutar(cfg(url_mapa="https://ejemplo/mapa/"), tmp_path / "h.json", falso, mapa)
+    datos = json.loads(mapa.read_text())
+    codigos = [x["codigo"] for x in datos["destinos"]]
+    assert codigos[0] == "LIS" and "RAK" not in codigos and len(codigos) == 5  # solo los que tienen billete
+    assert datos["origen"]["codigo"] == "MAD" and datos["pasajeros"] == 4 and datos["precio_max_persona"] == 150
+    ber = next(x for x in datos["destinos"] if x["codigo"] == "BER")
+    assert (ber["lat"], ber["lon"]) == (52.3617, 13.5023)
+    assert ber["directo"]["precio"] == 137 and ber["directo"]["total"] == 548 and ber["escala"] is None
+    assert ber["directo"]["ida"]["salida"] == "08:00" and ber["directo"]["vuelta"]["fecha"] == "2027-06-26"
+    assert "MAD%20to%20BER%20on%202027-06-19%20through%202027-06-26" in ber["directo"]["google_flights"]
+    cdg = next(x for x in datos["destinos"] if x["codigo"] == "CDG")
+    assert cdg["escala"]["vuelta"]["con_escala"] and cdg["escala"]["precio"] == 130
+
+
+def test_mensaje_con_enlace_al_mapa():
+    resultados, _ = vb.buscar(cfg(), falso)
+    assert "🗺️ Mapa: https://ejemplo/" in vb.formatear_mensaje(cfg(url_mapa="https://ejemplo/"), resultados, {}, [], AHORA)
+    assert "Mapa" not in vb.formatear_mensaje(cfg(), resultados, {}, [], AHORA)
+
+
+def test_coordenadas_de_todos_los_destinos():
+    coordenadas = json.loads((vb.AQUI / "coordenadas.json").read_text())
+    c = vb.Config.desde_archivo(vb.AQUI / "config.json")
+    assert all(k in coordenadas for k in [*c.destinos, c.origen])

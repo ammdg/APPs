@@ -28,6 +28,17 @@ vigilante de Renfe.
 - Se consulta 1 adulto: Google no garantiza que ese precio esté disponible para todos los pasajeros.
 - Sin equipaje facturado. Los precios pueden no coincidir al céntimo con la web de la aerolínea.
 
+## Mapa
+
+Cada mañana, además del mensaje, se publica un mapa interactivo en https://ammdg.github.io/APPs/ con los
+destinos y su precio por persona (billete de ida y vuelta). Al pinchar en una ciudad se ven los vuelos
+(horario de la ida, fecha de la vuelta, total para todos) y un enlace a Google Flights con esa búsqueda.
+Se puede cambiar el precio máximo y ver solo directos o solo con escala. Es una página pública.
+
+Para que funcione hay que activarlo una vez: *Settings → Pages → Build and deployment → Source:
+GitHub Actions*. Los datos salen de `mapa/datos.json`, que genera `vuelos_baratos.py` junto con el mensaje;
+las coordenadas de los aeropuertos están en `coordenadas.json` (de OurAirports).
+
 ## Configuración: `config.json`
 
 | Campo | Qué es |
@@ -40,6 +51,7 @@ vigilante de Renfe.
 | `escala_max_minutos` | Espera máxima en la escala, en minutos (180 = 3 h) |
 | `mostrar_por_encima` | Cuántos destinos por encima del límite enseñar como referencia en cada apartado (directos y con escala) |
 | `pausa_segundos` | Espera entre consultas a Google (no bajarla mucho) |
+| `url_mapa` | Enlace al mapa que se añade al final del mensaje (vacío = sin enlace) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 
 Google Flights solo admite un destino y unas fechas por consulta: cada destino son 4 combinaciones de

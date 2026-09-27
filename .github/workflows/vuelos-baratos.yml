@@ -106,3 +106,21 @@ jobs:
         with:
           path: vuelos-baratos/historial.json
           key: vuelos-historial-${{ github.run_id }}
+
+      # El mapa (mapa/index.html + datos.json) se publica en GitHub Pages: https://ammdg.github.io/APPs/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: vuelos-baratos/mapa
+
+  mapa:
+    needs: informe
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - id: publicar
+        uses: actions/deploy-pages@v4

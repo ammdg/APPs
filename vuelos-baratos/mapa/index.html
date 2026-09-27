@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vuelos baratos</title>
+<meta name="description" content="Destinos desde Madrid con billete de ida y vuelta por debajo del límite, en un mapa.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✈️%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --texto: #16181d; --suave: #5d6470; --borde: #e3e6eb;
+    --barato: #0f9d58; --medio: #e0a100; --caro: #9aa1ab; --acento: #1a73e8; --sobre-acento: #ffffff; --sombra: 0 6px 24px rgba(20,24,33,.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --panel: #181b21; --texto: #eef0f3; --suave: #a2a9b4; --borde: #2a2f38;
+      --barato: #34c77b; --medio: #f2b82e; --caro: #6b727d; --acento: #7ab0ff; --sobre-acento: #0b1320; --sombra: 0 6px 24px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --panel: #181b21; --texto: #eef0f3; --suave: #a2a9b4; --borde: #2a2f38;
+    --barato: #34c77b; --medio: #f2b82e; --caro: #6b727d; --acento: #7ab0ff; --sobre-acento: #0b1320; --sombra: 0 6px 24px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--texto);
+    font: 14px/1.4 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #mapa { position: fixed; inset: 0; background: var(--bg); }
+  .panel { position: fixed; z-index: 1000; top: 12px; left: 12px; width: 340px; max-height: calc(100% - 24px);
+    display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--borde);
+    border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
+  .cabecera { padding: 14px 16px 10px; border-bottom: 1px solid var(--borde); }
+  h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .sub { color: var(--suave); font-size: 12.5px; margin-top: 2px; }
+  .controles { display: grid; gap: 10px; margin-top: 12px; }
+  .fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+  input[type=range] { width: 100%; accent-color: var(--acento); }
+  .segmentos { display: flex; border: 1px solid var(--borde); border-radius: 9px; overflow: hidden; }
+  .segmentos button { flex: 1; padding: 6px 4px; border: 0; background: transparent; color: var(--suave);
+    font: inherit; font-size: 12.5px; cursor: pointer; }
+  .segmentos button[aria-pressed=true] { background: var(--acento); color: var(--sobre-acento); font-weight: 600; }
+  .lista { overflow-y: auto; padding: 6px; }
+  .item { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 10px;
+    border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .item:hover, .item:focus-visible { background: color-mix(in srgb, var(--acento) 10%, transparent); outline: none; }
+  .item .nombre { font-weight: 600; }
+  .item .precio { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .item .detalle { grid-column: 1 / -1; color: var(--suave); font-size: 12px; }
+  .vacio { padding: 16px; color: var(--suave); text-align: center; }
+  .pie { padding: 8px 14px; border-top: 1px solid var(--borde); color: var(--suave); font-size: 11.5px; }
+  .toggle { position: absolute; top: 12px; right: 12px; border: 0; background: none; color: var(--suave);
+    cursor: pointer; font-size: 18px; display: none; }
+
+  .etiqueta { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px;
+    font: 700 12px/1.2 Inter, system-ui, sans-serif; color: #fff; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,.28); border: 2px solid #fff; transform: translate(-50%, -50%);
+    position: absolute; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .etiqueta.escala::after { content: "↺"; font-weight: 600; opacity: .9; }
+  .origen { width: 14px; height: 14px; border-radius: 50%; background: var(--acento); border: 3px solid #fff;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--acento) 35%, transparent); transform: translate(-50%, -50%); position: absolute; }
+
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--texto); box-shadow: var(--sombra); }
+  .leaflet-popup-content { margin: 14px 16px; font: 13px/1.45 Inter, system-ui, sans-serif; min-width: 230px; }
+  .pop h2 { margin: 0 0 2px; font-size: 16px; }
+  .pop .grande { font-size: 22px; font-weight: 700; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .pop .gris { color: var(--suave); }
+  .pop .opcion { border-top: 1px solid var(--borde); padding-top: 8px; margin-top: 8px; }
+  .pop .opcion h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+  .pop a.boton { display: inline-block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: var(--acento);
+    color: var(--sobre-acento); text-decoration: none; font-weight: 600; font-size: 12.5px; }
+  .leaflet-container a.leaflet-popup-close-button { color: var(--suave); }
+  .leaflet-control-attribution { font-size: 10px; }
+
+  @media (max-width: 640px) {
+    .panel { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 55%; border-radius: 16px 16px 0 0; }
+    .panel.plegado .controles, .panel.plegado .lista, .panel.plegado .pie { display: none; }
+    .toggle { display: block; }
+  }
+</style>
+</head>
+<body>
+<div id="mapa" role="application" aria-label="Mapa de destinos"></div>
+
+<section class="panel" id="panel" aria-label="Destinos">
+  <div class="cabecera" style="position:relative">
+    <h1>✈️ Vuelos baratos desde <span id="origen">Madrid</span></h1>
+    <div class="sub" id="resumen">Cargando…</div>
+    <button class="toggle" id="plegar" aria-label="Plegar o desplegar la lista">▾</button>
+    <div class="controles">
+      <div>
+        <div class="fila"><span>Precio máximo por persona</span><strong id="valorMax">150 €</strong></div>
+        <input type="range" id="max" min="50" max="400" step="10" value="150" aria-label="Precio máximo por persona">
+      </div>
+      <div class="segmentos" role="group" aria-label="Tipo de vuelo">
+        <button data-tipo="todos" aria-pressed="true">Todos</button>
+        <button data-tipo="directo" aria-pressed="false">Directos</button>
+        <button data-tipo="escala" aria-pressed="false">Con escala</button>
+      </div>
+    </div>
+  </div>
+  <div class="lista" id="lista"></div>
+  <div class="pie" id="pie">Billete de ida y vuelta, 1 adulto, sin equipaje facturado. Datos de Google Flights.</div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const euros = x => Math.round(x).toLocaleString("es-ES") + " €";
+const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const fecha = iso => { const d = new Date(iso + "T12:00:00"); return `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`; };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const oscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
+
+const mapa = L.map("mapa", { zoomControl: false, worldCopyJump: true }).setView([46, 10], 4);
+L.control.zoom({ position: "bottomright" }).addTo(mapa);
+L.tileLayer(`https://{s}.basemaps.cartocdn.com/${oscuro() ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`, {
+  maxZoom: 12, subdomains: "abcd",
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+}).addTo(mapa);
+
+let datos = null, capa = L.layerGroup().addTo(mapa), marcadores = {};
+let precioMax = 150, tipo = "todos";
+
+function color(precio) {
+  const css = getComputedStyle(document.documentElement);
+  if (precio < datos.precio_max_persona * 0.75) return css.getPropertyValue("--barato").trim();
+  if (precio < datos.precio_max_persona) return css.getPropertyValue("--medio").trim();
+  return css.getPropertyValue("--caro").trim();
+}
+
+// La opción que se enseña de cada destino según el filtro de tipo.
+function opcion(d) {
+  if (tipo === "directo") return d.directo ? { b: d.directo, escala: false } : null;
+  if (tipo === "escala") return d.escala ? { b: d.escala, escala: true } : null;
+  const ops = [d.directo && { b: d.directo, escala: false }, d.escala && { b: d.escala, escala: true }].filter(Boolean);
+  return ops.sort((a, b) => a.b.precio - b.b.precio)[0] || null;
+}
+
+function bloque(titulo, b) {
+  const i = b.ida;
+  const escalaIda = i.escala ? ` · escala ${esc(i.escala)} ${Math.floor(i.espera_min / 60)}h${String(i.espera_min % 60).padStart(2, "0")}` : "";
+  return `<div class="opcion"><h3>${titulo}</h3>
+    <div><strong>${euros(b.precio)}</strong>/pers · ${euros(b.total)} total</div>
+    <div>Ida ${fecha(i.fecha)} ${esc(i.salida)}–${esc(i.llegada)} · ${esc(i.aerolinea)}${escalaIda}</div>
+    <div>Vuelta ${fecha(b.vuelta.fecha)} <span class="gris">· horario al reservar${b.vuelta.con_escala ? " · con escala" : ""}</span></div>
+    <a class="boton" href="${esc(b.google_flights)}" target="_blank" rel="noopener">Ver en Google Flights ↗</a></div>`;
+}
+
+function popup(d) {
+  const mejor = opcion(d) || { b: d.directo || d.escala };
+  return `<div class="pop"><h2>${esc(d.nombre)} <span class="gris">${esc(d.codigo)}</span></h2>
+    <div class="grande">${euros(mejor.b.precio)} <span class="gris" style="font-size:13px;font-weight:500">/persona</span></div>
+    <div class="gris">${euros(mejor.b.total)} para ${datos.pasajeros} personas, ida y vuelta</div>
+    ${d.directo ? bloque("✅ Directo", d.directo) : ""}
+    ${d.escala ? bloque("🔁 Con 1 escala", d.escala) : ""}</div>`;
+}
+
+function pintar() {
+  capa.clearLayers(); marcadores = {};
+  const o = datos.origen;
+  L.marker([o.lat, o.lon], { icon: L.divIcon({ className: "", html: '<div class="origen"></div>' }), interactive: false }).addTo(capa);
+  const visibles = datos.destinos.map(d => ({ d, op: opcion(d) }))
+    .filter(x => x.op && x.op.b.precio <= precioMax)
+    .sort((a, b) => a.op.b.precio - b.op.b.precio);
+
+  for (const { d, op } of visibles.slice().reverse()) {  // los más baratos, encima
+    const c = color(op.b.precio);
+    L.polyline([[o.lat, o.lon], [d.lat, d.lon]], { color: c, weight: 1.5, opacity: .45, dashArray: "4 6", interactive: false }).addTo(capa);
+    const m = L.marker([d.lat, d.lon], {
+      icon: L.divIcon({ className: "", html: `<div class="etiqueta${op.escala ? " escala" : ""}" style="background:${c}">${esc(d.nombre)} · ${euros(op.b.precio)}</div>` }),
+      title: `${d.nombre}: ${euros(op.b.precio)} por persona`, riseOnHover: true,
+    }).bindPopup(() => popup(d), { maxWidth: 320 }).addTo(capa);
+    marcadores[d.codigo] = m;
+  }
+
+  const lista = document.getElementById("lista");
+  lista.innerHTML = visibles.length ? visibles.map(({ d, op }) => `
+    <button class="item" data-codigo="${esc(d.codigo)}">
+      <span class="nombre">${esc(d.nombre)} <span class="gris" style="color:var(--suave);font-weight:500">${esc(d.codigo)}</span></span>
+      <span class="precio" style="color:${color(op.b.precio)}">${euros(op.b.precio)}</span>
+      <span class="detalle">${op.escala ? "🔁 con escala" : "✅ directo"} · ida ${fecha(op.b.ida.fecha)} · vuelta ${fecha(op.b.vuelta.fecha)} · ${euros(op.b.total)} total</span>
+    </button>`).join("") : '<div class="vacio">Ningún destino con este filtro.</div>';
+  document.getElementById("resumen").textContent =
+    `${visibles.length} destinos hasta ${euros(precioMax)}/pers · ida ${datos.fechas_ida.map(fecha).join(" o ")} → vuelta ${datos.fechas_vuelta.map(fecha).join(" o ")}`;
+}
+
+document.getElementById("lista").addEventListener("click", e => {
+  const b = e.target.closest(".item"); if (!b) return;
+  const m = marcadores[b.dataset.codigo]; if (!m) return;
+  mapa.flyTo(m.getLatLng(), Math.max(mapa.getZoom(), 5), { duration: .6 });
+  m.openPopup();
+  if (matchMedia("(max-width: 640px)").matches) document.getElementById("panel").classList.add("plegado");
+});
+document.getElementById("max").addEventListener("input", e => {
+  precioMax = +e.target.value; document.getElementById("valorMax").textContent = euros(precioMax); pintar();
+});
+document.querySelectorAll(".segmentos button").forEach(b => b.addEventListener("click", () => {
+  tipo = b.dataset.tipo;
+  document.querySelectorAll(".segmentos button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  pintar();
+}));
+document.getElementById("plegar").addEventListener("click", () => document.getElementById("panel").classList.toggle("plegado"));
+
+fetch("datos.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(j => {
+    datos = j;
+    precioMax = datos.precio_max_persona;
+    const r = document.getElementById("max"); r.value = precioMax;
+    document.getElementById("valorMax").textContent = euros(precioMax);
+    const act = new Date(datos.actualizado);
+    document.getElementById("pie").textContent =
+      `Actualizado ${act.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid" })}. Billete de ida y vuelta, 1 adulto × ${datos.pasajeros}, sin equipaje facturado. Datos de Google Flights; comprueba plazas antes de comprar.`;
+    pintar();
+    const puntos = datos.destinos.filter(d => (opcion(d)?.b.precio ?? 1e9) <= precioMax).map(d => [d.lat, d.lon]);
+    if (puntos.length) {
+      // Que el panel no tape los destinos: a la izquierda en escritorio, abajo en el móvil.
+      const panel = document.getElementById("panel").getBoundingClientRect();
+      const movil = matchMedia("(max-width: 640px)").matches;
+      mapa.fitBounds(L.latLngBounds([...puntos, [datos.origen.lat, datos.origen.lon]]), {
+        paddingTopLeft: [movil ? 30 : panel.right + 30, 40],
+        paddingBottomRight: [40, movil ? panel.height + 20 : 40],
+      });
+    }
+  })
+  .catch(() => { document.getElementById("resumen").textContent = "No se pudieron cargar los datos todavía."; });
+</script>
+</body>
+</html>
