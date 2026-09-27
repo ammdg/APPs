@@ -90,7 +90,7 @@ def main() -> int:
         o, d = ruta.split("-")
         fecha = date.fromisoformat(f)
         vuelta = date.fromisoformat(v[0]) if v else None
-        pruebas = [dict(max_stops=0, layover=None, vuelta=vuelta), dict(max_stops=1, layover=180, vuelta=vuelta)]
+        pruebas = [dict(max_stops=0, layover=None, vuelta=vuelta, intento=i) for i in (1, 2, 3)]
         for p in filter(None, pruebas):
             try:
                 diagnosticar(o, d, fecha, **p)

@@ -95,9 +95,8 @@ def test_mensaje_con_dos_apartados():
     assert directos_ref < texto.index("Nueva York (JFK): 800 €") < escalas
     assert escalas < texto.index("Oslo (OSL): 115 €/pers · 460 € total 🆕")
     assert escalas < texto.index("París (CDG): 130 €/pers · 520 € total 📈 antes 120 €")
-    assert "ida sáb 19/06 08:00-09:10 Aerolínea (escala CPH 1h35)" in texto
-    assert "vuelta dom 27/06, horario a elegir en Google Flights" in texto
-    assert "vuelta sáb 26/06, horario a elegir en Google Flights (con escala)" in texto  # París
+    assert "ida sáb 19/06 08:00-09:10 Aerolínea (escala CPH 1h35) · vuelta dom 27/06\n" in texto
+    assert "ida sáb 19/06 08:00-09:10 Aerolínea · vuelta sáb 26/06 (con escala)\n" in texto  # París
     assert "París (CDG): 170" not in texto  # el directo caro no se repite si hay opción barata con escala
     assert "Marrakech" not in texto
     assert "billete de ida y vuelta más barato, por persona (1 adulto) × 4" in texto

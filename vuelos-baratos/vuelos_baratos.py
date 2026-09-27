@@ -442,8 +442,7 @@ def _euros(x: float) -> str:
 def _tramo(v: Vuelo) -> str:
     dia = f"{DIAS[v.fecha.weekday()]} {v.fecha:%d/%m}"
     if not v.salida:  # vuelta de un billete de ida y vuelta: Google no da el horario
-        texto = f"{dia}, horario a elegir en Google Flights"
-        return texto + (" (con escala)" if v.escala else "")
+        return dia + (" (con escala)" if v.escala else "")
     texto = f"{dia} {v.salida}-{v.llegada} {v.aerolinea}"
     if v.escala:
         texto += f" (escala {v.escala} {v.espera_min // 60}h{v.espera_min % 60:02d})"
@@ -486,8 +485,7 @@ def formatear_mensaje(
             marca = f" 📈 antes {_euros(anterior)}"
         return [
             f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total{marca}",
-            f"   ida {_tramo(c.ida)}",
-            f"   vuelta {_tramo(c.vuelta)}",
+            f"   ida {_tramo(c.ida)} · vuelta {_tramo(c.vuelta)}",
         ]
 
     lineas += ["", f"✅ DIRECTOS por debajo de {_euros(limite)}/persona ida y vuelta:"]
