@@ -30,14 +30,15 @@ vigilante de Renfe.
 
 ## Mapa
 
-Cada mañana, además del mensaje, se publica un mapa interactivo en https://ammdg.github.io/APPs/ con los
+Cada mañana, además del mensaje, se publica un mapa interactivo en https://ammdg.github.io/APPs/vuelos-baratos/mapa/ con los
 destinos y su precio por persona (billete de ida y vuelta). Al pinchar en una ciudad se ven los vuelos
 (horario de la ida, fecha de la vuelta, total para todos) y un enlace a Google Flights con esa búsqueda.
 Se puede cambiar el precio máximo y ver solo directos o solo con escala. Es una página pública.
 
-Para que funcione hay que activarlo una vez: *Settings → Pages → Build and deployment → Source:
-GitHub Actions*. Los datos salen de `mapa/datos.json`, que genera `vuelos_baratos.py` junto con el mensaje;
-las coordenadas de los aeropuertos están en `coordenadas.json` (de OurAirports).
+GitHub Pages ya publica la rama `main`, así que el workflow solo guarda cada mañana `mapa/datos.json`
+en `main` (un commit al día de github-actions) y pide que se vuelva a publicar. Los datos los genera
+`vuelos_baratos.py` junto con el mensaje; las coordenadas de los aeropuertos están en `coordenadas.json`
+(de OurAirports).
 
 ## Configuración: `config.json`
 
