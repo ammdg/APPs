@@ -73,6 +73,20 @@
   .leaflet-container a.leaflet-popup-close-button { color: var(--suave); }
   .leaflet-control-attribution { font-size: 10px; }
 
+  .acceso { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); }
+  .acceso[hidden] { display: none; }
+  .acceso form { width: 100%; max-width: 340px; display: grid; gap: 12px; padding: 22px 20px; background: var(--panel);
+    border: 1px solid var(--borde); border-radius: 14px; box-shadow: var(--sombra); }
+  .acceso h2 { margin: 0; font-size: 18px; }
+  .acceso label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); }
+  .acceso input[type=text], .acceso input[type=password] { padding: 10px 12px; border: 1px solid var(--borde);
+    border-radius: 9px; background: var(--bg); color: var(--texto); font: inherit; font-size: 16px; }
+  .acceso .recordar { display: flex; align-items: center; gap: 8px; }
+  .acceso button { padding: 10px; border: 0; border-radius: 9px; background: var(--acento); color: var(--sobre-acento);
+    font: inherit; font-weight: 600; cursor: pointer; }
+  .acceso button:disabled { opacity: .6; cursor: wait; }
+  .acceso .error { color: #d93025; font-size: 13px; min-height: 1em; margin: 0; }
   @media (max-width: 640px) {
     .panel { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 55%; border-radius: 16px 16px 0 0; }
     .panel.plegado .controles, .panel.plegado .lista, .panel.plegado .pie { display: none; }
@@ -82,6 +96,17 @@
 </head>
 <body>
 <div id="mapa" role="application" aria-label="Mapa de destinos"></div>
+
+<div class="acceso" id="acceso" hidden>
+  <form id="formAcceso" autocomplete="on">
+    <h2>🔒 Acceso</h2>
+    <label>Usuario <input type="text" id="usuario" name="username" autocomplete="username" required></label>
+    <label>Contraseña <input type="password" id="password" name="password" autocomplete="current-password" required></label>
+    <label class="recordar"><input type="checkbox" id="recordar"> Recordar en este dispositivo</label>
+    <p class="error" id="errorAcceso" role="alert"></p>
+    <button type="submit" id="entrar">Entrar</button>
+  </form>
+</div>
 
 <section class="panel" id="panel" aria-label="Destinos">
   <div class="cabecera" style="position:relative">
@@ -239,27 +264,86 @@ document.querySelectorAll(".segmentos button").forEach(b => b.addEventListener("
 }));
 document.getElementById("plegar").addEventListener("click", () => document.getElementById("panel").classList.toggle("plegado"));
 
+// Contador de visitas (GoatCounter, sin cookies). Vacío = desactivado. Las visitas se ven en
+// https://<nombre>.goatcounter.com (privado, solo el dueño de la cuenta).
+const GOATCOUNTER = "";
+if (GOATCOUNTER) {
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://gc.zgo.at/count.js";
+  s.dataset.goatcounter = `https://${GOATCOUNTER}.goatcounter.com/count`;
+  document.head.appendChild(s);
+}
+
+function mostrar(j) {
+  datos = j;
+  precioMax = datos.precio_max_persona;
+  const r = document.getElementById("max"); r.value = precioMax;
+  document.getElementById("valorMax").textContent = euros(precioMax);
+  const act = new Date(datos.actualizado);
+  document.getElementById("pie").textContent =
+    `Actualizado ${act.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid" })}. Billete de ida y vuelta, 1 adulto × ${datos.pasajeros}, sin equipaje facturado. Datos de Google Flights; comprueba plazas antes de comprar.`;
+  pintar();
+  const puntos = datos.destinos.filter(d => (opcion(d)?.b.precio ?? 1e9) <= precioMax).map(d => [d.lat, d.lon]);
+  if (puntos.length) {
+    // Que el panel no tape los destinos: a la izquierda en escritorio, abajo en el móvil.
+    const panel = document.getElementById("panel").getBoundingClientRect();
+    const movil = matchMedia("(max-width: 640px)").matches;
+    mapa.fitBounds(L.latLngBounds([...puntos, [datos.origen.lat, datos.origen.lon]]), {
+      paddingTopLeft: [movil ? 30 : panel.right + 30, 40],
+      paddingBottomRight: [40, movil ? panel.height + 20 : 40],
+    });
+  }
+}
+
+// Los datos van cifrados (AES-256-GCM, clave PBKDF2-SHA256 de "usuario:contraseña", ver vuelos_baratos.py):
+// sin el usuario y la contraseña correctos no se pueden leer, aunque el archivo sea público.
+const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function descifrar(sobre, usuario, password) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(`${usuario}:${password}`), "PBKDF2", false, ["deriveKey"]);
+  const clave = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", hash: "SHA-256", salt: b64(sobre.sal), iterations: sobre.iteraciones },
+    base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const claro = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(sobre.iv) }, clave, b64(sobre.datos));
+  return JSON.parse(new TextDecoder().decode(claro));
+}
+
+const GUARDADO = "vuelos-acceso";
+const leerGuardado = () => { try { return JSON.parse(localStorage.getItem(GUARDADO)); } catch { return null; } };
+const guardar = v => { try { v ? localStorage.setItem(GUARDADO, JSON.stringify(v)) : localStorage.removeItem(GUARDADO); } catch {} };
+
+function pedirAcceso(sobre) {
+  const acceso = document.getElementById("acceso"), form = document.getElementById("formAcceso");
+  const error = document.getElementById("errorAcceso"), boton = document.getElementById("entrar");
+  document.getElementById("resumen").textContent = "Introduce usuario y contraseña.";
+  acceso.hidden = false;
+  document.getElementById("usuario").focus();
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const usuario = document.getElementById("usuario").value.trim(), password = document.getElementById("password").value;
+    boton.disabled = true; error.textContent = "";
+    try {
+      const j = await descifrar(sobre, usuario, password);
+      guardar(document.getElementById("recordar").checked ? { usuario, password } : null);
+      acceso.hidden = true;
+      mostrar(j);
+    } catch {
+      error.textContent = "Usuario o contraseña incorrectos.";
+      document.getElementById("password").select();
+    } finally { boton.disabled = false; }
+  };
+}
+
 fetch("datos.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(j => {
-    datos = j;
-    precioMax = datos.precio_max_persona;
-    const r = document.getElementById("max"); r.value = precioMax;
-    document.getElementById("valorMax").textContent = euros(precioMax);
-    const act = new Date(datos.actualizado);
-    document.getElementById("pie").textContent =
-      `Actualizado ${act.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid" })}. Billete de ida y vuelta, 1 adulto × ${datos.pasajeros}, sin equipaje facturado. Datos de Google Flights; comprueba plazas antes de comprar.`;
-    pintar();
-    const puntos = datos.destinos.filter(d => (opcion(d)?.b.precio ?? 1e9) <= precioMax).map(d => [d.lat, d.lon]);
-    if (puntos.length) {
-      // Que el panel no tape los destinos: a la izquierda en escritorio, abajo en el móvil.
-      const panel = document.getElementById("panel").getBoundingClientRect();
-      const movil = matchMedia("(max-width: 640px)").matches;
-      mapa.fitBounds(L.latLngBounds([...puntos, [datos.origen.lat, datos.origen.lon]]), {
-        paddingTopLeft: [movil ? 30 : panel.right + 30, 40],
-        paddingBottomRight: [40, movil ? panel.height + 20 : 40],
-      });
+  .then(async j => {
+    if (!j.cifrado) return mostrar(j);
+    const g = leerGuardado();
+    if (g) {
+      try { return mostrar(await descifrar(j, g.usuario, g.password)); }
+      catch { guardar(null); }  // la contraseña cambió: se vuelve a pedir
     }
+    pedirAcceso(j);
   })
   .catch(() => { document.getElementById("resumen").textContent = "No se pudieron cargar los datos todavía."; });
 </script>
