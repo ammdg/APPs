@@ -141,6 +141,16 @@ python alertas_bolsa.py            # una vez
 python alertas_bolsa.py --cada 60  # cada hora
 ```
 
+## Backtest
+
+`backtest.py` mide qué pasó después de cada BUY: entrada en la apertura del día siguiente, salida al
+cierre 1, 5, 10 y 20 sesiones después, comparado con el S&P 500 (SPY) y con todas las acciones sin
+señal. Ojo: usa la lista de las 500 mayores de hoy (sesgo de supervivencia, favorece el resultado).
+
+```bash
+python backtest.py --desde 2026-09-01 --hasta 2026-09-12 --fin 2026-09-25 --anual-desde 2025-09-26
+```
+
 ## Pruebas
 
 ```bash
