@@ -1,6 +1,6 @@
 {
  "fecha_referencia": "2026-09-25",
- "generado": "2026-09-28 17:59 UTC",
+ "generado": "2026-09-28 18:02 UTC",
  "metodo": "acciones en circulación (capitalización / último precio de nasdaq.com) × cierre sin ajustar de Yahoo Finance en fecha_referencia",
  "solo_eeuu": false,
  "sin_cierre": [],
@@ -103,11 +103,11 @@
   },
   {
    "posicion": 13,
-   "ticker": "BRK-A",
+   "ticker": "BRK-B",
    "nombre": "Berkshire Hathaway Inc.",
    "pais": "United States",
-   "cierre": 758506.0,
-   "capitalizacion": 1115666754244
+   "cierre": 505.48,
+   "capitalizacion": 1115246296052
   },
   {
    "posicion": 14,
@@ -2535,14 +2535,6 @@
   },
   {
    "posicion": 317,
-   "ticker": "HBANL",
-   "nombre": "Huntington Bancshares Incorporated Depositary Shares Each Representing a 1/40th Interest in a Share of 6.875% Series J Non-Cumulative Perpetual Preferred Stock",
-   "pais": "United States",
-   "cierre": 25.27,
-   "capitalizacion": 51055883578
-  },
-  {
-   "posicion": 318,
    "ticker": "CAH",
    "nombre": "Cardinal Health Inc. Common Stock",
    "pais": "United States",
@@ -2550,7 +2542,7 @@
    "capitalizacion": 50993999239
   },
   {
-   "posicion": 319,
+   "posicion": 318,
    "ticker": "SRE",
    "nombre": "DBA Sempra Common Stock",
    "pais": "United States",
@@ -2558,7 +2550,7 @@
    "capitalizacion": 50958454320
   },
   {
-   "posicion": 320,
+   "posicion": 319,
    "ticker": "CIEN",
    "nombre": "Ciena Corporation Common Stock",
    "pais": "United States",
@@ -2566,7 +2558,7 @@
    "capitalizacion": 50612881177
   },
   {
-   "posicion": 321,
+   "posicion": 320,
    "ticker": "PSA",
    "nombre": "Public Storage Common Stock",
    "pais": "United States",
@@ -2574,7 +2566,7 @@
    "capitalizacion": 50573618172
   },
   {
-   "posicion": 322,
+   "posicion": 321,
    "ticker": "HONA",
    "nombre": "Honeywell Aerospace Inc. Common Stock",
    "pais": "United States",
@@ -2582,7 +2574,7 @@
    "capitalizacion": 50325753289
   },
   {
-   "posicion": 323,
+   "posicion": 322,
    "ticker": "AU",
    "nombre": "AngloGold Ashanti PLC Ordinary Shares",
    "pais": "South Africa",
@@ -2590,7 +2582,7 @@
    "capitalizacion": 50086328805
   },
   {
-   "posicion": 324,
+   "posicion": 323,
    "ticker": "BDX",
    "nombre": "Becton Dickinson and Company Common Stock",
    "pais": "United States",
@@ -2598,7 +2590,7 @@
    "capitalizacion": 50070143571
   },
   {
-   "posicion": 325,
+   "posicion": 324,
    "ticker": "STT",
    "nombre": "State Street Corporation Common Stock",
    "pais": "United States",
@@ -2606,7 +2598,7 @@
    "capitalizacion": 49814417059
   },
   {
-   "posicion": 326,
+   "posicion": 325,
    "ticker": "F",
    "nombre": "Ford Motor Company Common Stock",
    "pais": "United States",
@@ -2614,7 +2606,7 @@
    "capitalizacion": 49781811191
   },
   {
-   "posicion": 327,
+   "posicion": 326,
    "ticker": "EW",
    "nombre": "Edwards Lifesciences Corporation Common Stock",
    "pais": "United States",
@@ -2622,7 +2614,7 @@
    "capitalizacion": 49737556528
   },
   {
-   "posicion": 328,
+   "posicion": 327,
    "ticker": "FNV",
    "nombre": "Franco-Nevada Corporation",
    "pais": "Canada",
@@ -2630,7 +2622,7 @@
    "capitalizacion": 49736368443
   },
   {
-   "posicion": 329,
+   "posicion": 328,
    "ticker": "CBRS",
    "nombre": "Cerebras Systems Inc. Class A Common Stock",
    "pais": "United States",
@@ -2638,7 +2630,7 @@
    "capitalizacion": 49116365477
   },
   {
-   "posicion": 330,
+   "posicion": 329,
    "ticker": "DEO",
    "nombre": "Diageo plc Common Stock",
    "pais": "United Kingdom",
@@ -2646,7 +2638,7 @@
    "capitalizacion": 48718001405
   },
   {
-   "posicion": 331,
+   "posicion": 330,
    "ticker": "A",
    "nombre": "Agilent Technologies Inc. Common Stock",
    "pais": "United States",
@@ -2654,7 +2646,7 @@
    "capitalizacion": 48714484790
   },
   {
-   "posicion": 332,
+   "posicion": 331,
    "ticker": "WAB",
    "nombre": "Westinghouse Air Brake Technologies Corporation Common Stock",
    "pais": "United States",
@@ -2662,7 +2654,7 @@
    "capitalizacion": 48646325088
   },
   {
-   "posicion": 333,
+   "posicion": 332,
    "ticker": "VMRK",
    "nombre": "Vivmark Residential Common Shares of Beneficial Interest",
    "pais": "United States",
@@ -2670,7 +2662,7 @@
    "capitalizacion": 48439123678
   },
   {
-   "posicion": 334,
+   "posicion": 333,
    "ticker": "ROK",
    "nombre": "Rockwell Automation Inc. Common Stock",
    "pais": "United States",
@@ -2678,7 +2670,7 @@
    "capitalizacion": 48309586016
   },
   {
-   "posicion": 335,
+   "posicion": 334,
    "ticker": "CRWV",
    "nombre": "CoreWeave Inc. Class A Common Stock",
    "pais": "United States",
@@ -2686,7 +2678,7 @@
    "capitalizacion": 48309088949
   },
   {
-   "posicion": 336,
+   "posicion": 335,
    "ticker": "EBAY",
    "nombre": "eBay Inc. Common Stock",
    "pais": "United States",
@@ -2694,7 +2686,7 @@
    "capitalizacion": 48015500679
   },
   {
-   "posicion": 337,
+   "posicion": 336,
    "ticker": "HUM",
    "nombre": "Humana Inc. Common Stock",
    "pais": "United States",
@@ -2702,7 +2694,7 @@
    "capitalizacion": 47783556083
   },
   {
-   "posicion": 338,
+   "posicion": 337,
    "ticker": "TEAM",
    "nombre": "Atlassian Corporation Class A Common Stock",
    "pais": "Australia",
@@ -2710,15 +2702,7 @@
    "capitalizacion": 47524282519
   },
   {
-   "posicion": 339,
-   "ticker": "SMCIP",
-   "nombre": "Super Micro Computer Inc. Depositary Shares representing a 1/20th Interest in a Share of 7% Series A Mandatory Convertible Preferred Stock",
-   "pais": "United States",
-   "cierre": 72.2,
-   "capitalizacion": 47432898720
-  },
-  {
-   "posicion": 340,
+   "posicion": 338,
    "ticker": "FITB",
    "nombre": "Fifth Third Bancorp Common Stock",
    "pais": "United States",
@@ -2726,7 +2710,7 @@
    "capitalizacion": 47249101200
   },
   {
-   "posicion": 341,
+   "posicion": 339,
    "ticker": "PYPL",
    "nombre": "PayPal Holdings Inc. Common Stock",
    "pais": "United States",
@@ -2734,7 +2718,7 @@
    "capitalizacion": 47084567288
   },
   {
-   "posicion": 342,
+   "posicion": 340,
    "ticker": "AZO",
    "nombre": "AutoZone Inc. Common Stock",
    "pais": "United States",
@@ -2742,7 +2726,7 @@
    "capitalizacion": 46889030182
   },
   {
-   "posicion": 343,
+   "posicion": 341,
    "ticker": "VST",
    "nombre": "Vistra Corp. Common Stock",
    "pais": "United States",
@@ -2750,7 +2734,7 @@
    "capitalizacion": 46472051353
   },
   {
-   "posicion": 344,
+   "posicion": 342,
    "ticker": "CARR",
    "nombre": "Carrier Global Corporation Common Stock",
    "pais": "United States",
@@ -2758,7 +2742,7 @@
    "capitalizacion": 46467202583
   },
   {
-   "posicion": 345,
+   "posicion": 343,
    "ticker": "RKLB",
    "nombre": "Rocket Lab Corporation Common Stock",
    "pais": "United States",
@@ -2766,7 +2750,7 @@
    "capitalizacion": 46422830783
   },
   {
-   "posicion": 346,
+   "posicion": 344,
    "ticker": "STM",
    "nombre": "STMicroelectronics N.V. Common Stock",
    "pais": "Switzerland",
@@ -2774,7 +2758,7 @@
    "capitalizacion": 46349872872
   },
   {
-   "posicion": 347,
+   "posicion": 345,
    "ticker": "CCEP",
    "nombre": "Coca-Cola Europacific Partners plc Ordinary Shares",
    "pais": "United Kingdom",
@@ -2782,7 +2766,7 @@
    "capitalizacion": 46183634433
   },
   {
-   "posicion": 348,
+   "posicion": 346,
    "ticker": "ETR",
    "nombre": "Entergy Corporation Common Stock",
    "pais": "United States",
@@ -2790,7 +2774,7 @@
    "capitalizacion": 45995866616
   },
   {
-   "posicion": 349,
+   "posicion": 347,
    "ticker": "XYZ",
    "nombre": "Block Inc. Class A Common Stock",
    "pais": "United States",
@@ -2798,7 +2782,7 @@
    "capitalizacion": 45912752800
   },
   {
-   "posicion": 350,
+   "posicion": 348,
    "ticker": "ABEV",
    "nombre": "Ambev S.A. American Depositary Shares (Each representing 1 Common Share)",
    "pais": "Brazil",
@@ -2806,7 +2790,7 @@
    "capitalizacion": 45866370133
   },
   {
-   "posicion": 351,
+   "posicion": 349,
    "ticker": "TEVA",
    "nombre": "Teva Pharmaceutical Industries Limited Ordinary Shares",
    "pais": "Israel",
@@ -2814,7 +2798,7 @@
    "capitalizacion": 45667951932
   },
   {
-   "posicion": 352,
+   "posicion": 350,
    "ticker": "WDAY",
    "nombre": "Workday Inc. Class A Common Stock",
    "pais": "United States",
@@ -2822,7 +2806,7 @@
    "capitalizacion": 45657449265
   },
   {
-   "posicion": 353,
+   "posicion": 351,
    "ticker": "KB",
    "nombre": "KB Financial Group Inc",
    "pais": "South Korea",
@@ -2830,7 +2814,7 @@
    "capitalizacion": 45633874268
   },
   {
-   "posicion": 354,
+   "posicion": 352,
    "ticker": "MDLN",
    "nombre": "Medline Inc. Class A Common Stock",
    "pais": "United States",
@@ -2838,7 +2822,7 @@
    "capitalizacion": 45620350975
   },
   {
-   "posicion": 355,
+   "posicion": 353,
    "ticker": "VEEV",
    "nombre": "Veeva Systems Inc. Class A Common Stock",
    "pais": "United States",
@@ -2846,7 +2830,7 @@
    "capitalizacion": 45444574832
   },
   {
-   "posicion": 356,
+   "posicion": 354,
    "ticker": "IQV",
    "nombre": "IQVIA Holdings Inc. Common Stock",
    "pais": "United States",
@@ -2854,7 +2838,7 @@
    "capitalizacion": 44502901196
   },
   {
-   "posicion": 357,
+   "posicion": 355,
    "ticker": "SLF",
    "nombre": "Sun Life Financial Inc. Common Stock",
    "pais": "Canada",
@@ -2862,7 +2846,7 @@
    "capitalizacion": 44499068527
   },
   {
-   "posicion": 358,
+   "posicion": 356,
    "ticker": "VTR",
    "nombre": "Ventas Inc. Common Stock",
    "pais": "United States",
@@ -2870,7 +2854,7 @@
    "capitalizacion": 44416023348
   },
   {
-   "posicion": 359,
+   "posicion": 357,
    "ticker": "AMP",
    "nombre": "Ameriprise Financial Inc. Common Stock",
    "pais": "United States",
@@ -2878,7 +2862,7 @@
    "capitalizacion": 44319262412
   },
   {
-   "posicion": 360,
+   "posicion": 358,
    "ticker": "LHX",
    "nombre": "L3Harris Technologies Inc. Common Stock",
    "pais": "United States",
@@ -2886,7 +2870,7 @@
    "capitalizacion": 44261352532
   },
   {
-   "posicion": 361,
+   "posicion": 359,
    "ticker": "IX",
    "nombre": "ORIX Corporation American Depositary Shares",
    "pais": "Japan",
@@ -2894,7 +2878,7 @@
    "capitalizacion": 44053737051
   },
   {
-   "posicion": 362,
+   "posicion": 360,
    "ticker": "RVMD",
    "nombre": "Revolution Medicines Inc. Common Stock",
    "pais": "United States",
@@ -2902,7 +2886,7 @@
    "capitalizacion": 43932535859
   },
   {
-   "posicion": 363,
+   "posicion": 361,
    "ticker": "ADSK",
    "nombre": "Autodesk Inc. Common Stock",
    "pais": "United States",
@@ -2910,7 +2894,7 @@
    "capitalizacion": 43764598724
   },
   {
-   "posicion": 364,
+   "posicion": 362,
    "ticker": "XEL",
    "nombre": "Xcel Energy Inc. Common Stock",
    "pais": "United States",
@@ -2918,7 +2902,7 @@
    "capitalizacion": 43599476465
   },
   {
-   "posicion": 365,
+   "posicion": 363,
    "ticker": "KDP",
    "nombre": "Keurig Dr Pepper Inc. Common Stock",
    "pais": "United States",
@@ -2926,7 +2910,7 @@
    "capitalizacion": 43478392952
   },
   {
-   "posicion": 366,
+   "posicion": 364,
    "ticker": "HEI",
    "nombre": "Heico Corporation Common Stock",
    "pais": "United States",
@@ -2934,7 +2918,7 @@
    "capitalizacion": 43119351994
   },
   {
-   "posicion": 367,
+   "posicion": 365,
    "ticker": "FERG",
    "nombre": "Ferguson Enterprises Inc. Common Stock",
    "pais": "United Kingdom",
@@ -2942,7 +2926,7 @@
    "capitalizacion": 43089659248
   },
   {
-   "posicion": 368,
+   "posicion": 366,
    "ticker": "BSBR",
    "nombre": "Banco Santander Brasil SA American Depositary Shares each representing one unit",
    "pais": "Brazil",
@@ -2950,7 +2934,7 @@
    "capitalizacion": 43034102945
   },
   {
-   "posicion": 369,
+   "posicion": 367,
    "ticker": "TRI",
    "nombre": "Thomson Reuters Corporation Common Shares",
    "pais": "United States",
@@ -2958,7 +2942,7 @@
    "capitalizacion": 42882467075
   },
   {
-   "posicion": 370,
+   "posicion": 368,
    "ticker": "MCHP",
    "nombre": "Microchip Technology Incorporated Common Stock",
    "pais": "United States",
@@ -2966,7 +2950,7 @@
    "capitalizacion": 42729355221
   },
   {
-   "posicion": 371,
+   "posicion": 369,
    "ticker": "HMC",
    "nombre": "Honda Motor Company Ltd. Common Stock",
    "pais": "Japan",
@@ -2974,7 +2958,7 @@
    "capitalizacion": 42727558381
   },
   {
-   "posicion": 372,
+   "posicion": 370,
    "ticker": "WAT",
    "nombre": "Waters Corporation Common Stock",
    "pais": "United States",
@@ -2982,7 +2966,7 @@
    "capitalizacion": 42594486883
   },
   {
-   "posicion": 373,
+   "posicion": 371,
    "ticker": "INFY",
    "nombre": "Infosys Limited American Depositary Shares",
    "pais": "India",
@@ -2990,7 +2974,7 @@
    "capitalizacion": 42591780956
   },
   {
-   "posicion": 374,
+   "posicion": 372,
    "ticker": "FLEX",
    "nombre": "Flex Ltd. Ordinary Shares",
    "pais": "Singapore",
@@ -2998,7 +2982,7 @@
    "capitalizacion": 42363133630
   },
   {
-   "posicion": 375,
+   "posicion": 373,
    "ticker": "TWLO",
    "nombre": "Twilio Inc. Class A Common Stock",
    "pais": "United States",
@@ -3006,7 +2990,7 @@
    "capitalizacion": 42356043801
   },
   {
-   "posicion": 376,
+   "posicion": 374,
    "ticker": "CLS",
    "nombre": "Celestica Inc. Common Stock",
    "pais": "Canada",
@@ -3014,7 +2998,7 @@
    "capitalizacion": 42015772503
   },
   {
-   "posicion": 377,
+   "posicion": 375,
    "ticker": "P",
    "nombre": "Everpure Inc. Class A common stock",
    "pais": "United States",
@@ -3022,7 +3006,7 @@
    "capitalizacion": 41986633626
   },
   {
-   "posicion": 378,
+   "posicion": 376,
    "ticker": "WDS",
    "nombre": "Woodside Energy Group Limited American Depositary Shares each representing one Ordinary Share",
    "pais": "Australia",
@@ -3030,7 +3014,7 @@
    "capitalizacion": 41900248893
   },
   {
-   "posicion": 379,
+   "posicion": 377,
    "ticker": "EXC",
    "nombre": "Exelon Corporation Common Stock",
    "pais": "United States",
@@ -3038,7 +3022,7 @@
    "capitalizacion": 41641125187
   },
   {
-   "posicion": 380,
+   "posicion": 378,
    "ticker": "PRU",
    "nombre": "Prudential Financial Inc. Common Stock",
    "pais": "United States",
@@ -3046,7 +3030,7 @@
    "capitalizacion": 41210248947
   },
   {
-   "posicion": 381,
+   "posicion": 379,
    "ticker": "ONC",
    "nombre": "BeOne Medicines Ltd. American Depositary Shares",
    "pais": "Cayman Islands",
@@ -3054,7 +3038,7 @@
    "capitalizacion": 41029323009
   },
   {
-   "posicion": 382,
+   "posicion": 380,
    "ticker": "IDXX",
    "nombre": "IDEXX Laboratories Inc. Common Stock",
    "pais": "United States",
@@ -3062,7 +3046,7 @@
    "capitalizacion": 40907883063
   },
   {
-   "posicion": 383,
+   "posicion": 381,
    "ticker": "ILMN",
    "nombre": "Illumina Inc. Common Stock",
    "pais": "United States",
@@ -3070,7 +3054,7 @@
    "capitalizacion": 40770000000
   },
   {
-   "posicion": 384,
+   "posicion": 382,
    "ticker": "FMX",
    "nombre": "Fomento Economico Mexicano S.A.B. de C.V. Common Stock",
    "pais": "Mexico",
@@ -3078,7 +3062,7 @@
    "capitalizacion": 40752318138
   },
   {
-   "posicion": 385,
+   "posicion": 383,
    "ticker": "HLN",
    "nombre": "Haleon plc American Depositary Shares (Each representing two Ordinary Shares)",
    "pais": "United Kingdom",
@@ -3086,7 +3070,7 @@
    "capitalizacion": 40728021877
   },
   {
-   "posicion": 386,
+   "posicion": 384,
    "ticker": "IBKR",
    "nombre": "Interactive Brokers Group Inc. Class A Common Stock",
    "pais": "United States",
@@ -3094,7 +3078,7 @@
    "capitalizacion": 40432695012
   },
   {
-   "posicion": 387,
+   "posicion": 385,
    "ticker": "ARES",
    "nombre": "Ares Management Corporation Class A Common Stock",
    "pais": "United States",
@@ -3102,7 +3086,7 @@
    "capitalizacion": 40297125416
   },
   {
-   "posicion": 388,
+   "posicion": 386,
    "ticker": "LYV",
    "nombre": "Live Nation Entertainment Inc. Common Stock",
    "pais": "United States",
@@ -3110,7 +3094,7 @@
    "capitalizacion": 40262756507
   },
   {
-   "posicion": 389,
+   "posicion": 387,
    "ticker": "FER",
    "nombre": "Ferrovial N.V. Ordinary Shares",
    "pais": "Netherlands",
@@ -3118,7 +3102,7 @@
    "capitalizacion": 40167327611
   },
   {
-   "posicion": 390,
+   "posicion": 388,
    "ticker": "MSCI",
    "nombre": "MSCI Inc. Common Stock",
    "pais": "United States",
@@ -3126,15 +3110,7 @@
    "capitalizacion": 40083870935
   },
   {
-   "posicion": 391,
-   "ticker": "STRF",
-   "nombre": "Strategy Inc 10.00% Series A Perpetual Strife Preferred Stock",
-   "pais": "United States",
-   "cierre": 103.66,
-   "capitalizacion": 39828842756
-  },
-  {
-   "posicion": 392,
+   "posicion": 389,
    "ticker": "WCN",
    "nombre": "Waste Connections Inc. Common Shares",
    "pais": "Canada",
@@ -3142,7 +3118,7 @@
    "capitalizacion": 39702804733
   },
   {
-   "posicion": 393,
+   "posicion": 390,
    "ticker": "CRDO",
    "nombre": "Credo Technology Group Holding Ltd Ordinary Shares",
    "pais": "United States",
@@ -3150,7 +3126,7 @@
    "capitalizacion": 39652216369
   },
   {
-   "posicion": 394,
+   "posicion": 391,
    "ticker": "CMG",
    "nombre": "Chipotle Mexican Grill Inc. Common Stock",
    "pais": "United States",
@@ -3158,7 +3134,7 @@
    "capitalizacion": 39645545843
   },
   {
-   "posicion": 395,
+   "posicion": 392,
    "ticker": "DHI",
    "nombre": "D.R. Horton Inc. Common Stock",
    "pais": "United States",
@@ -3166,7 +3142,7 @@
    "capitalizacion": 39580524757
   },
   {
-   "posicion": 396,
+   "posicion": 393,
    "ticker": "NTAP",
    "nombre": "NetApp Inc. Common Stock",
    "pais": "United States",
@@ -3174,7 +3150,7 @@
    "capitalizacion": 39509681657
   },
   {
-   "posicion": 397,
+   "posicion": 394,
    "ticker": "ADM",
    "nombre": "Archer-Daniels-Midland Company Common Stock",
    "pais": "United States",
@@ -3182,7 +3158,7 @@
    "capitalizacion": 39096562697
   },
   {
-   "posicion": 398,
+   "posicion": 395,
    "ticker": "CBRE",
    "nombre": "CBRE Group Inc Common Stock Class A",
    "pais": "United States",
@@ -3190,7 +3166,7 @@
    "capitalizacion": 38962357230
   },
   {
-   "posicion": 399,
+   "posicion": 396,
    "ticker": "AIG",
    "nombre": "American International Group Inc. New Common Stock",
    "pais": "United States",
@@ -3198,7 +3174,7 @@
    "capitalizacion": 38782985388
   },
   {
-   "posicion": 400,
+   "posicion": 397,
    "ticker": "SYY",
    "nombre": "Sysco Corporation Common Stock",
    "pais": "United States",
@@ -3206,7 +3182,7 @@
    "capitalizacion": 38595568852
   },
   {
-   "posicion": 401,
+   "posicion": 398,
    "ticker": "VOD",
    "nombre": "Vodafone Group Plc American Depositary Shares",
    "pais": "United Kingdom",
@@ -3214,7 +3190,7 @@
    "capitalizacion": 38463603373
   },
   {
-   "posicion": 402,
+   "posicion": 399,
    "ticker": "SHG",
    "nombre": "Shinhan Financial Group Co Ltd American Depositary Shares",
    "pais": "South Korea",
@@ -3222,7 +3198,7 @@
    "capitalizacion": 38423269074
   },
   {
-   "posicion": 403,
+   "posicion": 400,
    "ticker": "CCJ",
    "nombre": "Cameco Corporation Common Stock",
    "pais": "Canada",
@@ -3230,7 +3206,7 @@
    "capitalizacion": 38357389239
   },
   {
-   "posicion": 404,
+   "posicion": 401,
    "ticker": "BBD",
    "nombre": "Banco Bradesco Sa American Depositary Shares",
    "pais": "Brazil",
@@ -3238,7 +3214,7 @@
    "capitalizacion": 38141513284
   },
   {
-   "posicion": 405,
+   "posicion": 402,
    "ticker": "ED",
    "nombre": "Consolidated Edison Inc. Common Stock",
    "pais": "United States",
@@ -3246,7 +3222,7 @@
    "capitalizacion": 38129331498
   },
   {
-   "posicion": 406,
+   "posicion": 403,
    "ticker": "STRC",
    "nombre": "Strategy Inc Variable Rate Series A Perpetual Stretch Preferred Stock",
    "pais": "United States",
@@ -3254,7 +3230,7 @@
    "capitalizacion": 37861605856
   },
   {
-   "posicion": 407,
+   "posicion": 404,
    "ticker": "YUM",
    "nombre": "Yum! Brands Inc.",
    "pais": "United States",
@@ -3262,7 +3238,7 @@
    "capitalizacion": 37832278747
   },
   {
-   "posicion": 408,
+   "posicion": 405,
    "ticker": "TTWO",
    "nombre": "Take-Two Interactive Software Inc. Common Stock",
    "pais": "United States",
@@ -3270,7 +3246,7 @@
    "capitalizacion": 37665340894
   },
   {
-   "posicion": 409,
+   "posicion": 406,
    "ticker": "UAL",
    "nombre": "United Airlines Holdings Inc. Common Stock",
    "pais": "United States",
@@ -3278,7 +3254,7 @@
    "capitalizacion": 36999303477
   },
   {
-   "posicion": 410,
+   "posicion": 407,
    "ticker": "BTSGU",
    "nombre": "BrightSpring Health Services Inc. Tangible Equity Unit",
    "pais": "United States",
@@ -3286,7 +3262,7 @@
    "capitalizacion": 36468357776
   },
   {
-   "posicion": 411,
+   "posicion": 408,
    "ticker": "BAP",
    "nombre": "Credicorp Ltd. Common Stock",
    "pais": "Peru",
@@ -3294,7 +3270,7 @@
    "capitalizacion": 36446675879
   },
   {
-   "posicion": 412,
+   "posicion": 409,
    "ticker": "GFI",
    "nombre": "Gold Fields Limited American Depositary Shares",
    "pais": "South Africa",
@@ -3302,7 +3278,7 @@
    "capitalizacion": 36141080050
   },
   {
-   "posicion": 413,
+   "posicion": 410,
    "ticker": "PAYX",
    "nombre": "Paychex Inc. Common Stock",
    "pais": "United States",
@@ -3310,7 +3286,7 @@
    "capitalizacion": 36085741526
   },
   {
-   "posicion": 414,
+   "posicion": 411,
    "ticker": "ODFL",
    "nombre": "Old Dominion Freight Line Inc. Common Stock",
    "pais": "United States",
@@ -3318,7 +3294,7 @@
    "capitalizacion": 35934903226
   },
   {
-   "posicion": 415,
+   "posicion": 412,
    "ticker": "CHT",
    "nombre": "Chunghwa Telecom Co. Ltd.",
    "pais": "Taiwan",
@@ -3326,7 +3302,7 @@
    "capitalizacion": 35800616966
   },
   {
-   "posicion": 416,
+   "posicion": 413,
    "ticker": "VIK",
    "nombre": "Viking Holdings Ltd Ordinary Shares",
    "pais": "United States",
@@ -3334,7 +3310,7 @@
    "capitalizacion": 35796620292
   },
   {
-   "posicion": 417,
+   "posicion": 414,
    "ticker": "JD",
    "nombre": "JD.com Inc. American Depositary Shares",
    "pais": "China",
@@ -3342,7 +3318,7 @@
    "capitalizacion": 35629440308
   },
   {
-   "posicion": 418,
+   "posicion": 415,
    "ticker": "ROP",
    "nombre": "Roper Technologies Inc. Common Stock",
    "pais": "United States",
@@ -3350,7 +3326,7 @@
    "capitalizacion": 35461897140
   },
   {
-   "posicion": 419,
+   "posicion": 416,
    "ticker": "AXON",
    "nombre": "Axon Enterprise Inc. Common Stock",
    "pais": "United States",
@@ -3358,7 +3334,7 @@
    "capitalizacion": 34941023376
   },
   {
-   "posicion": 420,
+   "posicion": 417,
    "ticker": "NTR",
    "nombre": "Nutrien Ltd. Common Shares",
    "pais": "Canada",
@@ -3366,7 +3342,7 @@
    "capitalizacion": 34812133708
   },
   {
-   "posicion": 421,
+   "posicion": 418,
    "ticker": "KR",
    "nombre": "Kroger Company (The) Common Stock",
    "pais": "United States",
@@ -3374,7 +3350,7 @@
    "capitalizacion": 34691181229
   },
   {
-   "posicion": 422,
+   "posicion": 419,
    "ticker": "TKO",
    "nombre": "TKO Group Holdings Inc. Class A Common Stock",
    "pais": "United States",
@@ -3382,7 +3358,7 @@
    "capitalizacion": 34573898127
   },
   {
-   "posicion": 423,
+   "posicion": 420,
    "ticker": "RKT",
    "nombre": "Rocket Companies Inc. Class A Common Stock",
    "pais": "United States",
@@ -3390,7 +3366,7 @@
    "capitalizacion": 34461088480
   },
   {
-   "posicion": 424,
+   "posicion": 421,
    "ticker": "ALNY",
    "nombre": "Alnylam Pharmaceuticals Inc. Common Stock",
    "pais": "United States",
@@ -3398,7 +3374,7 @@
    "capitalizacion": 34249782741
   },
   {
-   "posicion": 425,
+   "posicion": 422,
    "ticker": "KVUE",
    "nombre": "Kenvue Inc. Common Stock",
    "pais": "United States",
@@ -3406,7 +3382,7 @@
    "capitalizacion": 34189766248
   },
   {
-   "posicion": 426,
+   "posicion": 423,
    "ticker": "ESLT",
    "nombre": "Elbit Systems Ltd. Ordinary Shares",
    "pais": "Israel",
@@ -3414,7 +3390,7 @@
    "capitalizacion": 34184065755
   },
   {
-   "posicion": 427,
+   "posicion": 424,
    "ticker": "EL",
    "nombre": "Estee Lauder Companies Inc. (The) Common Stock",
    "pais": "United States",
@@ -3422,7 +3398,7 @@
    "capitalizacion": 34179111066
   },
   {
-   "posicion": 428,
+   "posicion": 425,
    "ticker": "OKTA",
    "nombre": "Okta Inc. Class A Common Stock",
    "pais": "United States",
@@ -3430,7 +3406,7 @@
    "capitalizacion": 34123297363
   },
   {
-   "posicion": 429,
+   "posicion": 426,
    "ticker": "EC",
    "nombre": "Ecopetrol S.A. American Depositary Shares",
    "pais": "Colombia",
@@ -3438,7 +3414,7 @@
    "capitalizacion": 34085739749
   },
   {
-   "posicion": 430,
+   "posicion": 427,
    "ticker": "UI",
    "nombre": "Ubiquiti Inc. Common Stock",
    "pais": "United States",
@@ -3446,7 +3422,7 @@
    "capitalizacion": 33936446341
   },
   {
-   "posicion": 431,
+   "posicion": 428,
    "ticker": "HIG",
    "nombre": "The Hartford Insurance Group Inc. Common Stock",
    "pais": "United States",
@@ -3454,7 +3430,7 @@
    "capitalizacion": 33650429717
   },
   {
-   "posicion": 432,
+   "posicion": 429,
    "ticker": "BIIB",
    "nombre": "Biogen Inc. Common Stock",
    "pais": "United States",
@@ -3462,7 +3438,7 @@
    "capitalizacion": 33628810847
   },
   {
-   "posicion": 433,
+   "posicion": 430,
    "ticker": "EME",
    "nombre": "EMCOR Group Inc. Common Stock",
    "pais": "United States",
@@ -3470,7 +3446,7 @@
    "capitalizacion": 33621008610
   },
   {
-   "posicion": 434,
+   "posicion": 431,
    "ticker": "STLD",
    "nombre": "Steel Dynamics Inc.",
    "pais": "United States",
@@ -3478,7 +3454,7 @@
    "capitalizacion": 33490041567
   },
   {
-   "posicion": 435,
+   "posicion": 432,
    "ticker": "RPRX",
    "nombre": "Royalty Pharma plc Class A Ordinary Shares",
    "pais": "United States",
@@ -3486,7 +3462,7 @@
    "capitalizacion": 33470819559
   },
   {
-   "posicion": 436,
+   "posicion": 433,
    "ticker": "HSY",
    "nombre": "The Hershey Company Common Stock",
    "pais": "United States",
@@ -3494,7 +3470,7 @@
    "capitalizacion": 33428000574
   },
   {
-   "posicion": 437,
+   "posicion": 434,
    "ticker": "PEG",
    "nombre": "Public Service Enterprise Group Incorporated Common Stock",
    "pais": "United States",
@@ -3502,7 +3478,7 @@
    "capitalizacion": 33404108738
   },
   {
-   "posicion": 438,
+   "posicion": 435,
    "ticker": "JBL",
    "nombre": "Jabil Inc. Common Stock",
    "pais": "United States",
@@ -3510,7 +3486,7 @@
    "capitalizacion": 33190261547
   },
   {
-   "posicion": 439,
+   "posicion": 436,
    "ticker": "PPLC",
    "nombre": "PPL Corporation Corporate Units",
    "pais": "United States",
@@ -3518,7 +3494,7 @@
    "capitalizacion": 33179702155
   },
   {
-   "posicion": 440,
+   "posicion": 437,
    "ticker": "RBLX",
    "nombre": "Roblox Corporation Class A Common Stock",
    "pais": "United States",
@@ -3526,7 +3502,7 @@
    "capitalizacion": 33175617719
   },
   {
-   "posicion": 441,
+   "posicion": 438,
    "ticker": "IRM",
    "nombre": "Iron Mountain Incorporated (Delaware)Common Stock REIT",
    "pais": "United States",
@@ -3534,7 +3510,7 @@
    "capitalizacion": 33158138383
   },
   {
-   "posicion": 442,
+   "posicion": 439,
    "ticker": "PCG",
    "nombre": "Pacific Gas & Electric Co. Common Stock",
    "pais": "United States",
@@ -3542,7 +3518,7 @@
    "capitalizacion": 33072563930
   },
   {
-   "posicion": 443,
+   "posicion": 440,
    "ticker": "MDB",
    "nombre": "MongoDB Inc. Class A Common Stock",
    "pais": "United States",
@@ -3550,7 +3526,7 @@
    "capitalizacion": 33063544797
   },
   {
-   "posicion": 444,
+   "posicion": 441,
    "ticker": "WEC",
    "nombre": "WEC Energy Group Inc. Common Stock",
    "pais": "United States",
@@ -3558,7 +3534,7 @@
    "capitalizacion": 33057418911
   },
   {
-   "posicion": 445,
+   "posicion": 442,
    "ticker": "KMB",
    "nombre": "Kimberly-Clark Corporation Common Stock",
    "pais": "United States",
@@ -3566,7 +3542,7 @@
    "capitalizacion": 32735754811
   },
   {
-   "posicion": 446,
+   "posicion": 443,
    "ticker": "DXCM",
    "nombre": "DexCom Inc. Common Stock",
    "pais": "United States",
@@ -3574,7 +3550,7 @@
    "capitalizacion": 32686990500
   },
   {
-   "posicion": 447,
+   "posicion": 444,
    "ticker": "QSR",
    "nombre": "Restaurant Brands International Inc. Common Shares",
    "pais": "Canada",
@@ -3582,7 +3558,7 @@
    "capitalizacion": 32561016818
   },
   {
-   "posicion": 448,
+   "posicion": 445,
    "ticker": "TECK",
    "nombre": "Teck Resources Ltd Ordinary Shares",
    "pais": "Canada",
@@ -3590,7 +3566,7 @@
    "capitalizacion": 32334305416
   },
   {
-   "posicion": 449,
+   "posicion": 446,
    "ticker": "ACGL",
    "nombre": "Arch Capital Group Ltd. Common Stock",
    "pais": "Bermuda",
@@ -3598,7 +3574,7 @@
    "capitalizacion": 32300750317
   },
   {
-   "posicion": 450,
+   "posicion": 447,
    "ticker": "ALC",
    "nombre": "Alcon Inc. Ordinary Shares",
    "pais": "Switzerland",
@@ -3606,7 +3582,7 @@
    "capitalizacion": 32215659610
   },
   {
-   "posicion": 451,
+   "posicion": 448,
    "ticker": "NTRS",
    "nombre": "Northern Trust Corporation Common Stock",
    "pais": "United States",
@@ -3614,7 +3590,7 @@
    "capitalizacion": 32150796120
   },
   {
-   "posicion": 452,
+   "posicion": 449,
    "ticker": "ERIC",
    "nombre": "Ericsson American Depositary Shares",
    "pais": "Sweden",
@@ -3622,7 +3598,7 @@
    "capitalizacion": 32128981135
   },
   {
-   "posicion": 453,
+   "posicion": 450,
    "ticker": "RMD",
    "nombre": "ResMed Inc. Common Stock",
    "pais": "United States",
@@ -3630,7 +3606,7 @@
    "capitalizacion": 32024011932
   },
   {
-   "posicion": 454,
+   "posicion": 451,
    "ticker": "MTB",
    "nombre": "M&T Bank Corporation Common Stock",
    "pais": "United States",
@@ -3638,7 +3614,7 @@
    "capitalizacion": 31943433345
   },
   {
-   "posicion": 455,
+   "posicion": 452,
    "ticker": "EQT",
    "nombre": "EQT Corporation Common Stock",
    "pais": "United States",
@@ -3646,7 +3622,7 @@
    "capitalizacion": 31782468819
   },
   {
-   "posicion": 456,
+   "posicion": 453,
    "ticker": "VMC",
    "nombre": "Vulcan Materials Company (Holding Company) Common Stock",
    "pais": "United States",
@@ -3654,7 +3630,15 @@
    "capitalizacion": 31746791055
   },
   {
-   "posicion": 457,
+   "posicion": 454,
+   "ticker": "HBAN",
+   "nombre": "Huntington Bancshares Incorporated Common Stock",
+   "pais": "United States",
+   "cierre": 15.64,
+   "capitalizacion": 31599288573
+  },
+  {
+   "posicion": 455,
    "ticker": "PUK",
    "nombre": "Prudential Public Limited Company Common Stock",
    "pais": "United Kingdom",
@@ -3662,7 +3646,7 @@
    "capitalizacion": 31557395056
   },
   {
-   "posicion": 458,
+   "posicion": 456,
    "ticker": "VG",
    "nombre": "Venture Global Inc. Class A common stock",
    "pais": "United States",
@@ -3670,7 +3654,7 @@
    "capitalizacion": 31551171494
   },
   {
-   "posicion": 459,
+   "posicion": 457,
    "ticker": "ZS",
    "nombre": "Zscaler Inc. Common Stock",
    "pais": "United States",
@@ -3678,7 +3662,7 @@
    "capitalizacion": 31477709947
   },
   {
-   "posicion": 460,
+   "posicion": 458,
    "ticker": "SUNB",
    "nombre": "Sunbelt Rentals Holdings Inc. Common Stock",
    "pais": "",
@@ -3686,7 +3670,7 @@
    "capitalizacion": 30756952169
   },
   {
-   "posicion": 461,
+   "posicion": 459,
    "ticker": "RJF",
    "nombre": "Raymond James Financial Inc. Common Stock",
    "pais": "United States",
@@ -3694,7 +3678,7 @@
    "capitalizacion": 30752865799
   },
   {
-   "posicion": 462,
+   "posicion": 460,
    "ticker": "CQP",
    "nombre": "Cheniere Energy Partners LP Common Units",
    "pais": "United States",
@@ -3702,7 +3686,7 @@
    "capitalizacion": 30703780313
   },
   {
-   "posicion": 463,
+   "posicion": 461,
    "ticker": "CNC",
    "nombre": "Centene Corporation Common Stock",
    "pais": "United States",
@@ -3710,7 +3694,7 @@
    "capitalizacion": 30538770749
   },
   {
-   "posicion": 464,
+   "posicion": 462,
    "ticker": "CCL",
    "nombre": "Carnival Corporation Ltd. Common Shares",
    "pais": "United States",
@@ -3718,15 +3702,7 @@
    "capitalizacion": 30474692898
   },
   {
-   "posicion": 465,
-   "ticker": "AGNCN",
-   "nombre": "AGNC Investment Corp. Depositary Shares Each Representing a 1/1000th Interest in a Share of 7.00% Series C Fixed-To-Floating Rate Cumulative Redeemable Preferred Stock",
-   "pais": "United States",
-   "cierre": 25.7,
-   "capitalizacion": 30466874092
-  },
-  {
-   "posicion": 466,
+   "posicion": 463,
    "ticker": "MTD",
    "nombre": "Mettler-Toledo International Inc. Common Stock",
    "pais": "Switzerland",
@@ -3734,7 +3710,7 @@
    "capitalizacion": 30288064341
   },
   {
-   "posicion": 467,
+   "posicion": 464,
    "ticker": "EXPE",
    "nombre": "Expedia Group Inc. Common Stock",
    "pais": "United States",
@@ -3742,7 +3718,7 @@
    "capitalizacion": 30246381062
   },
   {
-   "posicion": 468,
+   "posicion": 465,
    "ticker": "GEHC",
    "nombre": "GE HealthCare Technologies Inc. Common Stock",
    "pais": "United States",
@@ -3750,7 +3726,7 @@
    "capitalizacion": 30095853730
   },
   {
-   "posicion": 469,
+   "posicion": 466,
    "ticker": "ON",
    "nombre": "ON Semiconductor Corporation Common Stock",
    "pais": "United States",
@@ -3758,7 +3734,7 @@
    "capitalizacion": 30055395736
   },
   {
-   "posicion": 470,
+   "posicion": 467,
    "ticker": "KGC",
    "nombre": "Kinross Gold Corporation Common Stock",
    "pais": "Canada",
@@ -3766,7 +3742,7 @@
    "capitalizacion": 29912204089
   },
   {
-   "posicion": 471,
+   "posicion": 468,
    "ticker": "BIDU",
    "nombre": "Baidu Inc. ADS",
    "pais": "China",
@@ -3774,7 +3750,7 @@
    "capitalizacion": 29714265333
   },
   {
-   "posicion": 472,
+   "posicion": 469,
    "ticker": "IR",
    "nombre": "Ingersoll Rand Inc. Common Stock",
    "pais": "United States",
@@ -3782,7 +3758,7 @@
    "capitalizacion": 29518997268
   },
   {
-   "posicion": 473,
+   "posicion": 470,
    "ticker": "TS",
    "nombre": "Tenaris S.A. American Depositary Shares",
    "pais": "Luxembourg",
@@ -3790,7 +3766,7 @@
    "capitalizacion": 29368610507
   },
   {
-   "posicion": 474,
+   "posicion": 471,
    "ticker": "ZTS",
    "nombre": "Zoetis Inc. Class A Common Stock",
    "pais": "United States",
@@ -3798,7 +3774,7 @@
    "capitalizacion": 29359538183
   },
   {
-   "posicion": 475,
+   "posicion": 472,
    "ticker": "NMR",
    "nombre": "Nomura Holdings Inc ADR American Depositary Shares",
    "pais": "Japan",
@@ -3806,7 +3782,7 @@
    "capitalizacion": 29187453690
   },
   {
-   "posicion": 476,
+   "posicion": 473,
    "ticker": "RYAAY",
    "nombre": "Ryanair Holdings plc American Depositary Shares",
    "pais": "Ireland",
@@ -3814,7 +3790,7 @@
    "capitalizacion": 29100728131
   },
   {
-   "posicion": 477,
+   "posicion": 474,
    "ticker": "MLM",
    "nombre": "Martin Marietta Materials Inc. Common Stock",
    "pais": "United States",
@@ -3822,7 +3798,7 @@
    "capitalizacion": 29089885095
   },
   {
-   "posicion": 478,
+   "posicion": 475,
    "ticker": "CCI",
    "nombre": "Crown Castle Inc. Common Stock",
    "pais": "United States",
@@ -3830,7 +3806,7 @@
    "capitalizacion": 28862895424
   },
   {
-   "posicion": 479,
+   "posicion": 476,
    "ticker": "CBOE",
    "nombre": "Cboe Global Markets Inc. Common Stock",
    "pais": "",
@@ -3838,7 +3814,7 @@
    "capitalizacion": 28852591927
   },
   {
-   "posicion": 480,
+   "posicion": 477,
    "ticker": "RDDT",
    "nombre": "Reddit Inc. Class A Common Stock",
    "pais": "United States",
@@ -3846,7 +3822,7 @@
    "capitalizacion": 28828692353
   },
   {
-   "posicion": 481,
+   "posicion": 478,
    "ticker": "STRK",
    "nombre": "Strategy Inc 8.00% Series A Perpetual Strike Preferred Stock",
    "pais": "United States",
@@ -3854,7 +3830,7 @@
    "capitalizacion": 28774666257
   },
   {
-   "posicion": 482,
+   "posicion": 479,
    "ticker": "TDY",
    "nombre": "Teledyne Technologies Incorporated Common Stock",
    "pais": "United States",
@@ -3862,7 +3838,23 @@
    "capitalizacion": 28469337705
   },
   {
-   "posicion": 483,
+   "posicion": 480,
+   "ticker": "SMCI",
+   "nombre": "Super Micro Computer Inc. Common Stock",
+   "pais": "United States",
+   "cierre": 43.26,
+   "capitalizacion": 28420321409
+  },
+  {
+   "posicion": 481,
+   "ticker": "STRD",
+   "nombre": "Strategy Inc 10.00% Series A Perpetual Stride Preferred Stock",
+   "pais": "United States",
+   "cierre": 73.72,
+   "capitalizacion": 28325122833
+  },
+  {
+   "posicion": 482,
    "ticker": "HPQ",
    "nombre": "HP Inc. Common Stock",
    "pais": "United States",
@@ -3870,7 +3862,7 @@
    "capitalizacion": 28226056642
   },
   {
-   "posicion": 484,
+   "posicion": 483,
    "ticker": "EXR",
    "nombre": "Extra Space Storage Inc Common Stock",
    "pais": "United States",
@@ -3878,7 +3870,7 @@
    "capitalizacion": 28172796848
   },
   {
-   "posicion": 485,
+   "posicion": 484,
    "ticker": "KHC",
    "nombre": "The Kraft Heinz Company Common Stock",
    "pais": "United States",
@@ -3886,7 +3878,7 @@
    "capitalizacion": 28021014407
   },
   {
-   "posicion": 486,
+   "posicion": 485,
    "ticker": "FTI",
    "nombre": "TechnipFMC plc Ordinary Share",
    "pais": "",
@@ -3894,7 +3886,7 @@
    "capitalizacion": 27839749066
   },
   {
-   "posicion": 487,
+   "posicion": 486,
    "ticker": "CFG",
    "nombre": "Citizens Financial Group Inc. Common Stock",
    "pais": "United States",
@@ -3902,7 +3894,7 @@
    "capitalizacion": 27599714404
   },
   {
-   "posicion": 488,
+   "posicion": 487,
    "ticker": "DG",
    "nombre": "Dollar General Corporation Common Stock",
    "pais": "United States",
@@ -3910,7 +3902,7 @@
    "capitalizacion": 27541799256
   },
   {
-   "posicion": 489,
+   "posicion": 488,
    "ticker": "AEE",
    "nombre": "Ameren Corporation Common Stock",
    "pais": "United States",
@@ -3918,7 +3910,7 @@
    "capitalizacion": 27515450548
   },
   {
-   "posicion": 490,
+   "posicion": 489,
    "ticker": "GFS",
    "nombre": "GlobalFoundries Inc. Ordinary Shares",
    "pais": "United States",
@@ -3926,7 +3918,7 @@
    "capitalizacion": 27313511547
   },
   {
-   "posicion": 491,
+   "posicion": 490,
    "ticker": "WSM",
    "nombre": "Williams-Sonoma Inc. Common Stock (DE)",
    "pais": "United States",
@@ -3934,7 +3926,7 @@
    "capitalizacion": 27312989500
   },
   {
-   "posicion": 492,
+   "posicion": 491,
    "ticker": "WTW",
    "nombre": "Willis Towers Watson Public Limited Company Ordinary Shares",
    "pais": "United Kingdom",
@@ -3942,7 +3934,7 @@
    "capitalizacion": 27303419852
   },
   {
-   "posicion": 493,
+   "posicion": 492,
    "ticker": "HAL",
    "nombre": "Halliburton Company Common Stock",
    "pais": "United States",
@@ -3950,7 +3942,7 @@
    "capitalizacion": 27293349425
   },
   {
-   "posicion": 494,
+   "posicion": 493,
    "ticker": "SYF",
    "nombre": "Synchrony Financial Common Stock",
    "pais": "United States",
@@ -3958,7 +3950,7 @@
    "capitalizacion": 27137878459
   },
   {
-   "posicion": 495,
+   "posicion": 494,
    "ticker": "FTS",
    "nombre": "Fortis Inc. Common Shares",
    "pais": "United States",
@@ -3966,7 +3958,7 @@
    "capitalizacion": 27123681078
   },
   {
-   "posicion": 496,
+   "posicion": 495,
    "ticker": "NVT",
    "nombre": "nVent Electric plc Ordinary Shares",
    "pais": "United Kingdom",
@@ -3974,7 +3966,7 @@
    "capitalizacion": 26611064344
   },
   {
-   "posicion": 497,
+   "posicion": 496,
    "ticker": "FOXA",
    "nombre": "Fox Corporation Class A Common Stock",
    "pais": "United States",
@@ -3982,7 +3974,7 @@
    "capitalizacion": 26594955211
   },
   {
-   "posicion": 498,
+   "posicion": 497,
    "ticker": "ATO",
    "nombre": "Atmos Energy Corporation Common Stock",
    "pais": "United States",
@@ -3990,7 +3982,7 @@
    "capitalizacion": 26566691552
   },
   {
-   "posicion": 499,
+   "posicion": 498,
    "ticker": "SYM",
    "nombre": "Symbotic Inc. Class A Common Stock",
    "pais": "United States",
@@ -3998,12 +3990,20 @@
    "capitalizacion": 26290730985
   },
   {
-   "posicion": 500,
+   "posicion": 499,
    "ticker": "ECHO",
    "nombre": "EchoStar  Corporation Common Stock",
    "pais": "United States",
    "cierre": 90.11,
    "capitalizacion": 26205415880
+  },
+  {
+   "posicion": 500,
+   "ticker": "ZM",
+   "nombre": "Zoom Communications Inc. Class A Common Stock",
+   "pais": "United States",
+   "cierre": 89.71,
+   "capitalizacion": 26175916447
   }
  ]
 }
