@@ -199,7 +199,7 @@ class Config:
     reglas: list[Regla]
     historico: str = "2y"
     estrategia: bool = True  # señales WATCH/BUY de estrategia_score.py
-    universo: dict[str, Any] | None = None  # {"cantidad": 500, "solo_eeuu": false}: las N mayores por capitalización
+    universo: str | None = None  # fichero con la lista fija (universo_fijo.json, generado con universo.py)
 
 
 def cargar_config(path: Path) -> Config:
@@ -212,7 +212,7 @@ def cargar_config(path: Path) -> Config:
     ]
     tickers = list(dict.fromkeys(t.upper() for t in d.get("tickers", [])))
     return Config(tickers=tickers, reglas=reglas, historico=d.get("historico", "2y"), estrategia=estrategia,
-                  universo=d.get("universo"))
+                  universo=(d.get("universo") or {}).get("fichero"))
 
 
 # --------------------------------------------------------------------------- datos
@@ -332,10 +332,8 @@ def _num(v: float) -> str:
     return f"{v:,.2f}"
 
 
-def formatear(alertas: list[Alerta], aviso: str = "") -> str:
+def formatear(alertas: list[Alerta]) -> str:
     lineas = [f"📈 Alertas de bolsa ({len(alertas)})"]
-    if aviso:
-        lineas.append(f"⚠️ {aviso}")
     por_ticker: dict[str, list[Alerta]] = {}
     for a in alertas:
         por_ticker.setdefault(a.ticker, []).append(a)
@@ -406,23 +404,20 @@ def notificar(texto: str) -> list[str]:
 # --------------------------------------------------------------------------- orquestación
 
 
-def elegir_tickers(cfg: Config) -> tuple[list[str], str]:
-    """Tickers a vigilar y, si se ha usado una lista de respaldo, un aviso para el mensaje."""
+def elegir_tickers(cfg: Config) -> list[str]:
+    """Tickers de la lista fija (si hay) más los de "tickers" en config.json."""
     if not cfg.universo:
-        return cfg.tickers, ""
-    tickers, fuente = universo.obtener(int(cfg.universo.get("cantidad", 500)),
-                                       bool(cfg.universo.get("solo_eeuu", False)),
-                                       AQUI / "universo.json", AQUI / "sp500_respaldo.json")
-    print(f"Lista de acciones: {fuente}")
-    extra = [t for t in cfg.tickers if t not in tickers]
-    return tickers + extra, "" if fuente.startswith("nasdaq.com") else f"Lista de acciones: {fuente}"
+        return cfg.tickers
+    fijos, fecha = universo.cargar(AQUI / cfg.universo)
+    print(f"Lista fija: {len(fijos)} acciones de mayor capitalización al cierre del {fecha}")
+    return fijos + [t for t in cfg.tickers if t not in fijos]
 
 
 def comprobar(cfg: Config, estado_path: Path) -> int:
     if not cfg.reglas and not cfg.estrategia:
         print("No hay estrategia ni reglas activas en config.json: no se comprueba nada.")
         return 0
-    tickers, aviso = elegir_tickers(cfg)
+    tickers = elegir_tickers(cfg)
     print(f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC · {len(tickers)} tickers · {len(cfg.reglas)} reglas")
     datos = descargar(tickers, cfg.historico)
     sin_datos = [t for t in tickers if t not in datos]
@@ -441,7 +436,7 @@ def comprobar(cfg: Config, estado_path: Path) -> int:
     if not nuevas:
         return 0
 
-    texto = formatear(nuevas, aviso)
+    texto = formatear(nuevas)
     print(texto)
     try:
         notificar(texto)

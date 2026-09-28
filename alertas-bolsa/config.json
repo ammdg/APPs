@@ -1,8 +1,7 @@
 {
   "universo": {
-    "comentario": "Las N acciones de mayor capitalización cotizadas en EE. UU. (NYSE, Nasdaq, NYSE American), recalculadas en cada ejecución. solo_eeuu=true excluye empresas extranjeras (ADR). Quita este bloque para usar solo la lista de tickers.",
-    "cantidad": 500,
-    "solo_eeuu": false
+    "comentario": "Lista fija de las 500 acciones de mayor capitalización de EE. UU. a una fecha de cierre. Se genera con universo.py (workflow 'Generar lista de acciones'). Los 'tickers' de abajo se añaden a ella.",
+    "fichero": "universo_fijo.json"
   },
   "tickers": [],
   "estrategia": {

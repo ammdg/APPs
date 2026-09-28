@@ -29,13 +29,10 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # Recupera qué alertas ya se enviaron (para no repetirlas con la misma vela) y la última lista
-      # de las 500 mayores (por si nasdaq.com falla).
+      # Recupera qué alertas ya se enviaron para no repetirlas con la misma vela.
       - uses: actions/cache/restore@v4
         with:
-          path: |
-            alertas-bolsa/estado.json
-            alertas-bolsa/universo.json
+          path: alertas-bolsa/estado.json
           key: bolsa-estado-${{ github.run_id }}
           restore-keys: bolsa-estado-
 
@@ -49,7 +46,5 @@ jobs:
       - uses: actions/cache/save@v4
         if: always()
         with:
-          path: |
-            alertas-bolsa/estado.json
-            alertas-bolsa/universo.json
+          path: alertas-bolsa/estado.json
           key: bolsa-estado-${{ github.run_id }}

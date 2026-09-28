@@ -87,7 +87,7 @@ def test_formatear():
 
 def test_config_por_defecto_valida():
     cfg = ab.cargar_config(ab.AQUI / "config.json")
-    assert cfg.universo["cantidad"] == 500 and cfg.estrategia
+    assert cfg.universo == "universo_fijo.json" and cfg.estrategia
 
 
 # --------------------------------------------------------------------------- estrategia_score
@@ -157,9 +157,8 @@ def test_trocear_mensajes_largos():
     assert "\n\n".join(trozos) == texto
 
 
-def test_elegir_tickers_con_universo(monkeypatch):
-    monkeypatch.setattr(ab.universo, "obtener", lambda n, e, c, r: (["A", "B"], "S&P 500 de respaldo"))
-    cfg = ab.Config(tickers=["B", "C"], reglas=[], universo={"cantidad": 2})
-    tickers, aviso = ab.elegir_tickers(cfg)
-    assert tickers == ["A", "B", "C"] and "respaldo" in aviso
-    assert ab.elegir_tickers(ab.Config(tickers=["Z"], reglas=[])) == (["Z"], "")
+def test_elegir_tickers_con_lista_fija(tmp_path, monkeypatch):
+    monkeypatch.setattr(ab.universo, "cargar", lambda path: (["A", "B"], "2026-09-25"))
+    cfg = ab.Config(tickers=["B", "C"], reglas=[], universo="universo_fijo.json")
+    assert ab.elegir_tickers(cfg) == ["A", "B", "C"]
+    assert ab.elegir_tickers(ab.Config(tickers=["Z"], reglas=[])) == ["Z"]
