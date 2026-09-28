@@ -1,6 +1,5 @@
 {
   "tickers": [
-    "SPY", "QQQ",
     "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "AVGO", "TSLA", "BRK-B",
     "JPM", "LLY", "V", "MA", "WMT", "XOM", "UNH", "JNJ", "PG", "HD",
     "COST", "ORCL", "NFLX", "BAC", "KO", "ABBV", "AMD", "CRM"

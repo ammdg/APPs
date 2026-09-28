@@ -27,8 +27,7 @@ Revisa una lista de acciones de EE. UU. con velas diarias y te avisa (Telegram o
 ```
 
 - `tickers`: símbolos de Yahoo (Berkshire es `BRK-B`). La lista incluida es una selección de grandes
-  empresas de EE. UU. más los ETF `SPY` (S&P 500) y `QQQ` (Nasdaq 100); **no es un índice oficial**,
-  cámbiala a tu gusto.
+  empresas de EE. UU. (solo acciones, sin ETF); **no es un índice oficial**, cámbiala a tu gusto.
 - `si`: la condición. Admite números, variables, `+ - * /`, `< <= > >=` (también encadenadas:
   `20 < rsi14 < 30`) y `and`, `or`, `not`.
 - `tickers` dentro de una regla: solo se aplica a esos. Sin él, a todos.
