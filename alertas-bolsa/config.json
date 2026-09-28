@@ -4,13 +4,19 @@
     "JPM", "LLY", "V", "MA", "WMT", "XOM", "UNH", "JNJ", "PG", "HD",
     "COST", "ORCL", "NFLX", "BAC", "KO", "ABBV", "AMD", "CRM"
   ],
+  "estrategia": {
+    "activa": false,
+    "comentario": "PENDIENTE: watch y buy son un EJEMPLO, no la estrategia real. Sustituir por las condiciones buenas y poner activa a true.",
+    "watch": "rsi14 < 35",
+    "buy": "rsi14 < 35 and macd > macd_senal"
+  },
   "reglas": [
-    { "nombre": "RSI sobrevendido", "si": "rsi14 < 30" },
-    { "nombre": "RSI sobrecomprado", "si": "rsi14 > 70" },
-    { "nombre": "Cruce dorado (SMA50 sobre SMA200)", "si": "sma50 > sma200" },
-    { "nombre": "Cruce de la muerte (SMA50 bajo SMA200)", "si": "sma50 < sma200" },
-    { "nombre": "Caída fuerte en el día", "si": "var1 < -5" },
-    { "nombre": "Subida fuerte en el día", "si": "var1 > 5" },
+    { "nombre": "RSI sobrevendido", "si": "rsi14 < 30", "activa": false },
+    { "nombre": "RSI sobrecomprado", "si": "rsi14 > 70", "activa": false },
+    { "nombre": "Cruce dorado (SMA50 sobre SMA200)", "si": "sma50 > sma200", "activa": false },
+    { "nombre": "Cruce de la muerte (SMA50 bajo SMA200)", "si": "sma50 < sma200", "activa": false },
+    { "nombre": "Caída fuerte en el día", "si": "var1 < -5", "activa": false },
+    { "nombre": "Subida fuerte en el día", "si": "var1 > 5", "activa": false },
     { "nombre": "Pierde la media de 200", "si": "precio < sma200", "activa": false },
     { "nombre": "Cruce alcista del MACD", "si": "macd > macd_senal", "activa": false },
     { "nombre": "Nuevo máximo de 52 semanas", "si": "precio >= max52", "activa": false },

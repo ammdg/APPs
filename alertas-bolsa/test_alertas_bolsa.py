@@ -87,7 +87,56 @@ def test_formatear():
 
 def test_config_por_defecto_valida():
     cfg = ab.cargar_config(ab.AQUI / "config.json")
-    assert cfg.tickers and cfg.reglas
+    assert cfg.tickers
+
+
+# --------------------------------------------------------------------------- máquina de estados
+
+
+@pytest.mark.parametrize("estado, buy, watch, esperado", [
+    ("NEUTRAL", True, True, ("BUY_ACTIVE", "BUY")),
+    ("NEUTRAL", True, False, ("BUY_ACTIVE", "BUY")),
+    ("NEUTRAL", False, True, ("WATCH_ACTIVE", "WATCH")),
+    ("NEUTRAL", False, False, ("NEUTRAL", None)),
+    ("WATCH_ACTIVE", True, True, ("BUY_ACTIVE", "BUY")),
+    ("WATCH_ACTIVE", False, True, ("WATCH_ACTIVE", None)),
+    ("WATCH_ACTIVE", False, False, ("NEUTRAL", None)),
+    ("BUY_ACTIVE", True, True, ("BUY_ACTIVE", None)),
+    ("BUY_ACTIVE", False, True, ("BUY_ACTIVE", None)),
+    ("BUY_ACTIVE", True, False, ("NEUTRAL", None)),
+    ("BUY_ACTIVE", False, False, ("NEUTRAL", None)),
+])
+def test_paso(estado, buy, watch, esperado):
+    assert ab.paso(estado, buy, watch) == esperado
+
+
+def test_simular_secuencia():
+    # watch: precio < 50 ; buy: precio < 40
+    estr = ab.Estrategia(watch="precio < 50", buy="precio < 40")
+    precios = [60, 45, 45, 35, 30, 45, 35, 60, 35]
+    sim = ab.simular(velas(precios), estr)
+    assert list(sim["alerta"]) == [None, "WATCH", None, "BUY", None, None, None, None, "BUY"]
+    assert list(sim["estado"])[-2:] == ["NEUTRAL", "BUY_ACTIVE"]
+
+
+def test_revisar_estrategia_solo_ultima_vela():
+    estr = ab.Estrategia(watch="precio < 50", buy="precio < 40")
+    a = ab.revisar_estrategia("AAA", velas([60, 45, 35]), estr)
+    assert [x.regla.nombre for x in a] == ["BUY"]
+    assert ab.revisar_estrategia("AAA", velas([60, 35, 30]), estr) == []  # el BUY fue ayer
+    assert [x.regla.nombre for x in ab.revisar_estrategia("AAA", velas([60, 45]), estr)] == ["WATCH"]
+    assert "🟢 BUY" in ab.formatear(a)
+
+
+def test_comprobar_con_estrategia(tmp_path, monkeypatch):
+    enviados = []
+    monkeypatch.setattr(ab, "descargar", lambda t, h: {"AAA": velas([60, 45, 35])})
+    monkeypatch.setattr(ab, "notificar", lambda texto: enviados.append(texto) or ["x"])
+    cfg = ab.Config(tickers=["AAA"], reglas=[], estrategia=ab.Estrategia(watch="precio < 50", buy="precio < 40"))
+    estado = tmp_path / "estado.json"
+    assert ab.comprobar(cfg, estado) == 0
+    assert ab.comprobar(cfg, estado) == 0
+    assert len(enviados) == 1 and "BUY" in enviados[0]
 
 
 def test_comprobar_guarda_estado(tmp_path, monkeypatch):
