@@ -1,0 +1,24 @@
+name: Variantes alertas de bolsa (temporal)
+
+# Temporal: compara variantes de la estrategia. Se borra tras la prueba.
+on:
+  push:
+    branches: [claude/stock-market-alerts-ex6jzw]
+    paths: [.github/workflows/prueba-alertas-bolsa.yml]
+
+jobs:
+  variantes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: alertas-bolsa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: alertas-bolsa/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python variantes.py --fin 2026-09-25 --corte 2025-01-01
