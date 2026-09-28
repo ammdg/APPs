@@ -1,0 +1,22 @@
+{
+  "tickers": [
+    "SPY", "QQQ",
+    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "AVGO", "TSLA", "BRK-B",
+    "JPM", "LLY", "V", "MA", "WMT", "XOM", "UNH", "JNJ", "PG", "HD",
+    "COST", "ORCL", "NFLX", "BAC", "KO", "ABBV", "AMD", "CRM"
+  ],
+  "reglas": [
+    { "nombre": "RSI sobrevendido", "si": "rsi14 < 30" },
+    { "nombre": "RSI sobrecomprado", "si": "rsi14 > 70" },
+    { "nombre": "Cruce dorado (SMA50 sobre SMA200)", "si": "sma50 > sma200" },
+    { "nombre": "Cruce de la muerte (SMA50 bajo SMA200)", "si": "sma50 < sma200" },
+    { "nombre": "Caída fuerte en el día", "si": "var1 < -5" },
+    { "nombre": "Subida fuerte en el día", "si": "var1 > 5" },
+    { "nombre": "Pierde la media de 200", "si": "precio < sma200", "activa": false },
+    { "nombre": "Cruce alcista del MACD", "si": "macd > macd_senal", "activa": false },
+    { "nombre": "Nuevo máximo de 52 semanas", "si": "precio >= max52", "activa": false },
+    { "nombre": "Volumen anómalo", "si": "vol_rel > 3", "activa": false },
+    { "nombre": "Bajo la banda de Bollinger", "si": "precio < bb_inf", "activa": false },
+    { "nombre": "Ejemplo solo para Apple", "si": "precio < 150", "tickers": ["AAPL"], "activa": false }
+  ]
+}
