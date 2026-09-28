@@ -20,7 +20,7 @@ import re
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -413,13 +413,18 @@ def elegir_tickers(cfg: Config) -> list[str]:
     return fijos + [t for t in cfg.tickers if t not in fijos]
 
 
-def comprobar(cfg: Config, estado_path: Path) -> int:
+def comprobar(cfg: Config, estado_path: Path, hasta: date | None = None, enviar: bool = True) -> int:
+    """Descarga, evalúa y avisa. `hasta`: analizar como si fuera el cierre de ese día (pruebas).
+    `enviar=False`: solo imprime el mensaje, sin enviarlo ni guardar el estado."""
     if not cfg.reglas and not cfg.estrategia:
         print("No hay estrategia ni reglas activas en config.json: no se comprueba nada.")
         return 0
     tickers = elegir_tickers(cfg)
     print(f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC · {len(tickers)} tickers · {len(cfg.reglas)} reglas")
     datos = descargar(tickers, cfg.historico)
+    if hasta:
+        datos = {t: df[df.index.date <= hasta] for t, df in datos.items()}
+        datos = {t: df for t, df in datos.items() if not df.empty}
     sin_datos = [t for t in tickers if t not in datos]
     if sin_datos:
         print(f"⚠️ Sin datos: {', '.join(sin_datos)}")
@@ -438,6 +443,9 @@ def comprobar(cfg: Config, estado_path: Path) -> int:
 
     texto = formatear(nuevas)
     print(texto)
+    if not enviar:
+        print("(--sin-avisos: no se envía ni se guarda el estado)")
+        return 0
     try:
         notificar(texto)
     except requests.RequestException as e:
@@ -480,6 +488,9 @@ def main() -> int:
     p.add_argument("--estado", type=Path, default=AQUI / "estado.json")
     p.add_argument("--cada", type=int, metavar="MIN", help="repetir cada MIN minutos (en tu ordenador)")
     p.add_argument("--ver", metavar="TICKER", help="muestra los valores actuales de un ticker y sale")
+    p.add_argument("--hasta", type=date.fromisoformat, metavar="AAAA-MM-DD",
+                   help="analizar como si fuera el cierre de ese día (para pruebas)")
+    p.add_argument("--sin-avisos", action="store_true", help="solo mostrar el mensaje, sin enviarlo")
     p.add_argument("--probar-aviso", action="store_true", help="manda un mensaje de prueba y sale")
     p.add_argument("--ayuda-variables", action="store_true", help="lista las variables para las reglas")
     a = p.parse_args()
@@ -494,7 +505,7 @@ def main() -> int:
     if a.ver:
         return mostrar_valores(a.ver, cfg)
     if not a.cada:
-        return comprobar(cfg, a.estado)
+        return comprobar(cfg, a.estado, a.hasta, enviar=not a.sin_avisos)
     while True:
         comprobar(cfg, a.estado)
         time.sleep(a.cada * 60)

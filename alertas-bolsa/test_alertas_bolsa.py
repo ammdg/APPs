@@ -162,3 +162,17 @@ def test_elegir_tickers_con_lista_fija(tmp_path, monkeypatch):
     cfg = ab.Config(tickers=["B", "C"], reglas=[], universo="universo_fijo.json")
     assert ab.elegir_tickers(cfg) == ["A", "B", "C"]
     assert ab.elegir_tickers(ab.Config(tickers=["Z"], reglas=[])) == ["Z"]
+
+
+def test_comprobar_hasta_y_sin_avisos(tmp_path, monkeypatch):
+    d = escenario()
+    buy = ab.senales(d).query("Signal == 'BUY'").index[0]
+    enviados = []
+    monkeypatch.setattr(ab, "descargar", lambda t, h: {"AAA": d})  # datos hasta hoy
+    monkeypatch.setattr(ab, "notificar", lambda texto: enviados.append(texto) or ["x"])
+    cfg = ab.Config(tickers=["AAA"], reglas=[], estrategia=True)
+    estado = tmp_path / "estado.json"
+    assert ab.comprobar(cfg, estado, hasta=buy.date(), enviar=False) == 0
+    assert enviados == [] and not estado.exists()
+    assert ab.comprobar(cfg, estado, hasta=buy.date()) == 0
+    assert len(enviados) == 1 and "BUY" in enviados[0]

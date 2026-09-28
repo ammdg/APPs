@@ -1,0 +1,52 @@
+name: Prueba alertas de bolsa (temporal)
+
+# Temporal: ejecuta el análisis real al cierre del 25/09/2026 sin enviar avisos. Se borra tras la prueba.
+on:
+  push:
+    branches: [claude/stock-market-alerts-ex6jzw]
+    paths: [.github/workflows/prueba-alertas-bolsa.yml]
+
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: alertas-bolsa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: alertas-bolsa/requirements.txt
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q
+      - name: Análisis al cierre del 25/09/2026 (sin avisos)
+        run: python alertas_bolsa.py --hasta 2026-09-25 --sin-avisos
+      - name: Señales en las últimas 60 sesiones
+        run: |
+          python - <<'PY'
+          from collections import Counter
+          from datetime import date
+          import alertas_bolsa as ab, universo
+          tickers, _ = universo.cargar()
+          datos = ab.descargar(tickers)
+          total, por_dia, cortas = Counter(), Counter(), []
+          for t, df in datos.items():
+              df = df[df.index.date <= date(2026, 9, 25)]
+              if len(df) < 220:
+                  cortas.append(f"{t}({len(df)})")
+              res = ab.senales(df).tail(60)
+              for f, s in res["Signal"].items():
+                  if s in ("BUY", "WATCH"):
+                      total[s] += 1
+                      por_dia[f.date()] += 1
+          print(f"Acciones con datos: {len(datos)} de {len(tickers)}")
+          print(f"Con menos de 220 sesiones (sin señales posibles): {len(cortas)} {' '.join(cortas)}")
+          print(f"Señales en 60 sesiones: {dict(total)}")
+          n = sorted(por_dia.values()) or [0]
+          print(f"Días con alguna señal: {len(por_dia)} de 60 · por día: mediana {n[len(n)//2]}, máx {n[-1]}")
+          for f in sorted(por_dia)[-10:]:
+              print(f"  {f}: {por_dia[f]}")
+          PY
