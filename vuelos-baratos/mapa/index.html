@@ -239,6 +239,17 @@ document.querySelectorAll(".segmentos button").forEach(b => b.addEventListener("
 }));
 document.getElementById("plegar").addEventListener("click", () => document.getElementById("panel").classList.toggle("plegado"));
 
+// Contador de visitas (GoatCounter, sin cookies). Vacío = desactivado. Las visitas se ven en
+// https://<nombre>.goatcounter.com (privado, solo el dueño de la cuenta).
+const GOATCOUNTER = "";
+if (GOATCOUNTER) {
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://gc.zgo.at/count.js";
+  s.dataset.goatcounter = `https://${GOATCOUNTER}.goatcounter.com/count`;
+  document.head.appendChild(s);
+}
+
 fetch("datos.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(j => {
