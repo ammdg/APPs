@@ -1,0 +1,121 @@
+:root {
+  --fondo: #f6f5f1;
+  --tarjeta: #ffffff;
+  --texto: #1d1c1a;
+  --apagado: #6b6862;
+  --borde: #dedbd3;
+  --acento: #0b6b64;
+  --acento-suave: #d9eeeb;
+  --nota-activa: #d9480f;
+  --error: #b42318;
+  --papel: #ffffff;
+  --tinta: #1d1c1a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #141413;
+    --tarjeta: #1f1e1c;
+    --texto: #ecebe7;
+    --apagado: #a19e97;
+    --borde: #3a3834;
+    --acento: #4fb3a9;
+    --acento-suave: #1d3a37;
+    --nota-activa: #ff8a4c;
+    --error: #ff8a80;
+    --papel: #f7f6f2; /* la partitura se ve mejor sobre claro */
+    --tinta: #1d1c1a;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main, .cabecera { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+.cabecera { padding-top: 28px; padding-bottom: 8px; }
+h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 0; }
+.sub { margin: 4px 0 0; color: var(--apagado); }
+.apagado { color: var(--apagado); }
+.pequeno { font-size: 0.875rem; }
+.error { color: var(--error); }
+[hidden] { display: none !important; }
+
+.tarjeta {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 16px 0;
+}
+
+.zona {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 2px dashed var(--borde); border-radius: 12px;
+  padding: 48px 16px; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.zona:hover, .zona:focus-visible, .zona.encima { border-color: var(--acento); background: var(--acento-suave); outline: none; }
+.zona-titulo { font-weight: 600; font-size: 1.1rem; }
+.zona-texto { color: var(--apagado); font-size: 0.9rem; }
+
+.barra { height: 8px; background: var(--borde); border-radius: 4px; overflow: hidden; margin: 12px 0 8px; }
+.barra div { height: 100%; width: 0; background: var(--acento); transition: width .4s; }
+.barra.indefinida div { width: 30%; animation: vaiven 1.2s ease-in-out infinite alternate; }
+@keyframes vaiven { from { margin-left: 0; } to { margin-left: 70%; } }
+
+.fila-titulo { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+.instrumentos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.inst {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 10px 14px; min-width: 130px;
+  border: 1px solid var(--borde); border-radius: 10px;
+  background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.inst:hover { border-color: var(--acento); }
+.inst[aria-checked="true"] { border-color: var(--acento); background: var(--acento-suave); box-shadow: inset 0 0 0 1px var(--acento); }
+.inst .nombre { font-weight: 600; }
+.inst .estado { font-size: 0.8rem; color: var(--apagado); }
+.inst.no-suena { opacity: 0.6; }
+
+.boton-texto {
+  background: none; border: 1px solid var(--borde); border-radius: 8px;
+  padding: 6px 12px; color: var(--acento); font: inherit; font-size: 0.9rem; cursor: pointer; text-decoration: none;
+}
+.boton-texto:hover { border-color: var(--acento); }
+
+.reproductor { position: sticky; top: 8px; z-index: 5; }
+.controles { display: flex; align-items: center; gap: 12px; }
+.boton-play {
+  width: 48px; height: 48px; flex: none; border-radius: 50%; border: none;
+  background: var(--acento); color: #fff; font-size: 1.2rem; cursor: pointer;
+}
+.boton-play:disabled { opacity: .5; cursor: wait; }
+#posicion { flex: 1; accent-color: var(--acento); min-width: 0; }
+.tiempo { font-variant-numeric: tabular-nums; font-size: 0.9rem; min-width: 3.2em; text-align: center; }
+.opciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 12px; font-size: 0.9rem; }
+.opcion { display: inline-flex; align-items: center; gap: 6px; }
+.opcion select { font: inherit; padding: 2px 4px; }
+.segmentado { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
+.segmentado button { background: none; border: none; padding: 6px 12px; font: inherit; color: inherit; cursor: pointer; }
+.segmentado button + button { border-left: 1px solid var(--borde); }
+.segmentado button.activo { background: var(--acento); color: #fff; }
+
+.partitura { background: var(--papel); color: var(--tinta); border-radius: 8px; padding: 8px 0; overflow-x: auto; }
+.partitura svg { display: block; }
+.partitura .abcjs-note, .partitura .abcjs-rest { cursor: pointer; }
+.partitura .nota-activa, .partitura .nota-activa path { fill: var(--nota-activa) !important; stroke: var(--nota-activa); }
+
+.pie { margin: 32px 0; }
+
+@media (max-width: 600px) {
+  .cabecera { padding-top: 18px; }
+  h1 { font-size: 1.3rem; }
+  .tarjeta { padding: 14px; }
+  .reproductor { top: 0; border-radius: 0 0 14px 14px; }
+  .instrumentos { display: grid; grid-template-columns: 1fr 1fr; }
+  .inst { min-width: 0; padding: 8px 10px; }
+}

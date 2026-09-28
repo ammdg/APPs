@@ -150,10 +150,10 @@ def monofoniza(notas: list[Nota]) -> list[Nota]:
 # --------------------------------------------------------------------------- audio
 
 
-def separa_pista(audio: Path, pista: str, destino: Path) -> Path:
-    """Separa `pista` de la mezcla con Demucs y la guarda como WAV en `destino`."""
+def separa(audio: Path, progreso=None) -> tuple[dict, int]:
+    """Separa la mezcla con Demucs. Devuelve ({pista: array (muestras, canales)}, frecuencia).
+    `progreso`, si se da, recibe la fracción completada (0-1) según avanza."""
     import librosa
-    import soundfile as sf
     import torch
     from demucs.apply import apply_model
     from demucs.pretrained import get_model
@@ -161,13 +161,18 @@ def separa_pista(audio: Path, pista: str, destino: Path) -> Path:
     print(f"Cargando el modelo de separación ({MODELO_DEMUCS})...", file=sys.stderr)
     modelo = get_model(MODELO_DEMUCS)
     modelo.eval()
-    if pista not in modelo.sources:
-        raise ErrorNotas(f"El modelo no tiene la pista '{pista}' (tiene: {modelo.sources}).")
 
     ondas, _ = librosa.load(str(audio), sr=modelo.samplerate, mono=False)
     if ondas.ndim == 1:
         ondas = ondas[None].repeat(modelo.audio_channels, axis=0)
     mezcla = torch.from_numpy(ondas[: modelo.audio_channels]).float()
+    muestras = mezcla.shape[-1]
+
+    def avisa(d: dict) -> None:
+        if progreso and d.get("state") == "end":
+            # Aproximado: segment_offset es donde empieza el trozo recién terminado.
+            hecho = d["model_idx_in_bag"] + d["segment_offset"] / muestras
+            progreso(min(1.0, hecho / d["models"]))
 
     # Misma normalización que el comando `demucs`.
     referencia = mezcla.mean(0)
@@ -176,9 +181,22 @@ def separa_pista(audio: Path, pista: str, destino: Path) -> Path:
     print(f"Separando pistas en {dispositivo} (en CPU tarda unos minutos)...", file=sys.stderr)
     with torch.no_grad():
         fuentes = apply_model(modelo, ((mezcla - media) / desviacion)[None], device=dispositivo,
-                              progress=True)[0]
-    fuente = fuentes[modelo.sources.index(pista)] * desviacion + media
-    sf.write(str(destino), fuente.cpu().numpy().T, modelo.samplerate)
+                              progress=progreso is None, callback=avisa)[0]
+    if progreso:
+        progreso(1.0)
+    fuentes = fuentes * desviacion + media
+    return ({nombre: fuentes[i].cpu().numpy().T for i, nombre in enumerate(modelo.sources)},
+            modelo.samplerate)
+
+
+def separa_pista(audio: Path, pista: str, destino: Path) -> Path:
+    """Separa `pista` de la mezcla con Demucs y la guarda como WAV en `destino`."""
+    import soundfile as sf
+
+    pistas, frecuencia = separa(audio)
+    if pista not in pistas:
+        raise ErrorNotas(f"El modelo no tiene la pista '{pista}' (tiene: {list(pistas)}).")
+    sf.write(str(destino), pistas[pista], frecuencia)
     return destino
 
 

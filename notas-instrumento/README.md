@@ -1,19 +1,53 @@
 # Notas de un instrumento
 
-Le das una canción (MP3, WAV, FLAC, OGG...) y un instrumento, y te dice qué notas toca y cuándo.
-Deja además un **CSV** (para Excel) y un **MIDI** (para abrirlo en MuseScore, GarageBand,
-un DAW..., donde puedes verlo como partitura o piano roll).
+Sube una canción (MP3, WAV, FLAC, OGG, M4A...), la aplicación separa los instrumentos, te dice
+cuáles suenan, eliges uno y **escuchas la canción mientras se ilumina su partitura**.
 
-```
-$ python notas_instrumento.py cancion.mp3 --instrumento bajo
-    inicio  duración  nota
-  0:00.512     0.45s  Mi1
-  0:01.004     0.49s  Mi1
-  0:01.498     0.49s  Sol1
-  ...
+Hay dos formas de usarlo:
+
+- **Aplicación web** (`app.py`): se ejecuta en tu ordenador y se usa desde el navegador.
+- **Línea de comandos** (`notas_instrumento.py`): saca las notas a una tabla, un CSV y un MIDI.
+
+## Aplicación web
+
+```bash
+python app.py            # abre http://127.0.0.1:5000 en el navegador
 ```
 
-(Ese ejemplo es ilustrativo, no una salida real.)
+1. Arrastra la canción a la página (o pulsa para elegirla).
+2. Espera a que separe los instrumentos (sin tarjeta gráfica, unos minutos por canción).
+3. Salen los 6 grupos que distingue el modelo: **voz, guitarra, bajo, piano/teclado, otros
+   instrumentos y batería**, cada uno con cuánto tiempo suena. Los que apenas suenan salen en gris,
+   pero puedes elegirlos igualmente.
+4. Elige uno: aparece su partitura. Dale a ▶ y la nota que suena se ilumina y la página la sigue.
+   - **Canción / Solo … / Sin …**: escuchar la mezcla, solo ese instrumento, o la canción sin él
+     (para tocar encima).
+   - **Nombres de las notas**: escribe Do, Re, Mi... debajo de cada nota.
+   - **Notas: menos / normal / más**: sensibilidad de la detección.
+   - Pulsa una nota de la partitura para saltar a ese momento. Barra espaciadora = play/pausa.
+   - **Descargar MIDI** para abrirlo en MuseScore, GarageBand, etc.
+
+Todo se queda en tu ordenador: las canciones y las pistas separadas se guardan en `trabajos/`
+(puedes borrar esa carpeta cuando quieras). Si recargas la página, la dirección
+(`...#<código>`) vuelve a abrir la misma canción sin analizarla otra vez.
+
+### Qué significa «identificar los instrumentos»
+
+La app **no reconoce instrumentos de cualquier tipo**: el modelo separa siempre en esos 6 grupos
+fijos y la app mide cuánto suena cada uno. Un violín, una trompeta o un sintetizador acaban todos
+en «otros instrumentos», juntos. El umbral para decidir que un grupo «suena» está puesto a ojo,
+no calibrado.
+
+### Cómo se hace la partitura
+
+- El ritmo se ajusta a semicorcheas sobre el pulso que detecta
+  [librosa](https://librosa.org), así que sigue los cambios de tempo de la canción.
+- **Se supone compás de 4/4** y que el primer pulso detectado es el principio de un compás
+  (no se detecta el compás real, ni la tonalidad: las alteraciones se escriben con sostenidos).
+- Las notas que empiezan a la vez se escriben como acorde; piano a dos pentagramas (separados
+  en el do central); bajo en clave de fa, a la altura real (más grave de como se escribe
+  normalmente para bajo, que va una octava por encima).
+- Se dibuja con [abcjs](https://www.abcjs.net/) (MIT), incluido en `static/vendor/`.
 
 ## Cómo funciona
 
@@ -36,7 +70,7 @@ pip install -r requirements.txt
 
 La primera vez que separe una canción, Demucs descarga su modelo (unos 50-80 MB).
 
-## Uso
+## Línea de comandos
 
 ```bash
 python notas_instrumento.py cancion.mp3 -i guitarra
@@ -72,7 +106,7 @@ Resultados, en `salida/`: `<canción>_<instrumento>.csv`, `.mid` y (con `--guard
 - La pista de piano de `htdemucs_6s` es la más floja del modelo (lo dicen sus propios autores).
 - Si hay dos guitarras, sale la suma de las dos.
 - La batería no se puede transcribir en notas (no tiene altura).
-- Sin GPU, separar una canción de 4 minutos tarda varios minutos.
+- Sin GPU, separar una canción de 4 minutos tarda varios minutos (no lo he medido con precisión).
 
 ## Pruebas
 
@@ -81,4 +115,5 @@ pip install pytest
 python -m pytest
 ```
 
-Las pruebas no usan los modelos (sustituyen separación y transcripción por funciones falsas).
+Las pruebas no usan los modelos (sustituyen separación, transcripción y detección de pulso por
+funciones falsas), así que no comprueban la calidad de la separación ni de la transcripción.
