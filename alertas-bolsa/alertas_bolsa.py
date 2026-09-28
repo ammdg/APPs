@@ -228,6 +228,10 @@ def descargar(tickers: list[str], historico: str = "2y", tanda: int = 100) -> di
         if i:
             time.sleep(2)
         salida.update(_descargar_tanda(tickers[i:i + tanda], historico))
+    faltan = [t for t in tickers if t not in salida]
+    if faltan:  # un reintento: yfinance a veces falla puntualmente (p. ej. "database is locked")
+        time.sleep(5)
+        salida.update(_descargar_tanda(faltan, historico))
     return salida
 
 

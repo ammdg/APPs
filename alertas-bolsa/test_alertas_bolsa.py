@@ -176,3 +176,16 @@ def test_comprobar_hasta_y_sin_avisos(tmp_path, monkeypatch):
     assert enviados == [] and not estado.exists()
     assert ab.comprobar(cfg, estado, hasta=buy.date()) == 0
     assert len(enviados) == 1 and "BUY" in enviados[0]
+
+
+def test_descargar_reintenta_los_que_fallan(monkeypatch):
+    llamadas = []
+
+    def tanda(tickers, historico):
+        llamadas.append(list(tickers))
+        return {t: velas([1, 2]) for t in tickers if t != "B" or len(llamadas) > 1}
+
+    monkeypatch.setattr(ab, "_descargar_tanda", tanda)
+    monkeypatch.setattr(ab.time, "sleep", lambda s: None)
+    assert set(ab.descargar(["A", "B", "C"])) == {"A", "B", "C"}
+    assert llamadas == [["A", "B", "C"], ["B"]]

@@ -158,6 +158,13 @@ score mínimo…) en un tramo de ajuste y otro de validación, sin modificar `es
 python variantes.py --fin 2026-09-25 --corte 2025-01-01
 ```
 
+`trayectoria.py` sigue cada BUY durante 30 sesiones: % que sube a 5, 10… 30 sesiones, cuánto suben
+las que suben, cuántas no llegan a subir nunca y hasta dónde llegan en el mejor momento:
+
+```bash
+python trayectoria.py --fin 2026-09-25 --corte 2025-01-01
+```
+
 ## Pruebas
 
 ```bash
