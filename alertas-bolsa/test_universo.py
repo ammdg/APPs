@@ -9,11 +9,13 @@ FILAS = [
     {"symbol": "AAA", "name": "Alfa Inc. Common Stock", "marketCap": "3,000,000,000,000.00", "lastsale": "$300.00",
      "country": "United States"},
     {"symbol": "GOOGL", "name": "Alphabet Inc. Class A Common Stock", "marketCap": "1000000000000",
-     "lastsale": "$100.00", "country": "United States"},
+     "lastsale": "$100.00", "volume": "30000000", "country": "United States"},
     {"symbol": "GOOG", "name": "Alphabet Inc. Class C Capital Stock", "marketCap": "900000000000",
-     "lastsale": "$100.00", "country": "United States"},
+     "lastsale": "$100.00", "volume": "20000000", "country": "United States"},
+    {"symbol": "BRK/A", "name": "Berkshire Hathaway Inc.", "marketCap": "950000000000", "lastsale": "$750000.00",
+     "volume": "300", "country": "United States"},
     {"symbol": "BRK/B", "name": "Berkshire Hathaway Inc.", "marketCap": "950000000000", "lastsale": "$500.00",
-     "country": "United States"},
+     "volume": "4000000", "country": "United States"},
     {"symbol": "TSM", "name": "Taiwan Semiconductor Manufacturing Company Ltd. American Depositary Shares",
      "marketCap": "800000000000", "lastsale": "$200.00", "country": "Taiwan"},
     {"symbol": "BAC^K", "name": "Bank of America Preferred", "marketCap": "999000000000000", "lastsale": "$25",
@@ -28,6 +30,7 @@ def test_candidatas_ordena_filtra_y_una_por_empresa():
     c = u.candidatas(FILAS)
     assert [x["ticker"] for x in c] == ["AAA", "GOOGL", "BRK-B", "TSM", "PEQ"]
     assert c[0]["acciones"] == 10_000_000_000  # 3 billones / 300 $
+    assert "BRK-A" not in [x["ticker"] for x in c]  # BRK-B: más dinero negociado
     assert "TSM" not in [x["ticker"] for x in u.candidatas(FILAS, solo_eeuu=True)]
 
 
@@ -74,3 +77,14 @@ def test_generar_falla_si_faltan_cierres(monkeypatch):
         assert False, "debería fallar"
     except SystemExit as e:
         assert "festivo" in str(e)
+
+
+def test_clase_mas_negociada_con_la_mayor_capitalizacion():
+    filas = [
+        {"symbol": "X1", "name": "Equis Corp. Class A Common Stock", "marketCap": "500", "lastsale": "$10", "volume": "1"},
+        {"symbol": "X2", "name": "Equis Corp. Class B Common Stock", "marketCap": "300", "lastsale": "$10", "volume": "99"},
+        {"symbol": "Y", "name": "Ye Inc. Common Stock", "marketCap": "400", "lastsale": "$10", "volume": "5"},
+    ]
+    c = u.candidatas(filas)
+    assert [x["ticker"] for x in c] == ["X2", "Y"]  # X2 por volumen, ordenada con la cap. de X1
+    assert c[0]["cap_actual"] == 500

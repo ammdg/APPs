@@ -62,10 +62,12 @@ def candidatas(filas: list[dict[str, Any]], solo_eeuu: bool = False) -> list[dic
     """Acciones ordenadas por capitalización actual, una por empresa.
 
     - Quita preferentes, warrants y similares (símbolos con ^, espacios o más de un /).
-    - Una sola clase de acción por empresa: la de mayor capitalización.
+    - Una sola clase de acción por empresa (GOOGL/GOOG, BRK-A/BRK-B…): la empresa se ordena por la
+      mayor capitalización de sus clases y se vigila la clase con más dinero negociado (volumen ×
+      precio), porque la estrategia usa el volumen. Así BRK-B y no BRK-A, que apenas se negocia.
     - `solo_eeuu`: excluye empresas extranjeras que cotizan en EE. UU. (ADR como TSM o ASML).
     """
-    lista = []
+    grupos: dict[str, list[dict[str, Any]]] = {}
     for f in filas:
         simbolo = str(f.get("symbol", "")).strip().upper()
         cap, precio = _a_numero(f.get("marketCap")), _a_numero(f.get("lastsale"))
@@ -74,15 +76,15 @@ def candidatas(filas: list[dict[str, Any]], solo_eeuu: bool = False) -> list[dic
         pais = str(f.get("country", "")).strip()
         if solo_eeuu and pais not in ("United States", ""):
             continue
-        lista.append({"ticker": simbolo.replace("/", "-"), "nombre": str(f.get("name", simbolo)).strip(),
-                      "pais": pais, "cap_actual": cap, "acciones": cap / precio})
-    lista.sort(key=lambda c: c["cap_actual"], reverse=True)
-    vistas, salida = set(), []
-    for c in lista:
-        e = empresa(c["nombre"])
-        if e not in vistas:
-            vistas.add(e)
-            salida.append(c)
+        nombre = str(f.get("name", simbolo)).strip()
+        grupos.setdefault(empresa(nombre), []).append(
+            {"ticker": simbolo.replace("/", "-"), "nombre": nombre, "pais": pais, "cap_actual": cap,
+             "acciones": cap / precio, "negociado": _a_numero(f.get("volume")) * precio})
+    salida = []
+    for clases in grupos.values():
+        elegida = max(clases, key=lambda c: (c["negociado"], c["cap_actual"]))
+        salida.append({**elegida, "cap_actual": max(c["cap_actual"] for c in clases)})
+    salida.sort(key=lambda c: c["cap_actual"], reverse=True)
     return salida
 
 
