@@ -34,28 +34,31 @@ dado en el histórico.
 
 Para desactivarla: `"estrategia": {"activa": false}` en `config.json`.
 
-## 2. Qué acciones: las 500 de mayor capitalización
+## 2. Qué acciones: lista fija de las 500 de mayor capitalización
 
-```json
-"universo": { "cantidad": 500, "solo_eeuu": false }
-```
+`universo_fijo.json` contiene las 500 empresas de mayor capitalización cotizadas en EE. UU. (NYSE,
+Nasdaq y NYSE American) **al cierre del viernes 25/09/2026**. Es fija: el análisis diario solo la
+lee y no la recalcula. Cada acción lleva su posición, nombre, país, cierre y capitalización.
 
-En cada ejecución se descarga del buscador de acciones de nasdaq.com la lista de todas las acciones
-cotizadas en NYSE, Nasdaq y NYSE American con su capitalización, y se vigilan las 500 mayores.
+Cómo se calculó (`universo.py`):
 
-- Una sola clase de acción por empresa (GOOGL o GOOG, no las dos): se queda la de mayor
-  capitalización. Se detecta por el nombre, así que en algún caso raro podría fallar.
-- Sin preferentes ni warrants. Solo acciones, sin ETF (el buscador de acciones no los incluye).
-- Con `"solo_eeuu": false` entran también empresas extranjeras que cotizan en EE. UU. (ADR, p. ej.
-  TSMC o ASML). Con `true` solo empresas de EE. UU.
-- La API de nasdaq.com no es oficial. Si falla, se usa la última lista buena (guardada en la caché
-  de GitHub) y, si no hay, `sp500_respaldo.json` (componentes del S&P 500 descargados el 28/09/2026 de
-  [datasets/s-and-p-500-companies](https://github.com/datasets/s-and-p-500-companies); no sé
-  con qué frecuencia actualizan esa lista). El mensaje
-  lo indica con ⚠️.
-- Los `tickers` de `config.json` se añaden a la lista. Si quitas el bloque `universo`, solo se
-  vigilan esos.
-- Con 500 acciones, Yahoo se consulta en tandas de 100. La ejecución tarda unos minutos.
+1. Del buscador de acciones de nasdaq.com (no es una API oficial): todas las acciones con su
+   capitalización y último precio → número de acciones = capitalización / precio.
+2. Capitalización al cierre del 25/09 = número de acciones × cierre sin ajustar de ese día (Yahoo).
+3. Una sola clase de acción por empresa: la empresa se ordena por su capitalización y se vigila la
+   clase con más dinero negociado (BRK-B y no BRK-A). Se detecta por el nombre, así que en algún
+   caso raro podría fallar.
+4. Solo acciones: sin ETF, preferentes ni warrants. **Incluye empresas extranjeras** que cotizan en
+   EE. UU. (ADR y similares: TSMC, ASML…); en la lista actual son 139 de 500.
+
+Limitaciones: el número de acciones es el que usa nasdaq.com el día en que se generó (28/09/2026),
+no necesariamente el del 25/09, así que el orden cerca del puesto 500 es aproximado.
+
+Para regenerarla (otra fecha, o solo empresas de EE. UU.): *Actions → Generar lista de acciones
+(bolsa) → Run workflow*, o en local `python universo.py --fecha 2026-09-25 [--solo-eeuu]`.
+
+Los `tickers` de `config.json` se añaden a la lista. Si quitas el bloque `universo`, solo se vigilan
+esos. Con 500 acciones, Yahoo se consulta en tandas de 100 y la ejecución tarda unos minutos.
 
 ## 3. Reglas sueltas (opcionales, desactivadas)
 

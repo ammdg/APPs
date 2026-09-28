@@ -1,8 +1,8 @@
 name: Generar lista de acciones (bolsa)
 
 # Genera alertas-bolsa/universo_fijo.json: las 500 acciones de mayor capitalización de EE. UU. al
-# cierre de una fecha. Solo se ejecuta a mano (o al cambiar universo.py en la rama de desarrollo),
-# porque la lista es fija y no se recalcula cada día.
+# cierre de una fecha. Solo se ejecuta a mano: la lista es fija y no se recalcula cada día.
+# La lista inicial se generó con el cierre del viernes 25/09/2026.
 on:
   workflow_dispatch:
     inputs:
@@ -13,9 +13,6 @@ on:
         description: "Excluir empresas extranjeras (ADR)"
         type: boolean
         default: false
-  push:
-    branches: [claude/stock-market-alerts-ex6jzw]
-    paths: [alertas-bolsa/universo.py, .github/workflows/generar-universo-bolsa.yml]
 
 permissions:
   contents: write # guardar universo_fijo.json en la rama
@@ -44,8 +41,7 @@ jobs:
 
       - name: Generar la lista
         env:
-          # Al hacer push en la rama de desarrollo: cierre del viernes 25/09/2026 (lista de partida).
-          FECHA: ${{ github.event_name == 'push' && '2026-09-25' || inputs.fecha }}
+          FECHA: ${{ inputs.fecha }}
           SOLO_EEUU: ${{ inputs.solo_eeuu && '--solo-eeuu' || '' }}
         run: python universo.py ${FECHA:+--fecha "$FECHA"} $SOLO_EEUU
 
