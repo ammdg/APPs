@@ -608,6 +608,49 @@ def notificar(texto: str) -> list[str]:
 
 
 MAPA_DATOS = AQUI / "mapa" / "datos.json"
+ITERACIONES_CLAVE = 600_000  # PBKDF2-SHA256; la página (mapa/index.html) usa el mismo número
+
+
+def cifrar_datos_mapa(datos: dict, usuario: str, password: str) -> dict:
+    """Cifra los datos del mapa con AES-256-GCM. La clave sale de "usuario:contraseña" con PBKDF2-SHA256.
+
+    GitHub Pages solo sirve archivos: no hay servidor que compruebe la contraseña. Así, aunque datos.json
+    sea público, sin el usuario y la contraseña no se puede leer; la página lo descifra en el navegador.
+    """
+    import base64
+    import hashlib
+
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    sal, iv = os.urandom(16), os.urandom(12)
+    clave = hashlib.pbkdf2_hmac("sha256", f"{usuario}:{password}".encode(), sal, ITERACIONES_CLAVE, dklen=32)
+    texto = json.dumps(datos, ensure_ascii=False).encode()
+    b64 = lambda b: base64.b64encode(b).decode()  # noqa: E731
+    return {"cifrado": "AES-256-GCM", "kdf": "PBKDF2-SHA256", "iteraciones": ITERACIONES_CLAVE,
+            "sal": b64(sal), "iv": b64(iv), "datos": b64(AESGCM(clave).encrypt(iv, texto, None))}
+
+
+def descifrar_datos_mapa(sobre: dict, usuario: str, password: str) -> dict:
+    """Lo contrario de cifrar_datos_mapa (para pruebas). Falla si el usuario o la contraseña no son correctos."""
+    import base64
+    import hashlib
+
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    d = base64.b64decode
+    clave = hashlib.pbkdf2_hmac("sha256", f"{usuario}:{password}".encode(), d(sobre["sal"]),
+                                sobre["iteraciones"], dklen=32)
+    return json.loads(AESGCM(clave).decrypt(d(sobre["iv"]), d(sobre["datos"]), None))
+
+
+def guardar_datos_mapa(path: Path, datos: dict) -> None:
+    """Guarda los datos del mapa, cifrados si hay MAPA_USUARIO y MAPA_PASSWORD (secretos de GitHub)."""
+    usuario, password = os.getenv("MAPA_USUARIO", ""), os.getenv("MAPA_PASSWORD", "")
+    if usuario and password:
+        datos = cifrar_datos_mapa(datos, usuario, password)
+    else:
+        print("AVISO: sin MAPA_USUARIO/MAPA_PASSWORD, los datos del mapa se publican sin cifrar.", file=sys.stderr)
+    path.write_text(json.dumps(datos, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avisos: list[str],
@@ -616,8 +659,7 @@ def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avi
     historial = cargar_historial(historial_path)
     ahora = datetime.now(ZONA)
     coordenadas = json.loads((AQUI / "coordenadas.json").read_text(encoding="utf-8"))
-    mapa_path.write_text(
-        json.dumps(datos_mapa(cfg, resultados, ahora, coordenadas), indent=1, ensure_ascii=False), encoding="utf-8")
+    guardar_datos_mapa(mapa_path, datos_mapa(cfg, resultados, ahora, coordenadas))
     texto = formatear_mensaje(cfg, resultados, historial, avisos, ahora)
     print(texto)
     notificar(texto)

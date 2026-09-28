@@ -40,6 +40,22 @@ en `main` (un commit al día de github-actions) y pide que se vuelva a publicar.
 `vuelos_baratos.py` junto con el mensaje; las coordenadas de los aeropuertos están en `coordenadas.json`
 (de OurAirports).
 
+### Usuario y contraseña del mapa
+
+GitHub Pages solo sirve archivos (no ejecuta Python al abrir la página), así que la protección se hace
+cifrando los datos: cada mañana `vuelos_baratos.py` cifra `mapa/datos.json` con AES-256-GCM y una clave
+que sale de "usuario:contraseña" (PBKDF2-SHA256, 600.000 iteraciones). La página pide usuario y
+contraseña y descifra los datos en el navegador; sin ellos, el archivo público no se puede leer.
+
+- Se configuran como secretos del repositorio: `MAPA_USUARIO` y `MAPA_PASSWORD`. Sin ellos, los datos
+  se publican sin cifrar.
+- Para cambiar la contraseña: cambia el secreto y lanza *Run workflow* (o espera a la mañana siguiente).
+- Usa una contraseña larga: como el archivo es público, cualquiera puede intentar adivinarla sin límite
+  de intentos.
+- La página en sí (el HTML, sin datos) sigue siendo pública, y las versiones antiguas sin cifrar de
+  `datos.json` siguen en el historial del repositorio.
+- "Recordar en este dispositivo" guarda el usuario y la contraseña en el navegador.
+
 ## Configuración: `config.json`
 
 | Campo | Qué es |
