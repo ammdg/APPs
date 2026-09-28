@@ -49,8 +49,9 @@ cotizadas en NYSE, Nasdaq y NYSE American con su capitalización, y se vigilan l
 - Con `"solo_eeuu": false` entran también empresas extranjeras que cotizan en EE. UU. (ADR, p. ej.
   TSMC o ASML). Con `true` solo empresas de EE. UU.
 - La API de nasdaq.com no es oficial. Si falla, se usa la última lista buena (guardada en la caché
-  de GitHub) y, si no hay, `sp500_respaldo.json` (los componentes del S&P 500 a 28/09/2026 según
-  [datasets/s-and-p-500-companies](https://github.com/datasets/s-and-p-500-companies)). El mensaje
+  de GitHub) y, si no hay, `sp500_respaldo.json` (componentes del S&P 500 descargados el 28/09/2026 de
+  [datasets/s-and-p-500-companies](https://github.com/datasets/s-and-p-500-companies); no sé
+  con qué frecuencia actualizan esa lista). El mensaje
   lo indica con ⚠️.
 - Los `tickers` de `config.json` se añaden a la lista. Si quitas el bloque `universo`, solo se
   vigilan esos.
