@@ -14,7 +14,7 @@ concurrency:
 jobs:
   comprobar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: alertas-bolsa
@@ -29,10 +29,13 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # Recupera qué alertas ya se enviaron para no repetirlas con la misma vela.
+      # Recupera qué alertas ya se enviaron (para no repetirlas con la misma vela) y la última lista
+      # de las 500 mayores (por si nasdaq.com falla).
       - uses: actions/cache/restore@v4
         with:
-          path: alertas-bolsa/estado.json
+          path: |
+            alertas-bolsa/estado.json
+            alertas-bolsa/universo.json
           key: bolsa-estado-${{ github.run_id }}
           restore-keys: bolsa-estado-
 
@@ -46,5 +49,7 @@ jobs:
       - uses: actions/cache/save@v4
         if: always()
         with:
-          path: alertas-bolsa/estado.json
+          path: |
+            alertas-bolsa/estado.json
+            alertas-bolsa/universo.json
           key: bolsa-estado-${{ github.run_id }}

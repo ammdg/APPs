@@ -34,7 +34,29 @@ dado en el histórico.
 
 Para desactivarla: `"estrategia": {"activa": false}` en `config.json`.
 
-## 2. Acciones y reglas sueltas: `config.json`
+## 2. Qué acciones: las 500 de mayor capitalización
+
+```json
+"universo": { "cantidad": 500, "solo_eeuu": false }
+```
+
+En cada ejecución se descarga del buscador de acciones de nasdaq.com la lista de todas las acciones
+cotizadas en NYSE, Nasdaq y NYSE American con su capitalización, y se vigilan las 500 mayores.
+
+- Una sola clase de acción por empresa (GOOGL o GOOG, no las dos): se queda la de mayor
+  capitalización. Se detecta por el nombre, así que en algún caso raro podría fallar.
+- Sin preferentes ni warrants. Solo acciones, sin ETF (el buscador de acciones no los incluye).
+- Con `"solo_eeuu": false` entran también empresas extranjeras que cotizan en EE. UU. (ADR, p. ej.
+  TSMC o ASML). Con `true` solo empresas de EE. UU.
+- La API de nasdaq.com no es oficial. Si falla, se usa la última lista buena (guardada en la caché
+  de GitHub) y, si no hay, `sp500_respaldo.json` (los componentes del S&P 500 a 28/09/2026 según
+  [datasets/s-and-p-500-companies](https://github.com/datasets/s-and-p-500-companies)). El mensaje
+  lo indica con ⚠️.
+- Los `tickers` de `config.json` se añaden a la lista. Si quitas el bloque `universo`, solo se
+  vigilan esos.
+- Con 500 acciones, Yahoo se consulta en tandas de 100. La ejecución tarda unos minutos.
+
+## 3. Reglas sueltas (opcionales, desactivadas)
 
 ```json
 {
@@ -80,7 +102,7 @@ Para ajustar umbrales, mira los valores actuales de un ticker:
 python alertas_bolsa.py --ver NVDA
 ```
 
-## 3. Cómo recibir los avisos
+## 4. Cómo recibir los avisos
 
 Igual que en `renfe-precios` (los mismos secretos sirven):
 
@@ -89,7 +111,7 @@ Igual que en `renfe-precios` (los mismos secretos sirven):
 
 **ntfy** (sin cuenta): suscríbete en la app a un tema con un nombre difícil de adivinar.
 
-## 4a. Ejecutarlo en GitHub Actions
+## 5a. Ejecutarlo en GitHub Actions
 
 1. *Settings → Secrets and variables → Actions*: `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`, y/o `NTFY_TOPIC`.
 2. `.github/workflows/alertas-bolsa.yml` se ejecuta de lunes a viernes a las 21:37 UTC, después del
@@ -105,7 +127,7 @@ mercado). Durante la sesión la última vela está **sin cerrar**: el precio y l
 hasta el cierre, así que una señal intradía puede desaparecer al final del día. Cada regla avisa como
 mucho una vez por día y ticker.
 
-## 4b. O en tu ordenador
+## 5b. O en tu ordenador
 
 ```bash
 pip install -r requirements.txt

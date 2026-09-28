@@ -1,9 +1,10 @@
 {
-  "tickers": [
-    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "AVGO", "TSLA", "BRK-B",
-    "JPM", "LLY", "V", "MA", "WMT", "XOM", "UNH", "JNJ", "PG", "HD",
-    "COST", "ORCL", "NFLX", "BAC", "KO", "ABBV", "AMD", "CRM"
-  ],
+  "universo": {
+    "comentario": "Las N acciones de mayor capitalización cotizadas en EE. UU. (NYSE, Nasdaq, NYSE American), recalculadas en cada ejecución. solo_eeuu=true excluye empresas extranjeras (ADR). Quita este bloque para usar solo la lista de tickers.",
+    "cantidad": 500,
+    "solo_eeuu": false
+  },
+  "tickers": [],
   "estrategia": {
     "activa": true,
     "comentario": "Señales WATCH/BUY de estrategia_score.py. Los parámetros se cambian en ese fichero."

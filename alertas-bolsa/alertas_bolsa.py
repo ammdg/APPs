@@ -28,6 +28,7 @@ import pandas as pd
 import requests
 
 import estrategia_score
+import universo
 
 AQUI = Path(__file__).resolve().parent
 
@@ -194,10 +195,11 @@ class Regla:
 
 @dataclass
 class Config:
-    tickers: list[str]
+    tickers: list[str]  # se ignora si hay "universo"
     reglas: list[Regla]
     historico: str = "2y"
     estrategia: bool = True  # señales WATCH/BUY de estrategia_score.py
+    universo: dict[str, Any] | None = None  # {"cantidad": 500, "solo_eeuu": false}: las N mayores por capitalización
 
 
 def cargar_config(path: Path) -> Config:
@@ -208,15 +210,28 @@ def cargar_config(path: Path) -> Config:
               modo=r.get("modo", "cambio"))
         for r in d.get("reglas", []) if r.get("activa", True)
     ]
-    tickers = list(dict.fromkeys(t.upper() for t in d["tickers"]))
-    return Config(tickers=tickers, reglas=reglas, historico=d.get("historico", "2y"), estrategia=estrategia)
+    tickers = list(dict.fromkeys(t.upper() for t in d.get("tickers", [])))
+    return Config(tickers=tickers, reglas=reglas, historico=d.get("historico", "2y"), estrategia=estrategia,
+                  universo=d.get("universo"))
 
 
 # --------------------------------------------------------------------------- datos
 
 
-def descargar(tickers: list[str], historico: str = "2y") -> dict[str, pd.DataFrame]:
-    """Velas diarias ajustadas por dividendos y splits. Los tickers sin datos no aparecen."""
+def descargar(tickers: list[str], historico: str = "2y", tanda: int = 100) -> dict[str, pd.DataFrame]:
+    """Velas diarias ajustadas por dividendos y splits. Los tickers sin datos no aparecen.
+
+    Se piden en tandas con una pausa entre ellas para no saturar a Yahoo.
+    """
+    salida: dict[str, pd.DataFrame] = {}
+    for i in range(0, len(tickers), tanda):
+        if i:
+            time.sleep(2)
+        salida.update(_descargar_tanda(tickers[i:i + tanda], historico))
+    return salida
+
+
+def _descargar_tanda(tickers: list[str], historico: str) -> dict[str, pd.DataFrame]:
     import yfinance as yf  # import aquí para que las pruebas no lo necesiten
 
     bruto = yf.download(tickers, period=historico, interval="1d", auto_adjust=True, progress=False,
@@ -317,8 +332,10 @@ def _num(v: float) -> str:
     return f"{v:,.2f}"
 
 
-def formatear(alertas: list[Alerta]) -> str:
+def formatear(alertas: list[Alerta], aviso: str = "") -> str:
     lineas = [f"📈 Alertas de bolsa ({len(alertas)})"]
+    if aviso:
+        lineas.append(f"⚠️ {aviso}")
     por_ticker: dict[str, list[Alerta]] = {}
     for a in alertas:
         por_ticker.setdefault(a.ticker, []).append(a)
@@ -335,14 +352,37 @@ def formatear(alertas: list[Alerta]) -> str:
     return "\n".join(lineas)
 
 
+def trocear(texto: str, maximo: int = 3900) -> list[str]:
+    """Parte el texto por bloques (líneas en blanco) para no pasar del límite de Telegram (4096)."""
+    trozos, actual = [], ""
+    for bloque in texto.split("\n\n"):
+        while len(bloque) > maximo:  # bloque suelto demasiado largo: se corta a lo bruto
+            trozos.append(bloque[:maximo])
+            bloque = bloque[maximo:]
+        if actual and len(actual) + 2 + len(bloque) > maximo:
+            trozos.append(actual)
+            actual = bloque
+        else:
+            actual = f"{actual}\n\n{bloque}" if actual else bloque
+    if actual:
+        trozos.append(actual)
+    return trozos
+
+
 def notificar(texto: str) -> list[str]:
     """Envía el aviso por los canales configurados en variables de entorno. Devuelve los usados."""
     usados = []
+    trozos = trocear(texto)
+    if len(trozos) > 1:
+        for texto_parcial in trozos:
+            usados = notificar(texto_parcial)
+            time.sleep(1)
+        return usados
     token, chat = os.getenv("TELEGRAM_BOT_TOKEN"), os.getenv("TELEGRAM_CHAT_ID")
     if token and chat:
         r = requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat, "text": texto[:4000], "disable_web_page_preview": True},
+            json={"chat_id": chat, "text": texto, "disable_web_page_preview": True},
             timeout=20,
         )
         r.raise_for_status()
@@ -366,13 +406,26 @@ def notificar(texto: str) -> list[str]:
 # --------------------------------------------------------------------------- orquestación
 
 
+def elegir_tickers(cfg: Config) -> tuple[list[str], str]:
+    """Tickers a vigilar y, si se ha usado una lista de respaldo, un aviso para el mensaje."""
+    if not cfg.universo:
+        return cfg.tickers, ""
+    tickers, fuente = universo.obtener(int(cfg.universo.get("cantidad", 500)),
+                                       bool(cfg.universo.get("solo_eeuu", False)),
+                                       AQUI / "universo.json", AQUI / "sp500_respaldo.json")
+    print(f"Lista de acciones: {fuente}")
+    extra = [t for t in cfg.tickers if t not in tickers]
+    return tickers + extra, "" if fuente.startswith("nasdaq.com") else f"Lista de acciones: {fuente}"
+
+
 def comprobar(cfg: Config, estado_path: Path) -> int:
-    print(f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC · {len(cfg.tickers)} tickers · {len(cfg.reglas)} reglas")
     if not cfg.reglas and not cfg.estrategia:
         print("No hay estrategia ni reglas activas en config.json: no se comprueba nada.")
         return 0
-    datos = descargar(cfg.tickers, cfg.historico)
-    sin_datos = [t for t in cfg.tickers if t not in datos]
+    tickers, aviso = elegir_tickers(cfg)
+    print(f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC · {len(tickers)} tickers · {len(cfg.reglas)} reglas")
+    datos = descargar(tickers, cfg.historico)
+    sin_datos = [t for t in tickers if t not in datos]
     if sin_datos:
         print(f"⚠️ Sin datos: {', '.join(sin_datos)}")
     if not datos:
@@ -388,7 +441,7 @@ def comprobar(cfg: Config, estado_path: Path) -> int:
     if not nuevas:
         return 0
 
-    texto = formatear(nuevas)
+    texto = formatear(nuevas, aviso)
     print(texto)
     try:
         notificar(texto)

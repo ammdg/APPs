@@ -87,7 +87,7 @@ def test_formatear():
 
 def test_config_por_defecto_valida():
     cfg = ab.cargar_config(ab.AQUI / "config.json")
-    assert cfg.tickers
+    assert cfg.universo["cantidad"] == 500 and cfg.estrategia
 
 
 # --------------------------------------------------------------------------- estrategia_score
@@ -147,3 +147,19 @@ def test_comprobar_con_estrategia(tmp_path, monkeypatch):
     assert ab.comprobar(cfg, estado) == 0
     assert ab.comprobar(cfg, estado) == 0  # misma vela: no repite
     assert len(enviados) == 1 and "BUY" in enviados[0]
+
+
+def test_trocear_mensajes_largos():
+    bloques = [f"TICKER{i}\n  🟢 BUY: score 80  [RSI 55]" + " x" * 40 for i in range(200)]
+    texto = "\n\n".join(bloques)
+    trozos = ab.trocear(texto)
+    assert len(trozos) > 1 and all(len(t) <= 3900 for t in trozos)
+    assert "\n\n".join(trozos) == texto
+
+
+def test_elegir_tickers_con_universo(monkeypatch):
+    monkeypatch.setattr(ab.universo, "obtener", lambda n, e, c, r: (["A", "B"], "S&P 500 de respaldo"))
+    cfg = ab.Config(tickers=["B", "C"], reglas=[], universo={"cantidad": 2})
+    tickers, aviso = ab.elegir_tickers(cfg)
+    assert tickers == ["A", "B", "C"] and "respaldo" in aviso
+    assert ab.elegir_tickers(ab.Config(tickers=["Z"], reglas=[])) == (["Z"], "")
