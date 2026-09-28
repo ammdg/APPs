@@ -11,36 +11,28 @@ con reglas sueltas sobre indicadores técnicos.
   misma vela.
 - Es una herramienta informativa, no consejo de inversión.
 
-## 1. Estrategia WATCH / BUY
+## 1. Estrategia WATCH / BUY: `estrategia_score.py`
 
-Cada acción tiene un estado que cambia con dos condiciones, `watch` y `buy`:
+La lógica está en `estrategia_score.py` (código aportado, sin cambios). Los umbrales se cambian
+arriba de ese fichero (`SCORE_WATCH`, `SCORE_BUY`, `RSI_CORRECTION`…). Resumen:
 
-| Estado actual | `buy` | `watch` | Nuevo estado | Alerta |
-|---|---|---|---|---|
-| NEUTRAL | sí | – | BUY_ACTIVE | 🟢 BUY |
-| NEUTRAL | no | sí | WATCH_ACTIVE | 👀 WATCH |
-| WATCH_ACTIVE | sí | – | BUY_ACTIVE | 🟢 BUY |
-| WATCH_ACTIVE | no | no | NEUTRAL | – |
-| BUY_ACTIVE | – | no | NEUTRAL | – |
-| (resto de casos) | | | sin cambio | – |
+1. **Filtro de tendencia**: cierre > SMA200, SMA50 > SMA200 y SMA200 subiendo respecto a hace 20
+   sesiones. Si no se cumple, no hay señal y el estado vuelve a NEUTRAL.
+2. **Puntuación (0-100)**: tendencia 30 · caída entre -5 % y -15 % desde el máximo de 60 sesiones 20 ·
+   RSI mínimo de 10 sesiones < 45: 10 · RSI cruza 50 hoy: 10 · cierre > SMA20: 7,5 · cierre > máximo
+   de los 3 cierres anteriores: 7,5 · volumen > 1,2 × media de 20: 15.
+3. **WATCH**: puntuación ≥ 60. **BUY**: puntuación ≥ 70, RSI cruza 50 hoy y cierre > SMA20 y > máximo
+   de los 3 cierres anteriores.
+4. **Estados**: NEUTRAL → WATCH_ACTIVE → BUY_ACTIVE. Cada señal se emite solo al entrar en el estado;
+   tras un BUY no vuelve a avisar hasta que la puntuación baje de 60 o se rompa la tendencia.
 
-Tras un BUY no vuelve a avisar hasta que `watch` deje de cumplirse del todo.
+El programa ejecuta la estrategia sobre los 2 años descargados de cada acción y avisa si la
+**última vela** es WATCH o BUY. El estado se reconstruye así en cada ejecución; no se guarda.
 
-```json
-"estrategia": {
-  "activa": true,
-  "watch": "rsi14 < 35",
-  "buy": "rsi14 < 35 and macd > macd_senal"
-}
-```
+`python alertas_bolsa.py --ver AAPL` muestra la puntuación actual y las últimas señales que habría
+dado en el histórico.
 
-(Esas condiciones son solo un ejemplo.) El estado no se guarda de un día para otro: se reconstruye
-en cada ejecución recorriendo todo el histórico descargado (2 años por defecto) desde NEUTRAL, y se
-avisa si la última vela emite BUY o WATCH. Así no depende de que GitHub conserve ningún fichero.
-Es equivalente a guardarlo siempre que en el histórico haya al menos un día sin `watch`.
-
-`python alertas_bolsa.py --ver AAPL` muestra el estado actual y las últimas señales que habría dado
-la estrategia en el histórico, útil para comprobar si se comporta como esperas.
+Para desactivarla: `"estrategia": {"activa": false}` en `config.json`.
 
 ## 2. Acciones y reglas sueltas: `config.json`
 

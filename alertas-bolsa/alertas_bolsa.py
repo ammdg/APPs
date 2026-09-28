@@ -2,8 +2,7 @@
 
 Datos: velas diarias de Yahoo Finance (librería yfinance, no oficial). En config.json:
 
-- "estrategia": máquina de estados NEUTRAL / WATCH_ACTIVE / BUY_ACTIVE que emite alertas WATCH y BUY
-  a partir de dos condiciones ("watch" y "buy").
+- "estrategia": señales WATCH / BUY de estrategia_score.py (puntuación + máquina de estados).
 - "reglas": alertas sueltas, p. ej. "rsi14 < 30", que avisan cuando la condición pasa de falsa a
   verdadera.
 
@@ -27,6 +26,8 @@ from typing import Any
 
 import pandas as pd
 import requests
+
+import estrategia_score
 
 AQUI = Path(__file__).resolve().parent
 
@@ -192,30 +193,16 @@ class Regla:
 
 
 @dataclass
-class Estrategia:
-    """Máquina de estados NEUTRAL -> WATCH_ACTIVE -> BUY_ACTIVE con dos condiciones (watch y buy)."""
-
-    watch: str
-    buy: str
-
-    def __post_init__(self) -> None:
-        # Se reutiliza Regla para validar la expresión y para formatear el aviso.
-        self.regla_watch = Regla("WATCH", self.watch, modo="siempre")
-        self.regla_buy = Regla("BUY", self.buy, modo="siempre")
-
-
-@dataclass
 class Config:
     tickers: list[str]
     reglas: list[Regla]
     historico: str = "2y"
-    estrategia: Estrategia | None = None
+    estrategia: bool = True  # señales WATCH/BUY de estrategia_score.py
 
 
 def cargar_config(path: Path) -> Config:
     d = json.loads(path.read_text(encoding="utf-8"))
-    e = d.get("estrategia")
-    estrategia = Estrategia(watch=e["watch"], buy=e["buy"]) if e and e.get("activa", True) else None
+    estrategia = d.get("estrategia", {}).get("activa", True)
     reglas = [
         Regla(nombre=r["nombre"], si=r["si"], tickers=[t.upper() for t in r["tickers"]] if r.get("tickers") else None,
               modo=r.get("modo", "cambio"))
@@ -252,7 +239,8 @@ def descargar(tickers: list[str], historico: str = "2y") -> dict[str, pd.DataFra
 @dataclass
 class Alerta:
     ticker: str
-    regla: Regla
+    nombre: str  # nombre de la regla, o BUY / WATCH
+    condicion: str
     fecha: str  # fecha de la vela, AAAA-MM-DD
     precio: float
     var1: float | None
@@ -260,7 +248,7 @@ class Alerta:
 
     @property
     def clave(self) -> str:
-        return f"{self.ticker}|{self.regla.nombre}"
+        return f"{self.ticker}|{self.nombre}"
 
 
 def revisar(ticker: str, datos: pd.DataFrame, reglas: list[Regla]) -> list[Alerta]:
@@ -277,59 +265,35 @@ def revisar(ticker: str, datos: pd.DataFrame, reglas: list[Regla]) -> list[Alert
             continue
         valores = {v: float(cache[v].iloc[-1]) for v in nombres(r.arbol) if v in cache}
         var1 = variable(datos, "var1").iloc[-1]
-        alertas.append(Alerta(ticker, r, datos.index[-1].strftime("%Y-%m-%d"), float(datos["Close"].iloc[-1]),
+        alertas.append(Alerta(ticker, r.nombre, r.si, datos.index[-1].strftime("%Y-%m-%d"), float(datos["Close"].iloc[-1]),
                               None if pd.isna(var1) else float(var1), valores))
     return alertas
 
 
-NEUTRAL, WATCH_ACTIVE, BUY_ACTIVE = "NEUTRAL", "WATCH_ACTIVE", "BUY_ACTIVE"
+def senales(datos: pd.DataFrame) -> pd.DataFrame:
+    """Ejecuta estrategia_score.generate_signals sobre las velas (índice de fechas)."""
+    df = datos.rename_axis("Date").reset_index()
+    return estrategia_score.generate_signals(df).set_index("Date")
 
 
-def paso(estado: str, buy: bool, watch: bool) -> tuple[str, str | None]:
-    """Un paso de la máquina de estados. Devuelve (nuevo estado, alerta o None)."""
-    if estado == NEUTRAL:
-        if buy:
-            return BUY_ACTIVE, "BUY"
-        if watch:
-            return WATCH_ACTIVE, "WATCH"
-        return NEUTRAL, None
-    if estado == WATCH_ACTIVE:
-        if buy:
-            return BUY_ACTIVE, "BUY"
-        if not watch:
-            return NEUTRAL, None
-        return WATCH_ACTIVE, None
-    # BUY_ACTIVE: no se vuelve a emitir BUY hasta que la configuración desaparezca por completo.
-    return (NEUTRAL if not watch else BUY_ACTIVE), None
+def revisar_estrategia(ticker: str, datos: pd.DataFrame) -> list[Alerta]:
+    """Alerta BUY o WATCH si la estrategia la emite en la última vela.
 
-
-def simular(datos: pd.DataFrame, estr: Estrategia) -> pd.DataFrame:
-    """Recorre todas las velas desde NEUTRAL y devuelve el estado y la alerta de cada una.
-
-    Reconstruir el estado a partir del histórico evita depender de un estado guardado: da lo mismo
-    que ir guardándolo día a día, siempre que en el histórico haya al menos un día sin watch.
+    La estrategia recorre todo el histórico desde NEUTRAL, así que el estado se reconstruye en cada
+    ejecución y no hace falta guardarlo.
     """
-    cache: dict[str, pd.Series] = {}
-    buy = _bool(evaluar(estr.regla_buy.arbol, datos, cache), datos)
-    watch = _bool(evaluar(estr.regla_watch.arbol, datos, cache), datos)
-    estado, estados, alertas = NEUTRAL, [], []
-    for b, w in zip(buy, watch):
-        estado, alerta = paso(estado, bool(b), bool(w))
-        estados.append(estado)
-        alertas.append(alerta)
-    return pd.DataFrame({"estado": estados, "alerta": pd.Series(alertas, index=datos.index, dtype=object)},
-                        index=datos.index)
-
-
-def revisar_estrategia(ticker: str, datos: pd.DataFrame, estr: Estrategia) -> list[Alerta]:
-    """Alerta BUY o WATCH si la máquina de estados la emite en la última vela."""
     if datos.empty:
         return []
-    alerta = simular(datos, estr)["alerta"].iloc[-1]
-    if pd.isna(alerta):
+    res = senales(datos)
+    ult = res.iloc[-1]
+    if ult["Signal"] not in ("BUY", "WATCH"):
         return []
-    regla = estr.regla_buy if alerta == "BUY" else estr.regla_watch
-    return revisar(ticker, datos, [regla])
+    valores = {"RSI": ult["RSI"], "caída desde máx. 60 (%)": ult["DRAWDOWN"] * 100,
+               "vol_rel": ult["VOLUME_RATIO"], "SMA20": ult["SMA20"], "SMA50": ult["SMA50"], "SMA200": ult["SMA200"]}
+    var1 = datos["Close"].pct_change().iloc[-1] * 100
+    return [Alerta(ticker, ult["Signal"], f"score {ult['Score']:g}", res.index[-1].strftime("%Y-%m-%d"),
+                   float(ult["Close"]), None if pd.isna(var1) else float(var1),
+                   {k: float(v) for k, v in valores.items()})]
 
 
 def cargar_estado(path: Path) -> dict[str, str]:
@@ -364,8 +328,8 @@ def formatear(alertas: list[Alerta]) -> str:
         lineas.append(f"\n{t} · {_num(a0.precio)} ${var} · vela {a0.fecha}")
         for a in lista:
             detalle = ", ".join(f"{k} {_num(v)}" for k, v in a.valores.items())
-            icono = {"BUY": "🟢", "WATCH": "👀"}.get(a.regla.nombre, "🔔")
-            lineas.append(f"  {icono} {a.regla.nombre}: {a.regla.si}  [{detalle}]")
+            icono = {"BUY": "🟢", "WATCH": "👀"}.get(a.nombre, "🔔")
+            lineas.append(f"  {icono} {a.nombre}: {a.condicion}  [{detalle}]")
         lineas.append(f"  https://finance.yahoo.com/quote/{t}")
     lineas.append("\nInformativo, no es consejo de inversión.")
     return "\n".join(lineas)
@@ -417,7 +381,7 @@ def comprobar(cfg: Config, estado_path: Path) -> int:
 
     alertas = [a for t, df in datos.items() for a in revisar(t, df, cfg.reglas)]
     if cfg.estrategia:
-        alertas += [a for t, df in datos.items() for a in revisar_estrategia(t, df, cfg.estrategia)]
+        alertas += [a for t, df in datos.items() for a in revisar_estrategia(t, df)]
     estado = cargar_estado(estado_path)
     nuevas = filtrar_ya_avisadas(alertas, estado)
     print(f"Reglas cumplidas: {len(alertas)} · nuevas: {len(nuevas)}")
@@ -443,8 +407,7 @@ def mostrar_valores(ticker: str, cfg: Config) -> int:
     if datos is None:
         print(f"Sin datos para {ticker}")
         return 1
-    todas = cfg.reglas + ([cfg.estrategia.regla_watch, cfg.estrategia.regla_buy] if cfg.estrategia else [])
-    usadas = list(dict.fromkeys(v for r in todas for v in nombres(r.arbol)))
+    usadas = list(dict.fromkeys(v for r in cfg.reglas for v in nombres(r.arbol)))
     print(f"{ticker.upper()} · vela {datos.index[-1]:%Y-%m-%d} · {len(datos)} sesiones")
     for v in usadas:
         print(f"  {v:>12} = {_num(float(variable(datos, v).iloc[-1]))}")
@@ -452,12 +415,14 @@ def mostrar_valores(ticker: str, cfg: Config) -> int:
         if r.aplica_a(ticker.upper()):
             print(f"  {'✅' if bool(_bool(evaluar(r.arbol, datos), datos).iloc[-1]) else '▫️'} {r.nombre}: {r.si}")
     if cfg.estrategia:
-        sim = simular(datos, cfg.estrategia)
-        print(f"  Estado de la estrategia: {sim['estado'].iloc[-1]}")
-        senales = sim[sim["alerta"].notna()].tail(15)
-        print(f"  Últimas señales ({len(senales)}):" if len(senales) else "  Sin señales en el histórico")
-        for fecha, fila in senales.iterrows():
-            print(f"    {fecha:%Y-%m-%d}  {fila['alerta']:<5}  precio {_num(float(datos.loc[fecha, 'Close']))}")
+        res = senales(datos)
+        ult = res.iloc[-1]
+        print(f"  Estrategia: score {ult['Score']:g} · RSI {ult['RSI']:.1f} · caída desde máx. 60 "
+              f"{ult['DRAWDOWN'] * 100:.1f}% · vol_rel {ult['VOLUME_RATIO']:.2f}")
+        hist = res[res["Signal"].isin(["BUY", "WATCH"])].tail(15)
+        print(f"  Últimas señales ({len(hist)}):" if len(hist) else "  Sin señales en el histórico")
+        for fecha, fila in hist.iterrows():
+            print(f"    {fecha:%Y-%m-%d}  {fila['Signal']:<5}  score {fila['Score']:>4g}  precio {_num(float(fila['Close']))}")
     return 0
 
 

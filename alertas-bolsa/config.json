@@ -5,10 +5,8 @@
     "COST", "ORCL", "NFLX", "BAC", "KO", "ABBV", "AMD", "CRM"
   ],
   "estrategia": {
-    "activa": false,
-    "comentario": "PENDIENTE: watch y buy son un EJEMPLO, no la estrategia real. Sustituir por las condiciones buenas y poner activa a true.",
-    "watch": "rsi14 < 35",
-    "buy": "rsi14 < 35 and macd > macd_senal"
+    "activa": true,
+    "comentario": "Señales WATCH/BUY de estrategia_score.py. Los parámetros se cambian en ese fichero."
   },
   "reglas": [
     { "nombre": "RSI sobrevendido", "si": "rsi14 < 30", "activa": false },

@@ -90,61 +90,60 @@ def test_config_por_defecto_valida():
     assert cfg.tickers
 
 
-# --------------------------------------------------------------------------- máquina de estados
+# --------------------------------------------------------------------------- estrategia_score
 
 
-@pytest.mark.parametrize("estado, buy, watch, esperado", [
-    ("NEUTRAL", True, True, ("BUY_ACTIVE", "BUY")),
-    ("NEUTRAL", True, False, ("BUY_ACTIVE", "BUY")),
-    ("NEUTRAL", False, True, ("WATCH_ACTIVE", "WATCH")),
-    ("NEUTRAL", False, False, ("NEUTRAL", None)),
-    ("WATCH_ACTIVE", True, True, ("BUY_ACTIVE", "BUY")),
-    ("WATCH_ACTIVE", False, True, ("WATCH_ACTIVE", None)),
-    ("WATCH_ACTIVE", False, False, ("NEUTRAL", None)),
-    ("BUY_ACTIVE", True, True, ("BUY_ACTIVE", None)),
-    ("BUY_ACTIVE", False, True, ("BUY_ACTIVE", None)),
-    ("BUY_ACTIVE", True, False, ("NEUTRAL", None)),
-    ("BUY_ACTIVE", False, False, ("NEUTRAL", None)),
-])
-def test_paso(estado, buy, watch, esperado):
-    assert ab.paso(estado, buy, watch) == esperado
+def escenario(dias_tras_buy=3):
+    """Tendencia alcista larga, corrección de ~9% en 6 sesiones y rebote con volumen doble.
+
+    Con estrategia_score da WATCH en la 4.ª sesión de caída y BUY en la 2.ª de rebote.
+    """
+    p = [100.0]
+    for i in range(259):
+        p.append(p[-1] * 1.004 + (0.3 if i % 2 else -0.3))
+    for _ in range(6):
+        p.append(p[-1] * 0.985)
+    for _ in range(2 + dias_tras_buy):
+        p.append(p[-1] * 1.03)
+    vol = [1000.0] * (len(p) - 2 - dias_tras_buy) + [2000.0] * (2 + dias_tras_buy)
+    return velas(p, vol)
 
 
-def test_simular_secuencia():
-    # watch: precio < 50 ; buy: precio < 40
-    estr = ab.Estrategia(watch="precio < 50", buy="precio < 40")
-    precios = [60, 45, 45, 35, 30, 45, 35, 60, 35]
-    sim = ab.simular(velas(precios), estr)
-    assert list(sim["alerta"]) == [None, "WATCH", None, "BUY", None, None, None, None, "BUY"]
-    assert list(sim["estado"])[-2:] == ["NEUTRAL", "BUY_ACTIVE"]
+def test_estrategia_watch_y_buy():
+    res = ab.senales(escenario())
+    emitidas = res[res["Signal"] != "NO SIGNAL"]
+    assert list(emitidas["Signal"]) == ["WATCH", "BUY"]
+    assert emitidas["Score"].iloc[1] >= 70
 
 
-def test_revisar_estrategia_solo_ultima_vela():
-    estr = ab.Estrategia(watch="precio < 50", buy="precio < 40")
-    a = ab.revisar_estrategia("AAA", velas([60, 45, 35]), estr)
-    assert [x.regla.nombre for x in a] == ["BUY"]
-    assert ab.revisar_estrategia("AAA", velas([60, 35, 30]), estr) == []  # el BUY fue ayer
-    assert [x.regla.nombre for x in ab.revisar_estrategia("AAA", velas([60, 45]), estr)] == ["WATCH"]
-    assert "🟢 BUY" in ab.formatear(a)
+def test_estrategia_solo_avisa_en_la_ultima_vela():
+    d = escenario()
+    buy = ab.senales(d).query("Signal == 'BUY'").index[0]
+    watch = ab.senales(d).query("Signal == 'WATCH'").index[0]
+    assert [a.nombre for a in ab.revisar_estrategia("AAA", d.loc[:buy])] == ["BUY"]
+    assert [a.nombre for a in ab.revisar_estrategia("AAA", d.loc[:watch])] == ["WATCH"]
+    assert ab.revisar_estrategia("AAA", d) == []  # el BUY fue hace 3 sesiones
+
+
+def test_estrategia_sin_datos_suficientes():
+    assert ab.revisar_estrategia("AAA", velas([100.0] * 150)) == []
+
+
+def test_mensaje_estrategia():
+    d = escenario()
+    buy = ab.senales(d).query("Signal == 'BUY'").index[0]
+    texto = ab.formatear(ab.revisar_estrategia("AAA", d.loc[:buy]))
+    assert "🟢 BUY: score" in texto and "RSI" in texto
 
 
 def test_comprobar_con_estrategia(tmp_path, monkeypatch):
+    d = escenario()
+    buy = ab.senales(d).query("Signal == 'BUY'").index[0]
     enviados = []
-    monkeypatch.setattr(ab, "descargar", lambda t, h: {"AAA": velas([60, 45, 35])})
+    monkeypatch.setattr(ab, "descargar", lambda t, h: {"AAA": d.loc[:buy]})
     monkeypatch.setattr(ab, "notificar", lambda texto: enviados.append(texto) or ["x"])
-    cfg = ab.Config(tickers=["AAA"], reglas=[], estrategia=ab.Estrategia(watch="precio < 50", buy="precio < 40"))
-    estado = tmp_path / "estado.json"
-    assert ab.comprobar(cfg, estado) == 0
-    assert ab.comprobar(cfg, estado) == 0
-    assert len(enviados) == 1 and "BUY" in enviados[0]
-
-
-def test_comprobar_guarda_estado(tmp_path, monkeypatch):
-    enviados = []
-    monkeypatch.setattr(ab, "descargar", lambda t, h: {"AAA": velas([100, 100, 90])})
-    monkeypatch.setattr(ab, "notificar", lambda texto: enviados.append(texto) or ["x"])
-    cfg = ab.Config(tickers=["AAA"], reglas=[ab.Regla("Caída", "var1 < -5")])
+    cfg = ab.Config(tickers=["AAA"], reglas=[], estrategia=True)
     estado = tmp_path / "estado.json"
     assert ab.comprobar(cfg, estado) == 0
     assert ab.comprobar(cfg, estado) == 0  # misma vela: no repite
-    assert len(enviados) == 1
+    assert len(enviados) == 1 and "BUY" in enviados[0]
