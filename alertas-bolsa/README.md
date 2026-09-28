@@ -151,6 +151,13 @@ señal. Ojo: usa la lista de las 500 mayores de hoy (sesgo de supervivencia, fav
 python backtest.py --desde 2026-09-01 --hasta 2026-09-12 --fin 2026-09-25 --anual-desde 2025-09-26
 ```
 
+`variantes.py` compara variantes de la estrategia (exigir corrección, volumen, filtro de mercado,
+score mínimo…) en un tramo de ajuste y otro de validación, sin modificar `estrategia_score.py`:
+
+```bash
+python variantes.py --fin 2026-09-25 --corte 2025-01-01
+```
+
 ## Pruebas
 
 ```bash
