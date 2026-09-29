@@ -33,6 +33,12 @@
 
   <!-- Lista de canciones -->
   <section id="paso-lista" hidden>
+    <div class="tarjeta destacada">
+      <h2>Escuchar una canción</h2>
+      <p class="apagado pequeno">Pon la música cerca del móvil, pulsa el botón y déjalo escuchando hasta que acabe.</p>
+      <button id="empezar" class="boton boton-grande" type="button">🎙 Empezar a escuchar</button>
+      <p class="pequeno"><button id="olvidar-token" class="enlace" type="button" hidden>Olvidar el token de GitHub de este móvil</button></p>
+    </div>
     <div class="tarjeta">
       <div class="fila-titulo">
         <h2>Canciones</h2>
@@ -42,7 +48,7 @@
       <p id="vacia" class="apagado" hidden>Todavía no hay ninguna canción.</p>
     </div>
     <details class="tarjeta ayuda">
-      <summary>Añadir una canción</summary>
+      <summary>Añadir una canción desde un archivo</summary>
       <ol>
         <li><a id="enlace-subir" href="#" target="_blank" rel="noopener">Sube el MP3 a la carpeta <code>notas-instrumento/canciones</code></a>
           de GitHub (arrástralo y pulsa «Commit changes»).</li>
@@ -55,6 +61,67 @@
         pega un enlace de descarga (Dropbox, Google Drive compartido con «cualquiera con el enlace»...) y un título.
         Así la canción original no queda guardada en el repositorio.</p>
     </details>
+  </section>
+
+  <!-- Token de GitHub (una vez por móvil) -->
+  <section id="paso-token" class="tarjeta" hidden>
+    <h2>Conectar con GitHub (solo la primera vez)</h2>
+    <p class="pequeno">Para mandar la grabación a GitHub, que es quien la analiza, este móvil necesita un
+      <em>token</em>: una clave de acceso limitada a este repositorio. Se guarda solo en este móvil.</p>
+    <ol class="pequeno">
+      <li>Abre <a id="enlace-token" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">crear un token en GitHub</a>.</li>
+      <li>Nombre: el que quieras (p. ej. «Notas móvil»). Caducidad: la que prefieras.</li>
+      <li><strong>Repository access</strong> → <em>Only select repositories</em> → elige <strong id="nombre-repo">este repositorio</strong>.</li>
+      <li><strong>Permissions</strong> → <em>Contents</em>: <strong>Read and write</strong>. Opcional: <em>Actions</em>: <strong>Read-only</strong> (para ver el progreso).</li>
+      <li><em>Generate token</em>, cópialo y pégalo aquí:</li>
+    </ol>
+    <form id="form-token" class="formulario">
+      <label>Token <input type="password" id="token" autocomplete="off" required placeholder="github_pat_..."></label>
+      <button type="submit" class="boton">Guardar y enviar</button>
+      <button type="button" id="cancelar-token" class="boton-texto">Cancelar</button>
+      <p id="error-token" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Grabación -->
+  <section id="paso-grabar" class="tarjeta" hidden>
+    <div id="grabando">
+      <h2>Escuchando...</h2>
+      <p class="reloj" id="reloj">0:00</p>
+      <div class="medidor" aria-hidden="true"><div id="nivel"></div></div>
+      <p id="aviso-nivel" class="apagado pequeno">Acerca el móvil a la música. Mantén la pantalla encendida.</p>
+      <button id="parar" class="boton boton-grande boton-parar" type="button">■ Parar</button>
+    </div>
+    <div id="grabado" hidden>
+      <h2>Grabación lista</h2>
+      <audio id="escucha" controls></audio>
+      <form id="form-enviar" class="formulario">
+        <label>Título <input type="text" id="titulo-grabacion" maxlength="100" required></label>
+        <button type="submit" class="boton boton-grande">Analizar</button>
+      </form>
+      <p class="pequeno">
+        <button id="otra-vez" class="enlace" type="button">Grabar otra vez</button> ·
+        <a id="descargar-grabacion" class="enlace" href="#" download>Guardar la grabación en el móvil</a> ·
+        <button id="descartar" class="enlace" type="button">Descartar</button>
+      </p>
+      <p id="aviso-publico" class="error pequeno" hidden>Esta web no tiene contraseña: la grabación quedará pública en el repositorio.</p>
+    </div>
+  </section>
+
+  <!-- Envío y seguimiento -->
+  <section id="paso-enviando" class="tarjeta" hidden>
+    <h2 id="titulo-enviando">Analizando</h2>
+    <ol class="progreso-pasos" id="progreso-pasos">
+      <li data-paso="enviar">Enviar la grabación a GitHub</li>
+      <li data-paso="cola">Esperar turno en GitHub Actions</li>
+      <li data-paso="analizar">Separar instrumentos y sacar las notas (varios minutos)</li>
+      <li data-paso="publicar">Publicar en la página</li>
+    </ol>
+    <p id="mensaje-envio" class="apagado pequeno"></p>
+    <p class="pequeno">Puedes cerrar la página: el análisis sigue en GitHub y al volver seguirá esperando.</p>
+    <p class="pequeno"><a id="enlace-ejecucion" class="enlace" href="#" target="_blank" rel="noopener" hidden>Ver en GitHub Actions ·</a>
+      <button id="dejar-de-esperar" class="enlace" type="button">Dejar de esperar</button></p>
+    <p id="error-envio" class="error" hidden></p>
   </section>
 
   <!-- Instrumentos + reproductor + partitura -->

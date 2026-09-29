@@ -12,7 +12,7 @@ Hay tres formas de usarlo:
 
 ## En GitHub (Actions + Pages)
 
-GitHub Pages solo sirve ficheros fijos, así que el trabajo pesado lo hace GitHub Actions
+GitHub Pages solo sirve ficheros fijos, así que el trabajo pesado (separar, transcribir) lo hace GitHub Actions
 (`.github/workflows/notas-instrumento.yml` → `publica.py`) y la página (`web/`) solo reproduce lo
 ya procesado.
 
@@ -26,7 +26,30 @@ ya procesado.
    puede escucharlas.
 2. Esto tiene que estar en la rama `main`: el workflow solo se lanza ahí y Pages publica `main`.
 
-### Añadir una canción
+### Escuchar una canción con el móvil
+
+1. Abre https://ammdg.github.io/APPs/notas-instrumento/web/ en el móvil y entra con el usuario y
+   la contraseña.
+2. Pulsa **Empezar a escuchar** (la primera vez el navegador pide permiso para el micrófono), pon
+   la música cerca y pulsa **Parar** cuando acabe (máximo 10 minutos). Mantén la pantalla
+   encendida: en algunos móviles, al bloquearse, se corta la grabación.
+3. Ponle título y pulsa **Analizar**. La grabación se **cifra en el móvil** y se sube a
+   `notas-instrumento/canciones/` con un nombre que no dice nada (`grabacion-<fecha>.cif`); ni
+   siquiera en el historial de git se puede escuchar sin la contraseña. GitHub Actions la
+   analiza y la página te enseña en qué paso va y abre la canción sola al terminar (puedes
+   cerrarla mientras tanto).
+
+La primera vez pide un **token de GitHub** para poder subir la grabación. Se crea en
+https://github.com/settings/personal-access-tokens/new: *Only select repositories* → este
+repositorio; permiso *Contents: Read and write* (y, si quieres ver el progreso, *Actions:
+Read-only*). Se guarda solo en ese móvil (almacenamiento del navegador); «Olvidar el token» lo
+borra. Quien tenga el móvil desbloqueado podría usarlo para escribir en el repositorio.
+
+Grabar con el micrófono empeora el resultado respecto a un MP3 (ruido, eco de la habitación,
+altavoz del que sale la música); no he medido cuánto. Se graban sin los filtros de voz del
+navegador (cancelación de eco, supresión de ruido), que destrozan la música.
+
+### Añadir una canción desde un archivo
 
 - **Subiéndola al repositorio**: en GitHub, entra en `notas-instrumento/canciones/`,
   *Add file → Upload files*, arrastra el MP3 y *Commit changes*. Al terminar, el workflow borra

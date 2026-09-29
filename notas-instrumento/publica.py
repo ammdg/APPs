@@ -1,6 +1,7 @@
 """Prepara las canciones para la web de GitHub Pages (web/). Lo ejecuta GitHub Actions.
 
-Coge cada audio de canciones/ (o uno descargado de --url), separa los instrumentos, saca las
+Coge cada audio de canciones/ (subido a mano, o grabado con el micrófono desde la página y
+subido cifrado como .cif) o uno descargado de --url, separa los instrumentos, saca las
 notas y las partituras, y lo deja todo en web/canciones/<id>/. Después rehace el índice.
 
 Si hay usuario y contraseña (NOTAS_USUARIO y NOTAS_PASSWORD, o si no MAPA_USUARIO y
@@ -39,7 +40,9 @@ WEB = AQUI / "web"
 CANCIONES = WEB / "canciones"
 INDICE = WEB / "canciones.json"
 CLAVE = WEB / "clave.json"
-EXTENSIONES = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus"}
+EXTENSIONES = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".webm", ".mp4"}
+LEGIBLES = {".mp3", ".wav", ".flac", ".ogg"}  # los demás se pasan a WAV con ffmpeg
+GRABACION = ".cif"  # grabación del micrófono subida cifrada desde la página (web/web.js)
 SENSIBILIDADES = [0.35, 0.5, 0.65]  # "menos", "normal", "más" en la página
 ITERACIONES_CLAVE = 600_000  # igual que el mapa de vuelos; web/web.js lee el número de clave.json
 COMPROBANTE = b"notas-instrumento"
@@ -163,6 +166,8 @@ def procesa(audio: Path, titulo: str, clave: bytes | None) -> str:
     print(f"== {titulo} ({id_})", file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
+        if audio.suffix.lower() not in LEGIBLES:
+            audio = a_wav(audio, tmp)
         pistas, frecuencia = ni.separa(audio)
         lista = analisis.guarda_pistas(pistas, frecuencia, tmp, compresion=0.8)
         pulsos, duracion = analisis.pulsos_de(audio)
@@ -205,6 +210,41 @@ def procesa(audio: Path, titulo: str, clave: bytes | None) -> str:
             "mezcla": "mezcla.mp3", "pistas": publicas,
         }, clave)
     return id_
+
+
+def a_wav(audio: Path, carpeta: Path) -> Path:
+    """Convierte con ffmpeg lo que no se lee directamente (WebM y MP4 de las grabaciones del
+    móvil, M4A...)."""
+    import subprocess
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise ErrorPublica(f"Hace falta ffmpeg para leer {audio.suffix} y no está instalado.")
+    destino = carpeta / "convertido.wav"
+    r = subprocess.run([ffmpeg, "-y", "-v", "error", "-i", str(audio), "-ac", "2", "-ar", "44100",
+                        str(destino)], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise ErrorPublica(f"ffmpeg no pudo leer {audio.name}: {r.stderr.strip()[-300:]}")
+    return destino
+
+
+def abre_grabacion(fichero: Path, clave: bytes | None, carpeta: Path) -> tuple[Path, str]:
+    """Descifra una grabación subida desde la página. Por dentro es una línea JSON con el título
+    y la extensión, un salto de línea y el audio. Devuelve (audio, título)."""
+    if clave is None:
+        raise ErrorPublica("Hay una grabación cifrada pero la web no tiene usuario y contraseña.")
+    try:
+        cabecera, audio = descifra(fichero.read_bytes(), clave).split(b"\n", 1)
+        meta = json.loads(cabecera)
+    except Exception:
+        raise ErrorPublica(f"No se pudo descifrar {fichero.name} (¿otra contraseña?).") from None
+    ext = str(meta.get("ext", "")).lower()
+    if ext not in EXTENSIONES:
+        raise ErrorPublica(f"{fichero.name}: formato de grabación desconocido ({ext}).")
+    titulo = " ".join(str(meta.get("titulo") or fichero.stem).split())[:100]
+    destino = carpeta / f"grabacion{ext}"
+    destino.write_bytes(audio)
+    return destino, titulo
 
 
 def rehace_indice(clave: bytes | None) -> list[dict]:
@@ -263,12 +303,17 @@ def main(argv: list[str] | None = None) -> int:
             with tempfile.TemporaryDirectory() as tmp:
                 procesa(descarga(a.url, Path(tmp)), a.titulo, clave)
         elif not a.solo_indice:
-            entradas = sorted(f for f in ENTRADA.glob("*") if f.suffix.lower() in EXTENSIONES)
+            entradas = sorted(f for f in ENTRADA.glob("*")
+                              if f.suffix.lower() in EXTENSIONES | {GRABACION})
             if not entradas:
                 print("No hay canciones nuevas en canciones/.", file=sys.stderr)
             for audio in entradas:
                 try:
-                    procesa(audio, audio.stem, clave)
+                    if audio.suffix.lower() == GRABACION:
+                        with tempfile.TemporaryDirectory() as tmp:
+                            procesa(*abre_grabacion(audio, clave, Path(tmp)), clave)
+                    else:
+                        procesa(audio, audio.stem, clave)
                     audio.unlink()  # ya está publicada; el original no hace falta
                 except Exception as e:  # que una canción rota no impida publicar las demás
                     import traceback

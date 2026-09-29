@@ -152,3 +152,69 @@ def test_enlaces_de_dropbox_y_drive(monkeypatch, tmp_path):
     publica.descarga("https://drive.google.com/file/d/XYZ_1-2/view?usp=sharing", tmp_path)
     assert pedidas == ["https://www.dropbox.com/s/abc/cancion.mp3?dl=1",
                        "https://drive.google.com/uc?export=download&id=XYZ_1-2"]
+
+
+def _con_clave(web, monkeypatch):
+    import base64
+    monkeypatch.setenv("NOTAS_USUARIO", "ana")
+    monkeypatch.setenv("NOTAS_PASSWORD", "secreta")
+    publica.main(["--solo-indice"])
+    info = json.loads((web / "web" / "clave.json").read_text())
+    return publica.deriva_clave("ana", "secreta", base64.b64decode(info["sal"]), info["iteraciones"])
+
+
+def _grabacion(clave, titulo, ext, audio):
+    cabecera = json.dumps({"titulo": titulo, "ext": ext}).encode()
+    return publica.cifra(cabecera + b"\n" + audio, clave)
+
+
+def _wav(segundos=1.0):
+    import soundfile as sf
+    buf = io.BytesIO()
+    sf.write(buf, np.zeros((int(SR * segundos), 2), dtype="float32"), SR, format="WAV")
+    return buf.getvalue()
+
+
+def test_grabacion_cifrada_del_movil(web, monkeypatch):
+    clave = _con_clave(web, monkeypatch)
+    entrada = web / "canciones" / "grabacion-20260929-120000.cif"
+    entrada.write_bytes(_grabacion(clave, "Concierto  en el salón", ".wav", _wav()))
+    assert publica.main([]) == 0
+    assert not entrada.exists()
+    datos = json.loads(publica.descifra(
+        (web / "web" / "canciones" / "concierto-en-el-salon" / "datos.json").read_bytes(), clave))
+    assert datos["titulo"] == "Concierto en el salón"
+
+
+def test_grabacion_con_otra_clave_no_se_pierde(web, monkeypatch, capsys):
+    _con_clave(web, monkeypatch)
+    otra = publica.deriva_clave("ana", "otra", b"x" * 16, 1000)
+    entrada = web / "canciones" / "g.cif"
+    entrada.write_bytes(_grabacion(otra, "t", ".wav", _wav()))
+    assert publica.main([]) == 1
+    assert entrada.exists()
+    assert "No se pudo descifrar" in capsys.readouterr().err
+
+
+def test_grabacion_sin_cifrado_en_la_web_da_error(web, capsys):
+    (web / "canciones" / "g.cif").write_bytes(b"cualquier cosa")
+    assert publica.main([]) == 1
+    assert "no tiene usuario y contraseña" in capsys.readouterr().err
+
+
+@pytest.mark.skipif(not __import__("shutil").which("ffmpeg"), reason="sin ffmpeg")
+def test_a_wav_convierte_webm(tmp_path):
+    import subprocess
+    import soundfile as sf
+    webm = tmp_path / "g.webm"
+    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+                    "-c:a", "libopus", str(webm)], check=True)
+    wav = publica.a_wav(webm, tmp_path)
+    datos, sr = sf.read(str(wav))
+    assert sr == 44100 and datos.shape[1] == 2 and len(datos) > 40000
+
+
+def test_a_wav_sin_ffmpeg(tmp_path, monkeypatch):
+    monkeypatch.setattr(publica.shutil, "which", lambda _: None)
+    with pytest.raises(publica.ErrorPublica, match="ffmpeg"):
+        publica.a_wav(tmp_path / "g.webm", tmp_path)
