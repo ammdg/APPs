@@ -1,14 +1,59 @@
 # Notas de un instrumento
 
-Sube una canción (MP3, WAV, FLAC, OGG, M4A...), la aplicación separa los instrumentos, te dice
-cuáles suenan, eliges uno y **escuchas la canción mientras se ilumina su partitura**.
+Subes una canción, se separan los instrumentos, te dice cuáles suenan, eliges uno y **escuchas la
+canción mientras se ilumina su partitura**.
 
-Hay dos formas de usarlo:
+Hay tres formas de usarlo:
 
-- **Aplicación web** (`app.py`): se ejecuta en tu ordenador y se usa desde el navegador.
+- **En GitHub** (sin instalar nada): GitHub Actions procesa las canciones y la página se abre en
+  https://ammdg.github.io/APPs/notas-instrumento/web/
+- **Aplicación web local** (`app.py`): se ejecuta en tu ordenador.
 - **Línea de comandos** (`notas_instrumento.py`): saca las notas a una tabla, un CSV y un MIDI.
 
-## Aplicación web
+## En GitHub (Actions + Pages)
+
+GitHub Pages solo sirve ficheros fijos, así que el trabajo pesado lo hace GitHub Actions
+(`.github/workflows/notas-instrumento.yml` → `publica.py`) y la página (`web/`) solo reproduce lo
+ya procesado.
+
+### Preparación (una vez)
+
+1. **Usuario y contraseña** (muy recomendable): en *Settings → Secrets and variables → Actions*
+   crea `NOTAS_USUARIO` y `NOTAS_PASSWORD`. Si no existen, se usan los del mapa de vuelos
+   (`MAPA_USUARIO` / `MAPA_PASSWORD`). Con ellos **todo lo publicado va cifrado** (AES-256-GCM,
+   igual que el mapa): aunque el repositorio sea público, sin la contraseña no se puede escuchar
+   ni leer nada. **Sin ninguno, las canciones se publican sin cifrar** y cualquiera con el enlace
+   puede escucharlas.
+2. Esto tiene que estar en la rama `main`: el workflow solo se lanza ahí y Pages publica `main`.
+
+### Añadir una canción
+
+- **Subiéndola al repositorio**: en GitHub, entra en `notas-instrumento/canciones/`,
+  *Add file → Upload files*, arrastra el MP3 y *Commit changes*. Al terminar, el workflow borra
+  el audio de esa carpeta, **pero sigue en el historial de git**: si el repositorio es público,
+  cualquiera podría recuperarlo.
+- **Con un enlace, sin que pase por el repositorio**: *Actions → Notas de un instrumento →
+  Run workflow*, pega un enlace de descarga (Dropbox, o Google Drive compartido como «cualquiera
+  con el enlace»; se convierten solos a descarga directa) y un título.
+
+Tarda varios minutos por canción (no lo he medido con canciones reales); se ve en la pestaña
+*Actions*. Cuando termina, recarga la página. En la página, *Añadir una canción* tiene los
+enlaces directos.
+
+### Otras cosas
+
+- **Borrar una canción**: borra su carpeta `web/canciones/<id>/` en GitHub; el workflow rehace la
+  lista.
+- **Cambiar la contraseña**: lo ya publicado no se puede recifrar sin la anterior. Borra
+  `web/canciones/` y `web/clave.json`, cambia los secretos y vuelve a subir las canciones (el
+  workflow avisa con un error claro si la contraseña no coincide).
+- **Espacio**: cada canción ocupa en el repositorio la mezcla más una pista por instrumento que
+  suena (MP3 comprimido). Estimo del orden de 10-20 MB para una canción de 4 minutos, pero no lo
+  he medido con canciones reales.
+- En la versión de GitHub no está «Sin <instrumento>» (serían 6 audios más por canción); sí
+  «Canción» y «Solo <instrumento>».
+
+## Aplicación web local
 
 ```bash
 python app.py            # abre http://127.0.0.1:5000 en el navegador

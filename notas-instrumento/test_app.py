@@ -6,6 +6,7 @@ import time
 import numpy as np
 import pytest
 
+import analisis
 import app as aplicacion
 import notas_instrumento as ni
 
@@ -28,7 +29,7 @@ def cliente(tmp_path, monkeypatch):
         return pistas, SR
 
     monkeypatch.setattr(ni, "separa", separa)
-    monkeypatch.setattr(aplicacion, "pulsos_de", lambda audio: ([0.5, 1.0, 1.5, 2.0], 4.0))
+    monkeypatch.setattr(analisis, "pulsos_de", lambda audio: ([0.5, 1.0, 1.5, 2.0], 4.0))
     monkeypatch.setattr(ni, "transcribe",
                         lambda *a: ([ni.Nota(0.0, 0.5, 57, 0.9), ni.Nota(0.0, 0.5, 45, 0.3)],
                                     None))

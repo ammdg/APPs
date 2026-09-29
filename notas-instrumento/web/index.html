@@ -4,36 +4,60 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="description" content="Elige una canción y un instrumento y sigue su partitura mientras suena.">
 <title>Notas de un instrumento</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='11' cy='24' r='6' fill='%230b6b64'/%3E%3Cpath d='M16 24V4l10 4' stroke='%230b6b64' stroke-width='3' fill='none'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/estilos.css">
+<link rel="stylesheet" href="../static/estilos.css">
 </head>
 <body>
 <header class="cabecera">
   <h1>Notas de un instrumento</h1>
-  <p class="sub">Sube una canción, elige un instrumento y sigue su partitura mientras suena.</p>
+  <p class="sub">Elige una canción y un instrumento y sigue su partitura mientras suena.</p>
 </header>
 
 <main>
-  <!-- 1. Subir -->
-  <section id="paso-subir" class="tarjeta">
-    <label id="zona" class="zona" tabindex="0">
-      <input id="fichero" type="file" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac,.opus,audio/*" hidden>
-      <span class="zona-titulo">Arrastra aquí tu canción</span>
-      <span class="zona-texto">o pulsa para elegirla (MP3, WAV, FLAC, OGG, M4A)</span>
-    </label>
-    <p id="error-subir" class="error" hidden></p>
+  <p id="cargando" class="tarjeta apagado">Cargando...</p>
+
+  <!-- Usuario y contraseña (solo si lo publicado va cifrado) -->
+  <section id="paso-login" class="tarjeta" hidden>
+    <h2>Entrar</h2>
+    <p class="apagado pequeno">Las canciones están cifradas: sin el usuario y la contraseña no se pueden escuchar.</p>
+    <form id="form-login" class="formulario">
+      <label>Usuario <input type="text" id="usuario" name="username" autocomplete="username" required></label>
+      <label>Contraseña <input type="password" id="password" name="password" autocomplete="current-password" required></label>
+      <label class="opcion"><input type="checkbox" id="recordar"> Recordar en este dispositivo</label>
+      <button type="submit" class="boton">Entrar</button>
+      <p id="error-login" class="error" hidden></p>
+    </form>
   </section>
 
-  <!-- 2. Analizando -->
-  <section id="paso-analizar" class="tarjeta" hidden>
-    <h2 id="titulo-analisis">Analizando</h2>
-    <p id="mensaje-analisis" class="apagado">Subiendo...</p>
-    <div class="barra"><div id="barra-progreso"></div></div>
-    <p class="apagado pequeno">Separar los instrumentos tarda unos minutos sin tarjeta gráfica.</p>
+  <!-- Lista de canciones -->
+  <section id="paso-lista" hidden>
+    <div class="tarjeta">
+      <div class="fila-titulo">
+        <h2>Canciones</h2>
+        <button id="salir" class="boton-texto" type="button" hidden>Salir</button>
+      </div>
+      <ul id="lista" class="lista"></ul>
+      <p id="vacia" class="apagado" hidden>Todavía no hay ninguna canción.</p>
+    </div>
+    <details class="tarjeta ayuda">
+      <summary>Añadir una canción</summary>
+      <ol>
+        <li><a id="enlace-subir" href="#" target="_blank" rel="noopener">Sube el MP3 a la carpeta <code>notas-instrumento/canciones</code></a>
+          de GitHub (arrástralo y pulsa «Commit changes»).</li>
+        <li>GitHub la analiza solo. Tarda unos minutos; puedes verlo en
+          <a id="enlace-acciones" href="#" target="_blank" rel="noopener">Actions</a>.</li>
+        <li>Cuando termine, recarga esta página.</li>
+      </ol>
+      <p class="apagado pequeno">Sin subir el archivo al repositorio: en
+        <a id="enlace-workflow" href="#" target="_blank" rel="noopener">Actions → Notas de un instrumento → Run workflow</a>
+        pega un enlace de descarga (Dropbox, Google Drive compartido con «cualquiera con el enlace»...) y un título.
+        Así la canción original no queda guardada en el repositorio.</p>
+    </details>
   </section>
 
-  <!-- 3. Instrumentos + reproductor + partitura -->
+  <!-- Instrumentos + reproductor + partitura -->
   <section id="paso-cancion" hidden>
     <div class="tarjeta">
       <div class="fila-titulo">
@@ -79,14 +103,16 @@
     <p id="aviso-partitura" class="tarjeta apagado" hidden></p>
   </section>
 
+  <p id="error-general" class="tarjeta error" hidden></p>
+
   <footer class="pie apagado pequeno">
     Separación: Demucs (Meta). Transcripción: Basic Pitch (Spotify). Partitura: abcjs.
     El resultado es aproximado: habrá notas de más y de menos. Se supone compás de 4/4.
   </footer>
 </main>
 
-<script src="/static/vendor/abcjs-basic-min.js"></script>
-<script src="/static/reproductor.js"></script>
-<script src="/static/app.js"></script>
+<script src="../static/vendor/abcjs-basic-min.js"></script>
+<script src="../static/reproductor.js"></script>
+<script src="web.js"></script>
 </body>
 </html>

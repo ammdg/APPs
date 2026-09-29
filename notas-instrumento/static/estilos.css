@@ -109,6 +109,27 @@ h2 { font-size: 1.15rem; margin: 0; }
 .partitura .abcjs-note, .partitura .abcjs-rest { cursor: pointer; }
 .partitura .nota-activa, .partitura .nota-activa path { fill: var(--nota-activa) !important; stroke: var(--nota-activa); }
 
+.formulario { display: grid; gap: 12px; max-width: 360px; margin-top: 12px; }
+.formulario label:not(.opcion) { display: grid; gap: 4px; font-size: 0.9rem; }
+.formulario input[type=text], .formulario input[type=password] {
+  font: inherit; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px;
+  background: var(--fondo); color: var(--texto);
+}
+.boton {
+  justify-self: start; font: inherit; padding: 8px 18px; border: none; border-radius: 8px;
+  background: var(--acento); color: #fff; cursor: pointer;
+}
+.boton:disabled { opacity: .6; cursor: wait; }
+.lista { list-style: none; margin: 8px 0 0; padding: 0; }
+.lista li { padding: 10px 0; border-top: 1px solid var(--borde); }
+.lista li:first-child { border-top: none; }
+.lista a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.lista a:hover { text-decoration: underline; }
+.ayuda summary { cursor: pointer; font-weight: 600; }
+.ayuda ol { padding-left: 20px; }
+.ayuda a { color: var(--acento); }
+code { font-size: 0.9em; background: var(--acento-suave); padding: 1px 4px; border-radius: 4px; }
+
 .pie { margin: 32px 0; }
 
 @media (max-width: 600px) {

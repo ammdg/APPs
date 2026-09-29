@@ -200,26 +200,44 @@ def separa_pista(audio: Path, pista: str, destino: Path) -> Path:
     return destino
 
 
-def transcribe(audio: Path, instrumento: Instrumento, sensibilidad: float,
-               duracion_min_ms: float) -> tuple[list[Nota], object]:
-    """Devuelve las notas detectadas por Basic Pitch y el objeto PrettyMIDI."""
+def transcribe_varias(audio: Path, instrumento: Instrumento, sensibilidades: list[float],
+                      duracion_min_ms: float) -> dict[float, list[Nota]]:
+    """Pasa Basic Pitch una sola vez y saca las notas con cada sensibilidad (0-1)."""
     from basic_pitch import ICASSP_2022_MODEL_PATH
-    from basic_pitch.inference import predict
+    from basic_pitch.constants import AUDIO_SAMPLE_RATE, FFT_HOP
+    from basic_pitch.inference import run_inference
+    from basic_pitch.note_creation import model_output_to_notes
     import librosa
 
     print("Transcribiendo notas (Basic Pitch)...", file=sys.stderr)
-    _, midi, eventos = predict(
-        str(audio),
-        ICASSP_2022_MODEL_PATH,
-        onset_threshold=1 - sensibilidad,
-        frame_threshold=0.3,
-        minimum_note_length=duracion_min_ms,
-        minimum_frequency=float(librosa.midi_to_hz(instrumento.nota_min)),
-        maximum_frequency=float(librosa.midi_to_hz(instrumento.nota_max)),
-    )
-    notas = [Nota(float(ini), float(fin), int(tono), float(amp))
-             for ini, fin, tono, amp, *_ in eventos]
-    return notas, midi
+    salida = run_inference(str(audio), ICASSP_2022_MODEL_PATH)
+    resultado = {}
+    for s in sensibilidades:
+        _, eventos = model_output_to_notes(
+            salida,
+            onset_thresh=1 - s,
+            frame_thresh=0.3,
+            min_note_len=int(round(duracion_min_ms / 1000 * AUDIO_SAMPLE_RATE / FFT_HOP)),
+            min_freq=float(librosa.midi_to_hz(instrumento.nota_min)),
+            max_freq=float(librosa.midi_to_hz(instrumento.nota_max)),
+        )
+        resultado[s] = [Nota(float(ini), float(fin), int(tono), float(amp))
+                        for ini, fin, tono, amp, *_ in eventos]
+    return resultado
+
+
+def transcribe(audio: Path, instrumento: Instrumento, sensibilidad: float,
+               duracion_min_ms: float) -> tuple[list[Nota], None]:
+    """Notas detectadas por Basic Pitch con una sensibilidad."""
+    return transcribe_varias(audio, instrumento, [sensibilidad], duracion_min_ms)[sensibilidad], None
+
+
+def limpia(notas: list[Nota], instrumento: Instrumento) -> list[Nota]:
+    """Quita lo que está fuera del registro, deja una nota a la vez si toca, y ordena."""
+    notas = filtra_registro(notas, instrumento)
+    if instrumento.monofonico:
+        notas = monofoniza(notas)
+    return sorted(notas, key=lambda n: (n.inicio, n.midi))
 
 
 def guarda_midi(notas: list[Nota], destino: Path, instrumento: Instrumento) -> None:
@@ -270,10 +288,7 @@ def procesa(audio: Path, instrumento: Instrumento, *, separar: bool, salida: Pat
             pista = separa_pista(audio, instrumento.pista, destino)
         notas, _ = transcribe(pista, instrumento, sensibilidad, duracion_min_ms)
 
-    notas = filtra_registro(notas, instrumento)
-    if instrumento.monofonico:
-        notas = monofoniza(notas)
-    notas.sort(key=lambda n: (n.inicio, n.midi))
+    notas = limpia(notas, instrumento)
 
     guarda_csv(notas, base.with_suffix(".csv"), notacion)
     guarda_midi(notas, base.with_suffix(".mid"), instrumento)

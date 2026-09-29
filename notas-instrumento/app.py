@@ -20,9 +20,9 @@ import uuid
 import webbrowser
 from pathlib import Path
 
-import numpy as np
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
+import analisis
 import notas_instrumento as ni
 import partitura
 
@@ -30,24 +30,6 @@ AQUI = Path(__file__).resolve().parent
 ESTATICOS = AQUI / "static"
 TRABAJOS = AQUI / "trabajos"
 EXTENSIONES = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus"}
-FRECUENCIA_ANALISIS = 22050
-
-# (clave, pista de Demucs, nombre visible). El orden es el de la pantalla.
-PISTAS = [
-    ("voz", "vocals", "Voz"),
-    ("guitarra", "guitar", "Guitarra"),
-    ("bajo", "bass", "Bajo"),
-    ("piano", "piano", "Piano / teclado"),
-    ("otros", "other", "Otros instrumentos"),
-    ("bateria", "drums", "Batería"),
-]
-SIN_PARTITURA = {"bateria"}
-
-# Una pista cuenta como "suena" si pasa del umbral en al menos este % del tiempo. Son valores
-# puestos a ojo, no calibrados: por eso la pantalla deja elegir también las que no pasan.
-UMBRAL_DB = -35.0
-ACTIVIDAD_MINIMA = 0.05
-
 ID_VALIDO = re.compile(r"^[0-9a-f]{32}$")
 
 app = Flask(__name__, static_folder=None)
@@ -58,41 +40,6 @@ _cerrojo = threading.Lock()
 
 
 # --------------------------------------------------------------------------- análisis
-
-
-def actividad(pista: np.ndarray, pico_mezcla: float, frecuencia: int) -> float:
-    """Fracción de ventanas de 0.5 s en que la pista suena por encima de UMBRAL_DB respecto al
-    nivel máximo de la mezcla."""
-    mono = pista.mean(axis=1) if pista.ndim == 2 else pista
-    ventana = frecuencia // 2
-    n = len(mono) // ventana
-    if n == 0 or pico_mezcla <= 0:
-        return 0.0
-    rms = np.sqrt((mono[: n * ventana].reshape(n, ventana) ** 2).mean(axis=1))
-    db = 20 * np.log10(np.maximum(rms, 1e-10) / pico_mezcla)
-    return float((db > UMBRAL_DB).mean())
-
-
-def pulsos_de(audio: Path) -> tuple[list[float], float]:
-    import librosa
-
-    y, sr = librosa.load(str(audio), sr=FRECUENCIA_ANALISIS, mono=True)
-    _, pulsos = librosa.beat.beat_track(y=y, sr=sr, units="time")
-    return [float(p) for p in pulsos], len(y) / sr
-
-
-def _guarda_audio(destino_sin_ext: Path, datos: np.ndarray, frecuencia: int) -> Path:
-    """MP3 si libsndfile lo soporta (ocupa ~10 veces menos), si no WAV."""
-    import soundfile as sf
-
-    try:
-        destino = destino_sin_ext.with_suffix(".mp3")
-        sf.write(str(destino), datos, frecuencia, format="MP3")
-        return destino
-    except Exception:
-        destino = destino_sin_ext.with_suffix(".wav")
-        sf.write(str(destino), datos, frecuencia)
-        return destino
 
 
 def _actualiza(id_: str, **cambios) -> None:
@@ -110,23 +57,10 @@ def analiza(id_: str) -> None:
         pistas, frecuencia = ni.separa(original, lambda f: _actualiza(id_, progreso=round(f, 3)))
 
         _actualiza(id_, mensaje="Detectando qué instrumentos suenan...", progreso=1.0)
-        mezcla = sum(pistas.values())
-        mono = mezcla.mean(axis=1) if mezcla.ndim == 2 else mezcla
-        ventana = frecuencia // 2
-        n = max(1, len(mono) // ventana)
-        pico = float(np.sqrt((mono[: n * ventana].reshape(n, -1) ** 2).mean(axis=1)).max())
-
-        lista = []
-        for clave, nombre_demucs, nombre in PISTAS:
-            datos = pistas[nombre_demucs]
-            fichero = _guarda_audio(carpeta / clave, datos, frecuencia)
-            act = actividad(datos, pico, frecuencia)
-            lista.append({"clave": clave, "nombre": nombre, "fichero": fichero.name,
-                          "actividad": round(act, 3), "suena": act >= ACTIVIDAD_MINIMA,
-                          "partitura": clave not in SIN_PARTITURA})
+        lista = analisis.guarda_pistas(pistas, frecuencia, carpeta)
 
         _actualiza(id_, mensaje="Buscando el pulso...")
-        pulsos, duracion = pulsos_de(original)
+        pulsos, duracion = analisis.pulsos_de(original)
         _actualiza(id_, estado="listo", mensaje="", pistas=lista, pulsos=pulsos,
                    duracion=duracion)
     except Exception as e:  # se muestra en la pantalla
@@ -229,7 +163,7 @@ def _sin(t: dict, clave: str) -> Path:
             else:
                 largo = min(len(suma), len(datos))
                 suma = suma[:largo] + datos[:largo]
-    return _guarda_audio(carpeta / f"sin-{clave}", suma, frecuencia)
+    return analisis.guarda_audio(carpeta / f"sin-{clave}", suma, frecuencia)
 
 
 def _notas(t: dict, clave: str, sensibilidad: float) -> list[ni.Nota]:
@@ -239,10 +173,7 @@ def _notas(t: dict, clave: str, sensibilidad: float) -> list[ni.Nota]:
         return [ni.Nota(**n) for n in json.loads(cache.read_text())]
     instrumento = ni.INSTRUMENTOS[clave]
     notas, _ = ni.transcribe(carpeta / _pista(t, clave)["fichero"], instrumento, sensibilidad, 100)
-    notas = ni.filtra_registro(notas, instrumento)
-    if instrumento.monofonico:
-        notas = ni.monofoniza(notas)
-    notas.sort(key=lambda n: (n.inicio, n.midi))
+    notas = ni.limpia(notas, instrumento)
     cache.write_text(json.dumps([n.__dict__ for n in notas]))
     return notas
 
