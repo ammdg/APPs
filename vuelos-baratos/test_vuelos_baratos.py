@@ -382,26 +382,8 @@ def test_coordenadas_de_todos_los_destinos():
     assert all(k in coordenadas for k in [*c.destinos, c.origen])
 
 
-def test_datos_del_mapa_cifrados(tmp_path, monkeypatch):
+def test_datos_del_mapa_sin_cifrar(tmp_path, monkeypatch):
     monkeypatch.setattr(vb, "notificar", lambda t: [])
-    monkeypatch.setenv("MAPA_USUARIO", "alvaro")
-    monkeypatch.setenv("MAPA_PASSWORD", "una contraseña larga")
-    mapa = tmp_path / "datos.json"
-    vb.ejecutar(cfg(), tmp_path / "h.json", falso, mapa)
-    sobre = json.loads(mapa.read_text())
-    assert sobre["cifrado"] == "AES-256-GCM" and "Berlín" not in mapa.read_text() and "BER" not in mapa.read_text()
-    datos = vb.descifrar_datos_mapa(sobre, "alvaro", "una contraseña larga")
-    assert any(x["codigo"] == "BER" for x in datos["destinos"])
-    with pytest.raises(Exception):
-        vb.descifrar_datos_mapa(sobre, "alvaro", "otra")
-    with pytest.raises(Exception):
-        vb.descifrar_datos_mapa(sobre, "otro", "una contraseña larga")
-
-
-def test_sin_secretos_el_mapa_va_sin_cifrar(tmp_path, monkeypatch):
-    monkeypatch.setattr(vb, "notificar", lambda t: [])
-    monkeypatch.delenv("MAPA_USUARIO", raising=False)
-    monkeypatch.delenv("MAPA_PASSWORD", raising=False)
     mapa = tmp_path / "datos.json"
     vb.ejecutar(cfg(), tmp_path / "h.json", falso, mapa)
     assert "destinos" in json.loads(mapa.read_text())

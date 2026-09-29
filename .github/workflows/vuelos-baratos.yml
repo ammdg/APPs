@@ -104,9 +104,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          # Usuario y contraseña del mapa: con ellos se cifran los datos (sin ellos se publican sin cifrar).
-          MAPA_USUARIO: ${{ secrets.MAPA_USUARIO }}
-          MAPA_PASSWORD: ${{ secrets.MAPA_PASSWORD }}
         run: python vuelos_baratos.py --informe parte_*.json
 
       - uses: actions/cache/save@v4

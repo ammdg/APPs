@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Elige una canción y un instrumento y sigue su partitura mientras suena.">
+<title>Notas de un instrumento</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='11' cy='24' r='6' fill='%230b6b64'/%3E%3Cpath d='M16 24V4l10 4' stroke='%230b6b64' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../static/estilos.css">
+</head>
+<body>
+<header class="cabecera">
+  <h1>Notas de un instrumento</h1>
+  <p class="sub">Elige una canción y un instrumento y sigue su partitura mientras suena.</p>
+</header>
+
+<main>
+  <p id="cargando" class="tarjeta apagado">Cargando...</p>
+
+  <!-- Lista de canciones -->
+  <section id="paso-lista" hidden>
+    <div class="tarjeta destacada">
+      <h2>Escuchar una canción</h2>
+      <p class="apagado pequeno">Pon la música cerca del móvil, pulsa el botón y déjalo escuchando hasta que acabe.</p>
+      <button id="empezar" class="boton boton-grande" type="button">🎙 Empezar a escuchar</button>
+      <p class="pequeno"><button id="olvidar-token" class="enlace" type="button" hidden>Olvidar el token de GitHub de este móvil</button></p>
+    </div>
+    <div class="tarjeta">
+      <div class="fila-titulo">
+        <h2>Canciones</h2>
+      </div>
+      <ul id="lista" class="lista"></ul>
+      <p id="vacia" class="apagado" hidden>Todavía no hay ninguna canción.</p>
+    </div>
+    <details class="tarjeta ayuda">
+      <summary>Añadir una canción desde un archivo</summary>
+      <ol>
+        <li><a id="enlace-subir" href="#" target="_blank" rel="noopener">Sube el MP3 a la carpeta <code>notas-instrumento/canciones</code></a>
+          de GitHub (arrástralo y pulsa «Commit changes»).</li>
+        <li>GitHub la analiza solo. Tarda unos minutos; puedes verlo en
+          <a id="enlace-acciones" href="#" target="_blank" rel="noopener">Actions</a>.</li>
+        <li>Cuando termine, recarga esta página.</li>
+      </ol>
+      <p class="apagado pequeno">Sin subir el archivo al repositorio: en
+        <a id="enlace-workflow" href="#" target="_blank" rel="noopener">Actions → Notas de un instrumento → Run workflow</a>
+        pega un enlace de descarga (Dropbox, Google Drive compartido con «cualquiera con el enlace»...) y un título.
+        Así la canción original no queda guardada en el repositorio (el resultado sí se publica).</p>
+    </details>
+  </section>
+
+  <!-- Token de GitHub (una vez por móvil) -->
+  <section id="paso-token" class="tarjeta" hidden>
+    <h2>Conectar con GitHub (solo la primera vez)</h2>
+    <p class="pequeno">Para mandar la grabación a GitHub, que es quien la analiza, este móvil necesita un
+      <em>token</em>: una clave de acceso limitada a este repositorio. Se guarda solo en este móvil.</p>
+    <ol class="pequeno">
+      <li>Abre <a id="enlace-token" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">crear un token en GitHub</a>.</li>
+      <li>Nombre: el que quieras (p. ej. «Notas móvil»). Caducidad: la que prefieras.</li>
+      <li><strong>Repository access</strong> → <em>Only select repositories</em> → elige <strong id="nombre-repo">este repositorio</strong>.</li>
+      <li><strong>Permissions</strong> → <em>Contents</em>: <strong>Read and write</strong>. Opcional: <em>Actions</em>: <strong>Read-only</strong> (para ver el progreso).</li>
+      <li><em>Generate token</em>, cópialo y pégalo aquí:</li>
+    </ol>
+    <form id="form-token" class="formulario">
+      <label>Token <input type="password" id="token" autocomplete="off" required placeholder="github_pat_..."></label>
+      <button type="submit" class="boton">Guardar y enviar</button>
+      <button type="button" id="cancelar-token" class="boton-texto">Cancelar</button>
+      <p id="error-token" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Grabación -->
+  <section id="paso-grabar" class="tarjeta" hidden>
+    <div id="grabando">
+      <h2>Escuchando...</h2>
+      <p class="reloj" id="reloj">0:00</p>
+      <div class="medidor" aria-hidden="true"><div id="nivel"></div></div>
+      <p id="aviso-nivel" class="apagado pequeno">Acerca el móvil a la música. Mantén la pantalla encendida.</p>
+      <button id="parar" class="boton boton-grande boton-parar" type="button">■ Parar</button>
+    </div>
+    <div id="grabado" hidden>
+      <h2>Grabación lista</h2>
+      <audio id="escucha" controls></audio>
+      <form id="form-enviar" class="formulario">
+        <label>Título <input type="text" id="titulo-grabacion" maxlength="100" required></label>
+        <button type="submit" class="boton boton-grande">Analizar</button>
+      </form>
+      <p class="pequeno">
+        <button id="otra-vez" class="enlace" type="button">Grabar otra vez</button> ·
+        <a id="descargar-grabacion" class="enlace" href="#" download>Guardar la grabación en el móvil</a> ·
+        <button id="descartar" class="enlace" type="button">Descartar</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- Envío y seguimiento -->
+  <section id="paso-enviando" class="tarjeta" hidden>
+    <h2 id="titulo-enviando">Analizando</h2>
+    <ol class="progreso-pasos" id="progreso-pasos">
+      <li data-paso="enviar">Enviar la grabación a GitHub</li>
+      <li data-paso="cola">Esperar turno en GitHub Actions</li>
+      <li data-paso="analizar">Separar instrumentos y sacar las notas (varios minutos)</li>
+      <li data-paso="publicar">Publicar en la página</li>
+    </ol>
+    <p id="mensaje-envio" class="apagado pequeno"></p>
+    <p class="pequeno">Puedes cerrar la página: el análisis sigue en GitHub y al volver seguirá esperando.</p>
+    <p class="pequeno"><a id="enlace-ejecucion" class="enlace" href="#" target="_blank" rel="noopener" hidden>Ver en GitHub Actions ·</a>
+      <button id="dejar-de-esperar" class="enlace" type="button">Dejar de esperar</button></p>
+    <p id="error-envio" class="error" hidden></p>
+  </section>
+
+  <!-- Instrumentos + reproductor + partitura -->
+  <section id="paso-cancion" hidden>
+    <div class="tarjeta">
+      <div class="fila-titulo">
+        <h2 id="titulo-cancion"></h2>
+        <button id="otra" class="boton-texto" type="button">Otra canción</button>
+      </div>
+      <p class="apagado pequeno">Instrumentos que suenan (estimación automática; puedes elegir cualquiera). «Otros» junta cuerdas, vientos, sintes...:</p>
+      <div id="instrumentos" class="instrumentos" role="radiogroup" aria-label="Instrumento"></div>
+    </div>
+
+    <div id="bloque-reproductor" class="tarjeta reproductor" hidden>
+      <div class="controles">
+        <button id="play" class="boton-play" type="button" aria-label="Reproducir">▶</button>
+        <span id="tiempo" class="tiempo">0:00</span>
+        <input id="posicion" type="range" min="0" max="1000" value="0" aria-label="Posición">
+        <span id="total" class="tiempo">0:00</span>
+      </div>
+      <div class="opciones">
+        <div class="segmentado" role="radiogroup" aria-label="Qué escuchar">
+          <button type="button" data-modo="mezcla" class="activo">Canción</button>
+          <button type="button" data-modo="solo">Solo <span class="nombre-inst"></span></button>
+          <button type="button" data-modo="sin">Sin <span class="nombre-inst"></span></button>
+        </div>
+        <label class="opcion"><input id="nombres" type="checkbox"> Nombres de las notas</label>
+        <label class="opcion"><input id="inglesa" type="checkbox"> C D E (inglés)</label>
+        <label class="opcion">Notas
+          <select id="sensibilidad">
+            <option value="0.35">menos</option>
+            <option value="0.5" selected>normal</option>
+            <option value="0.65">más</option>
+          </select>
+        </label>
+        <label class="opcion"><input id="seguir" type="checkbox" checked> Seguir la partitura</label>
+        <a id="midi" class="boton-texto" href="#">Descargar MIDI</a>
+      </div>
+      <audio id="audio" preload="auto"></audio>
+    </div>
+
+    <div id="bloque-partitura" class="tarjeta" hidden>
+      <p id="info-partitura" class="apagado pequeno"></p>
+      <div id="partitura" class="partitura"></div>
+    </div>
+    <p id="aviso-partitura" class="tarjeta apagado" hidden></p>
+  </section>
+
+  <p id="error-general" class="tarjeta error" hidden></p>
+
+  <footer class="pie apagado pequeno">
+    Separación: Demucs (Meta). Transcripción: Basic Pitch (Spotify). Partitura: abcjs.
+    El resultado es aproximado: habrá notas de más y de menos. Se supone compás de 4/4.
+  </footer>
+</main>
+
+<script src="../static/vendor/abcjs-basic-min.js"></script>
+<script src="../static/reproductor.js"></script>
+<script src="web.js"></script>
+</body>
+</html>

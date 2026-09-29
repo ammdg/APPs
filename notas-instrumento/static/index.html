@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Notas de un instrumento</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='11' cy='24' r='6' fill='%230b6b64'/%3E%3Cpath d='M16 24V4l10 4' stroke='%230b6b64' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/estilos.css">
+</head>
+<body>
+<header class="cabecera">
+  <h1>Notas de un instrumento</h1>
+  <p class="sub">Sube una canción, elige un instrumento y sigue su partitura mientras suena.</p>
+</header>
+
+<main>
+  <!-- 1. Subir -->
+  <section id="paso-subir" class="tarjeta">
+    <label id="zona" class="zona" tabindex="0">
+      <input id="fichero" type="file" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac,.opus,audio/*" hidden>
+      <span class="zona-titulo">Arrastra aquí tu canción</span>
+      <span class="zona-texto">o pulsa para elegirla (MP3, WAV, FLAC, OGG, M4A)</span>
+    </label>
+    <p id="error-subir" class="error" hidden></p>
+  </section>
+
+  <!-- 2. Analizando -->
+  <section id="paso-analizar" class="tarjeta" hidden>
+    <h2 id="titulo-analisis">Analizando</h2>
+    <p id="mensaje-analisis" class="apagado">Subiendo...</p>
+    <div class="barra"><div id="barra-progreso"></div></div>
+    <p class="apagado pequeno">Separar los instrumentos tarda unos minutos sin tarjeta gráfica.</p>
+  </section>
+
+  <!-- 3. Instrumentos + reproductor + partitura -->
+  <section id="paso-cancion" hidden>
+    <div class="tarjeta">
+      <div class="fila-titulo">
+        <h2 id="titulo-cancion"></h2>
+        <button id="otra" class="boton-texto" type="button">Otra canción</button>
+      </div>
+      <p class="apagado pequeno">Instrumentos que suenan (estimación automática; puedes elegir cualquiera). «Otros» junta cuerdas, vientos, sintes...:</p>
+      <div id="instrumentos" class="instrumentos" role="radiogroup" aria-label="Instrumento"></div>
+    </div>
+
+    <div id="bloque-reproductor" class="tarjeta reproductor" hidden>
+      <div class="controles">
+        <button id="play" class="boton-play" type="button" aria-label="Reproducir">▶</button>
+        <span id="tiempo" class="tiempo">0:00</span>
+        <input id="posicion" type="range" min="0" max="1000" value="0" aria-label="Posición">
+        <span id="total" class="tiempo">0:00</span>
+      </div>
+      <div class="opciones">
+        <div class="segmentado" role="radiogroup" aria-label="Qué escuchar">
+          <button type="button" data-modo="mezcla" class="activo">Canción</button>
+          <button type="button" data-modo="solo">Solo <span class="nombre-inst"></span></button>
+          <button type="button" data-modo="sin">Sin <span class="nombre-inst"></span></button>
+        </div>
+        <label class="opcion"><input id="nombres" type="checkbox"> Nombres de las notas</label>
+        <label class="opcion"><input id="inglesa" type="checkbox"> C D E (inglés)</label>
+        <label class="opcion">Notas
+          <select id="sensibilidad">
+            <option value="0.35">menos</option>
+            <option value="0.5" selected>normal</option>
+            <option value="0.65">más</option>
+          </select>
+        </label>
+        <label class="opcion"><input id="seguir" type="checkbox" checked> Seguir la partitura</label>
+        <a id="midi" class="boton-texto" href="#">Descargar MIDI</a>
+      </div>
+      <audio id="audio" preload="auto"></audio>
+    </div>
+
+    <div id="bloque-partitura" class="tarjeta" hidden>
+      <p id="info-partitura" class="apagado pequeno"></p>
+      <div id="partitura" class="partitura"></div>
+    </div>
+    <p id="aviso-partitura" class="tarjeta apagado" hidden></p>
+  </section>
+
+  <footer class="pie apagado pequeno">
+    Separación: Demucs (Meta). Transcripción: Basic Pitch (Spotify). Partitura: abcjs.
+    El resultado es aproximado: habrá notas de más y de menos. Se supone compás de 4/4.
+  </footer>
+</main>
+
+<script src="/static/vendor/abcjs-basic-min.js"></script>
+<script src="/static/reproductor.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
