@@ -60,12 +60,6 @@ jobs:
 
       - name: Procesar canciones
         env:
-          # Con usuario y contraseña, todo se publica cifrado. Si no hay NOTAS_*, se usan los del
-          # mapa de vuelos (MAPA_*).
-          NOTAS_USUARIO: ${{ secrets.NOTAS_USUARIO }}
-          NOTAS_PASSWORD: ${{ secrets.NOTAS_PASSWORD }}
-          MAPA_USUARIO: ${{ secrets.MAPA_USUARIO }}
-          MAPA_PASSWORD: ${{ secrets.MAPA_PASSWORD }}
           URL: ${{ inputs.url }}
           TITULO: ${{ inputs.titulo }}
         run: |

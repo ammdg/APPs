@@ -18,26 +18,22 @@ ya procesado.
 
 ### Preparación (una vez)
 
-1. **Usuario y contraseña** (muy recomendable): en *Settings → Secrets and variables → Actions*
-   crea `NOTAS_USUARIO` y `NOTAS_PASSWORD`. Si no existen, se usan los del mapa de vuelos
-   (`MAPA_USUARIO` / `MAPA_PASSWORD`). Con ellos **todo lo publicado va cifrado** (AES-256-GCM,
-   igual que el mapa): aunque el repositorio sea público, sin la contraseña no se puede escuchar
-   ni leer nada. **Sin ninguno, las canciones se publican sin cifrar** y cualquiera con el enlace
-   puede escucharlas.
-2. Esto tiene que estar en la rama `main`: el workflow solo se lanza ahí y Pages publica `main`.
+Esto tiene que estar en la rama `main`: el workflow solo se lanza ahí y Pages publica `main`.
+
+**No hay usuario ni contraseña.** Todo lo publicado (canciones, pistas separadas, partituras) y
+las grabaciones subidas desde el móvil son públicos: cualquiera con el enlace de la página, o que
+mire el repositorio si es público, puede escucharlos.
 
 ### Escuchar una canción con el móvil
 
-1. Abre https://ammdg.github.io/APPs/notas-instrumento/web/ en el móvil y entra con el usuario y
-   la contraseña.
+1. Abre https://ammdg.github.io/APPs/notas-instrumento/web/ en el móvil.
 2. Pulsa **Empezar a escuchar** (la primera vez el navegador pide permiso para el micrófono), pon
    la música cerca y pulsa **Parar** cuando acabe (máximo 10 minutos). Mantén la pantalla
    encendida: en algunos móviles, al bloquearse, se corta la grabación.
-3. Ponle título y pulsa **Analizar**. La grabación se **cifra en el móvil** y se sube a
-   `notas-instrumento/canciones/` con un nombre que no dice nada (`grabacion-<fecha>.cif`); ni
-   siquiera en el historial de git se puede escuchar sin la contraseña. GitHub Actions la
-   analiza y la página te enseña en qué paso va y abre la canción sola al terminar (puedes
-   cerrarla mientras tanto).
+3. Ponle título y pulsa **Analizar**. La grabación se sube a `notas-instrumento/canciones/` con
+   el título como nombre (queda en el historial de git aunque luego se borre de la carpeta).
+   GitHub Actions la analiza y la página te enseña en qué paso va y abre la canción sola al
+   terminar (puedes cerrarla mientras tanto).
 
 La primera vez pide un **token de GitHub** para poder subir la grabación. Se crea en
 https://github.com/settings/personal-access-tokens/new: *Only select repositories* → este
@@ -67,9 +63,6 @@ enlaces directos.
 
 - **Borrar una canción**: borra su carpeta `web/canciones/<id>/` en GitHub; el workflow rehace la
   lista.
-- **Cambiar la contraseña**: lo ya publicado no se puede recifrar sin la anterior. Borra
-  `web/canciones/` y `web/clave.json`, cambia los secretos y vuelve a subir las canciones (el
-  workflow avisa con un error claro si la contraseña no coincide).
 - **Espacio**: cada canción ocupa en el repositorio la mezcla más una pista por instrumento que
   suena (MP3 comprimido). Estimo del orden de 10-20 MB para una canción de 4 minutos, pero no lo
   he medido con canciones reales.

@@ -18,19 +18,6 @@
 <main>
   <p id="cargando" class="tarjeta apagado">Cargando...</p>
 
-  <!-- Usuario y contraseña (solo si lo publicado va cifrado) -->
-  <section id="paso-login" class="tarjeta" hidden>
-    <h2>Entrar</h2>
-    <p class="apagado pequeno">Las canciones están cifradas: sin el usuario y la contraseña no se pueden escuchar.</p>
-    <form id="form-login" class="formulario">
-      <label>Usuario <input type="text" id="usuario" name="username" autocomplete="username" required></label>
-      <label>Contraseña <input type="password" id="password" name="password" autocomplete="current-password" required></label>
-      <label class="opcion"><input type="checkbox" id="recordar"> Recordar en este dispositivo</label>
-      <button type="submit" class="boton">Entrar</button>
-      <p id="error-login" class="error" hidden></p>
-    </form>
-  </section>
-
   <!-- Lista de canciones -->
   <section id="paso-lista" hidden>
     <div class="tarjeta destacada">
@@ -42,7 +29,6 @@
     <div class="tarjeta">
       <div class="fila-titulo">
         <h2>Canciones</h2>
-        <button id="salir" class="boton-texto" type="button" hidden>Salir</button>
       </div>
       <ul id="lista" class="lista"></ul>
       <p id="vacia" class="apagado" hidden>Todavía no hay ninguna canción.</p>
@@ -59,7 +45,7 @@
       <p class="apagado pequeno">Sin subir el archivo al repositorio: en
         <a id="enlace-workflow" href="#" target="_blank" rel="noopener">Actions → Notas de un instrumento → Run workflow</a>
         pega un enlace de descarga (Dropbox, Google Drive compartido con «cualquiera con el enlace»...) y un título.
-        Así la canción original no queda guardada en el repositorio.</p>
+        Así la canción original no queda guardada en el repositorio (el resultado sí se publica).</p>
     </details>
   </section>
 
@@ -104,7 +90,6 @@
         <a id="descargar-grabacion" class="enlace" href="#" download>Guardar la grabación en el móvil</a> ·
         <button id="descartar" class="enlace" type="button">Descartar</button>
       </p>
-      <p id="aviso-publico" class="error pequeno" hidden>Esta web no tiene contraseña: la grabación quedará pública en el repositorio.</p>
     </div>
   </section>
 
