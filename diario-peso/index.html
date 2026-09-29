@@ -175,7 +175,7 @@ dialog input{width:100%;background:var(--surface2);border:1px solid var(--line);
     </button>
     <p id="micHint" class="mic-hint">Toca el micrófono y di tu peso, por ejemplo «ochenta y dos con cinco».</p>
     <p id="heard" class="heard" hidden></p>
-    <details id="dbgBox" class="dbg"><summary>Detalles técnicos del micrófono (web)</summary><pre id="dbg">Aún no has tocado el micrófono.</pre></details>
+    <details id="dbgBox" class="dbg"><summary>Detalles técnicos del micrófono (web 2)</summary><pre id="dbg">Aún no has tocado el micrófono.</pre></details>
 
     <div id="confirm" class="confirm" hidden>
       <div class="confirm-row">
@@ -624,9 +624,40 @@ function keyboardMode() {
   setHeard('Dictado con el teclado: toca el micrófono que aparece en el teclado del iPhone, di tu peso y pulsa Añadir.', false);
   var inp = $('manualInput'); inp.scrollIntoView({block: 'center', behavior: 'smooth'}); inp.focus();
 }
+var closeTimer = null;
+// Cierra del todo una sesión: quita sus manejadores para que ningún evento tardío
+// (onend, onerror 'aborted', un resultado repetido) afecte a la siguiente.
+function detach(r) {
+  if (!r) return;
+  r.onstart = r.onresult = r.onerror = r.onend = r.onaudiostart = r.onspeechstart = r.onnomatch = null;
+  try { r.abort(); } catch (e) {}
+}
+function finishSession(r, why) {
+  if (r !== rec) return;
+  clearTimeout(watchdog); clearTimeout(closeTimer);
+  var alts = finalAlts, err = lastError;
+  detach(r); rec = null; finalAlts = null; lastError = null;
+  log('fin de sesión (' + why + ') · resultado final: ' + (alts ? alts[0] : 'ninguno'));
+  setMic(false);
+  if (alts) return handleSpeech(alts);
+  if (err && err !== 'aborted') { setHeard(ERR_TEXT[err] || 'Error de reconocimiento de voz (' + err + ').', true); }
+  else if (!err && why !== 'cancelado') { setHeard('No he oído nada. Vuelve a intentarlo.', true); }
+}
+// Pide al micrófono que se cierre; si Safari no avisa con onend, se cierra igualmente.
+function requestClose(r) {
+  try { r.stop(); } catch (e) {}
+  clearTimeout(closeTimer);
+  closeTimer = setTimeout(function () { log('onend no ha llegado → cierre forzado'); finishSession(r, 'forzado'); }, 1500);
+}
 function startListening() {
   log('toque recibido');
   if (micBlocked) { log('micrófono bloqueado antes → modo teclado'); keyboardMode(); return; }
+  if (rec) {
+    // Hay una sesión abierta (arrancando o escuchando): este toque la termina.
+    log('toque con sesión abierta → cerrar');
+    if (finalAlts) finishSession(rec, 'toque'); else if (started) requestClose(rec); else finishSession(rec, 'cancelado');
+    return;
+  }
   setHeard('Toque recibido… iniciando el micrófono', false);
   log('SpeechRecognition: ' + (window.SpeechRecognition ? 'sí' : 'no') + ' · webkitSpeechRecognition: ' + (window.webkitSpeechRecognition ? 'sí' : 'no'));
   log('mediaDevices: ' + (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'sí' : 'no') + ' · seguro: ' + (window.isSecureContext ? 'sí' : 'no'));
@@ -640,41 +671,46 @@ function startListening() {
     setHeard('Esta página no tiene acceso al reconocimiento de voz. Usa el campo de abajo con el micrófono del teclado.', true);
     return;
   }
-  if (listening && rec) { try { rec.stop(); } catch (e) {} return; }
   hideConfirm(); setHeard('', false);
   finalAlts = null; lastError = null; started = false;
-  clearTimeout(watchdog);
-  watchdog = setTimeout(function () {
-    log('6 s sin onstart ni onerror');
-    if (!started) setHeard('El micrófono no responde en esta página (no ha llegado ni permiso ni error). Usa el campo de abajo con el micrófono del teclado. ' + diag(), true);
-  }, 6000);
+  clearTimeout(watchdog); clearTimeout(closeTimer);
+  var r;
   try {
-    rec = new SR();
-    rec.lang = 'es-ES'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 4;
-    rec.onaudiostart = function () { log('audiostart'); };
-    rec.onspeechstart = function () { log('speechstart (se oye voz)'); };
-    rec.onnomatch = function () { log('nomatch'); };
-    rec.onstart = function () { log('onstart'); started = true; clearTimeout(watchdog); setHeard('', false); setMic(true); };
-    rec.onresult = function (e) {
-      var r = e.results[e.results.length - 1], alts = [];
-      for (var i = 0; i < r.length; i++) alts.push(r[i].transcript);
+    r = rec = new SR();
+    r.lang = 'es-ES'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 4;
+    r.onaudiostart = function () { if (r === rec) log('audiostart'); };
+    r.onspeechstart = function () { if (r === rec) log('speechstart (se oye voz)'); };
+    r.onnomatch = function () { if (r === rec) log('nomatch'); };
+    r.onstart = function () { if (r !== rec) return; log('onstart'); started = true; clearTimeout(watchdog); setHeard('', false); setMic(true); };
+    r.onresult = function (e) {
+      if (r !== rec) return;
+      var res = e.results[e.results.length - 1], alts = [];
+      for (var i = 0; i < res.length; i++) alts.push(res[i].transcript);
       setHeard('«' + alts[0].trim() + '»', false);
-      if (r.isFinal) finalAlts = alts;
+      // Con el resultado final ya no hace falta seguir escuchando: se cierra el micrófono.
+      if (res.isFinal && !finalAlts) { finalAlts = alts; requestClose(r); }
     };
-    rec.onerror = function (e) { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') micBlocked = true; log('onerror: ' + e.error + (e.message ? ' (' + e.message + ')' : '')); lastError = e.error; started = true; clearTimeout(watchdog); };
-    rec.onend = function () {
-      log('onend · resultado final: ' + (finalAlts ? finalAlts[0] : 'ninguno'));
-      clearTimeout(watchdog);
-      setMic(false);
-      if (finalAlts) return handleSpeech(finalAlts);
-      if (lastError && lastError !== 'aborted') { setHeard(ERR_TEXT[lastError] || 'Error de reconocimiento de voz (' + lastError + ').', true); }
-      else if (!lastError) { setHeard('No he oído nada. Vuelve a intentarlo.', true); }
+    r.onerror = function (e) {
+      if (r !== rec) return;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') micBlocked = true;
+      log('onerror: ' + e.error + (e.message ? ' (' + e.message + ')' : ''));
+      lastError = e.error; started = true; clearTimeout(watchdog);
     };
+    r.onend = function () { log('onend'); finishSession(r, 'onend'); };
+    watchdog = setTimeout(function () {
+      if (r !== rec || started) return;
+      log('6 s sin onstart ni onerror');
+      finishSession(r, 'cancelado');
+      setHeard('El micrófono no responde en esta página (no ha llegado ni permiso ni error). Usa el campo de abajo con el micrófono del teclado. ' + diag(), true);
+    }, 6000);
     log('llamando a start()');
-    rec.start();
+    r.start();
     log('start() no ha lanzado error');
   } catch (e) {
-    log('start() lanzó: ' + (e && e.name) + ' ' + (e && e.message)); setMic(false); setHeard('No se ha podido iniciar el micrófono (' + (e && e.name || 'error') + '). Usa el campo de abajo. ' + diag(), true); }
+    log('start() lanzó: ' + (e && e.name) + ' ' + (e && e.message));
+    if (r) { detach(r); } rec = null; clearTimeout(watchdog); setMic(false);
+    setHeard('No se ha podido iniciar el micrófono (' + (e && e.name || 'error') + '). Usa el campo de abajo. ' + diag(), true);
+  }
 }
 function handleSpeech(alts) {
   var kg = null;
