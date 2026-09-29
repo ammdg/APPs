@@ -1,5 +1,5 @@
 {
- "actualizado": "2026-09-28T07:18+02:00",
+ "actualizado": "2026-09-29T07:18+02:00",
  "origen": {
   "codigo": "MAD",
   "lat": 40.4934,
@@ -50,8 +50,8 @@
     "total": 240.0,
     "ida": {
      "fecha": "2027-06-19",
-     "salida": "23:00",
-     "llegada": "23:25",
+     "salida": "07:15",
+     "llegada": "07:45",
      "aerolinea": "Iberia",
      "escala": null,
      "espera_min": null
@@ -161,30 +161,6 @@
    "escala": null
   },
   {
-   "codigo": "RAK",
-   "nombre": "Marrakech",
-   "lat": 31.6048,
-   "lon": -8.0358,
-   "directo": {
-    "precio": 91.0,
-    "total": 364.0,
-    "ida": {
-     "fecha": "2027-06-20",
-     "salida": "23:50",
-     "llegada": "23:55",
-     "aerolinea": "Air Europa",
-     "escala": null,
-     "espera_min": null
-    },
-    "vuelta": {
-     "fecha": "2027-06-26",
-     "con_escala": false
-    },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20RAK%20on%202027-06-20%20through%202027-06-26"
-   },
-   "escala": null
-  },
-  {
    "codigo": "SOF",
    "nombre": "Sofía",
    "lat": 42.6964,
@@ -205,6 +181,30 @@
      "con_escala": false
     },
     "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SOF%20on%202027-06-20%20through%202027-06-26"
+   },
+   "escala": null
+  },
+  {
+   "codigo": "RAK",
+   "nombre": "Marrakech",
+   "lat": 31.6048,
+   "lon": -8.0358,
+   "directo": {
+    "precio": 97.0,
+    "total": 388.0,
+    "ida": {
+     "fecha": "2027-06-19",
+     "salida": "23:20",
+     "llegada": "00:25",
+     "aerolinea": "Ryanair",
+     "escala": null,
+     "espera_min": null
+    },
+    "vuelta": {
+     "fecha": "2027-06-26",
+     "con_escala": false
+    },
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20RAK%20on%202027-06-19%20through%202027-06-26"
    },
    "escala": null
   },
@@ -790,8 +790,8 @@
    "lat": 51.1487,
    "lon": -0.1857,
    "directo": {
-    "precio": 180.0,
-    "total": 720.0,
+    "precio": 181.0,
+    "total": 724.0,
     "ida": {
      "fecha": "2027-06-19",
      "salida": "21:20",
@@ -906,7 +906,7 @@
     "precio": 200.0,
     "total": 800.0,
     "ida": {
-     "fecha": "2027-06-20",
+     "fecha": "2027-06-19",
      "salida": "06:00",
      "llegada": "12:05",
      "aerolinea": "LOT",
@@ -917,7 +917,7 @@
      "fecha": "2027-06-26",
      "con_escala": false
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PRG%20on%202027-06-20%20through%202027-06-26"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PRG%20on%202027-06-19%20through%202027-06-26"
    }
   },
   {
@@ -1046,8 +1046,8 @@
    "lat": 35.8459,
    "lon": 14.4915,
    "directo": {
-    "precio": 221.0,
-    "total": 884.0,
+    "precio": 222.0,
+    "total": 888.0,
     "ida": {
      "fecha": "2027-06-19",
      "salida": "17:20",
@@ -1129,6 +1129,30 @@
    "escala": null
   },
   {
+   "codigo": "PMO",
+   "nombre": "Palermo",
+   "lat": 38.176,
+   "lon": 13.091,
+   "directo": {
+    "precio": 246.0,
+    "total": 984.0,
+    "ida": {
+     "fecha": "2027-06-20",
+     "salida": "14:55",
+     "llegada": "17:25",
+     "aerolinea": "Ryanair",
+     "escala": null,
+     "espera_min": null
+    },
+    "vuelta": {
+     "fecha": "2027-06-27",
+     "con_escala": false
+    },
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PMO%20on%202027-06-20%20through%202027-06-27"
+   },
+   "escala": null
+  },
+  {
    "codigo": "IST",
    "nombre": "Estambul",
    "lat": 41.2749,
@@ -1151,8 +1175,8 @@
     "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20IST%20on%202027-06-19%20through%202027-06-26"
    },
    "escala": {
-    "precio": 245.0,
-    "total": 980.0,
+    "precio": 250.0,
+    "total": 1000.0,
     "ida": {
      "fecha": "2027-06-19",
      "salida": "18:25",
@@ -1497,46 +1521,6 @@
    }
   },
   {
-   "codigo": "DXB",
-   "nombre": "Dubái",
-   "lat": 25.2498,
-   "lon": 55.371,
-   "directo": {
-    "precio": 759.0,
-    "total": 3036.0,
-    "ida": {
-     "fecha": "2027-06-20",
-     "salida": "15:25",
-     "llegada": "00:35",
-     "aerolinea": "Emirates",
-     "escala": null,
-     "espera_min": null
-    },
-    "vuelta": {
-     "fecha": "2027-06-26",
-     "con_escala": false
-    },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-06-20%20through%202027-06-26"
-   },
-   "escala": {
-    "precio": 496.0,
-    "total": 1984.0,
-    "ida": {
-     "fecha": "2027-06-19",
-     "salida": "05:55",
-     "llegada": "19:20",
-     "aerolinea": "ITA",
-     "escala": "FCO",
-     "espera_min": 165
-    },
-    "vuelta": {
-     "fecha": "2027-06-26",
-     "con_escala": false
-    },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-06-19%20through%202027-06-26"
-   }
-  },
-  {
    "codigo": "TUN",
    "nombre": "Túnez",
    "lat": 36.851,
@@ -1561,6 +1545,46 @@
    "escala": null
   },
   {
+   "codigo": "DXB",
+   "nombre": "Dubái",
+   "lat": 25.2498,
+   "lon": 55.371,
+   "directo": {
+    "precio": 759.0,
+    "total": 3036.0,
+    "ida": {
+     "fecha": "2027-06-20",
+     "salida": "15:25",
+     "llegada": "00:35",
+     "aerolinea": "Emirates",
+     "escala": null,
+     "espera_min": null
+    },
+    "vuelta": {
+     "fecha": "2027-06-26",
+     "con_escala": false
+    },
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-06-20%20through%202027-06-26"
+   },
+   "escala": {
+    "precio": 536.0,
+    "total": 2144.0,
+    "ida": {
+     "fecha": "2027-06-20",
+     "salida": "05:55",
+     "llegada": "19:20",
+     "aerolinea": "ITA",
+     "escala": "FCO",
+     "espera_min": 165
+    },
+    "vuelta": {
+     "fecha": "2027-06-26",
+     "con_escala": false
+    },
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-06-20%20through%202027-06-26"
+   }
+  },
+  {
    "codigo": "LIM",
    "nombre": "Lima",
    "lat": -12.0219,
@@ -1569,7 +1593,7 @@
     "precio": 585.0,
     "total": 2340.0,
     "ida": {
-     "fecha": "2027-06-20",
+     "fecha": "2027-06-19",
      "salida": "11:00",
      "llegada": "16:10",
      "aerolinea": "Plus Ultra",
@@ -1577,10 +1601,10 @@
      "espera_min": null
     },
     "vuelta": {
-     "fecha": "2027-06-27",
+     "fecha": "2027-06-26",
      "con_escala": false
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-06-20%20through%202027-06-27"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-06-19%20through%202027-06-26"
    },
    "escala": null
   },
@@ -1673,18 +1697,18 @@
    "escala": null
   },
   {
-   "codigo": "MEX",
-   "nombre": "Ciudad de México",
-   "lat": 19.4358,
-   "lon": -99.0703,
+   "codigo": "MIA",
+   "nombre": "Miami",
+   "lat": 25.796,
+   "lon": -80.2898,
    "directo": {
-    "precio": 1147.0,
-    "total": 4588.0,
+    "precio": 1028.0,
+    "total": 4112.0,
     "ida": {
      "fecha": "2027-06-19",
-     "salida": "23:55",
-     "llegada": "03:20",
-     "aerolinea": "Iberia",
+     "salida": "13:00",
+     "llegada": "16:40",
+     "aerolinea": "American",
      "escala": null,
      "espera_min": null
     },
@@ -1692,24 +1716,24 @@
      "fecha": "2027-06-26",
      "con_escala": false
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-06-19%20through%202027-06-26"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-06-19%20through%202027-06-26"
    },
    "escala": {
-    "precio": 887.0,
-    "total": 3548.0,
+    "precio": 793.0,
+    "total": 3172.0,
     "ida": {
      "fecha": "2027-06-19",
-     "salida": "23:55",
-     "llegada": "03:20",
-     "aerolinea": "Iberia",
-     "escala": null,
-     "espera_min": null
+     "salida": "05:55",
+     "llegada": "16:00",
+     "aerolinea": "ITA",
+     "escala": "FCO",
+     "espera_min": 135
     },
     "vuelta": {
-     "fecha": "2027-06-26",
-     "con_escala": true
+     "fecha": "2027-06-27",
+     "con_escala": false
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-06-19%20through%202027-06-26"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-06-19%20through%202027-06-27"
    }
   },
   {
@@ -1753,18 +1777,18 @@
    }
   },
   {
-   "codigo": "MIA",
-   "nombre": "Miami",
-   "lat": 25.796,
-   "lon": -80.2898,
+   "codigo": "MEX",
+   "nombre": "Ciudad de México",
+   "lat": 19.4358,
+   "lon": -99.0703,
    "directo": {
-    "precio": 1008.0,
-    "total": 4032.0,
+    "precio": 1167.0,
+    "total": 4668.0,
     "ida": {
      "fecha": "2027-06-19",
-     "salida": "13:00",
-     "llegada": "16:40",
-     "aerolinea": "American",
+     "salida": "23:55",
+     "llegada": "03:20",
+     "aerolinea": "Iberia",
      "escala": null,
      "espera_min": null
     },
@@ -1772,24 +1796,24 @@
      "fecha": "2027-06-26",
      "con_escala": false
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-06-19%20through%202027-06-26"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-06-19%20through%202027-06-26"
    },
    "escala": {
-    "precio": 912.0,
-    "total": 3648.0,
+    "precio": 907.0,
+    "total": 3628.0,
     "ida": {
      "fecha": "2027-06-19",
-     "salida": "05:55",
-     "llegada": "16:00",
-     "aerolinea": "ITA",
-     "escala": "FCO",
-     "espera_min": 135
+     "salida": "23:55",
+     "llegada": "03:20",
+     "aerolinea": "Iberia",
+     "escala": null,
+     "espera_min": null
     },
     "vuelta": {
-     "fecha": "2027-06-27",
-     "con_escala": false
+     "fecha": "2027-06-26",
+     "con_escala": true
     },
-    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-06-19%20through%202027-06-27"
+    "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-06-19%20through%202027-06-26"
    }
   },
   {
@@ -1855,8 +1879,8 @@
     "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CUN%20on%202027-06-20%20through%202027-06-26"
    },
    "escala": {
-    "precio": 983.0,
-    "total": 3932.0,
+    "precio": 978.0,
+    "total": 3912.0,
     "ida": {
      "fecha": "2027-06-19",
      "salida": "10:45",
