@@ -25,14 +25,20 @@ jobs:
       - name: Transcribir (small y medium)
         env:
           AUDIO: notas-instrumento/web/canciones/grabacion-30-9-2026-11-37/mezcla.mp3
+          # Los pesos de MuScriptor están protegidos en Hugging Face: hace falta un token de lectura
+          # de una cuenta que haya aceptado su licencia (secreto HF_TOKEN del repositorio).
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          if [ -z "$HF_TOKEN" ]; then echo "::error::Falta el secreto HF_TOKEN"; exit 1; fi
           mkdir -p salida
+          fallos=0
           for m in small medium; do
             echo "=== modelo $m ==="
             inicio=$(date +%s)
-            timeout 40m muscriptor transcribe "$AUDIO" --model "$m" --device cpu -o "salida/$m.mid" || echo "FALLO $m ($?)"
+            timeout 40m muscriptor transcribe "$AUDIO" --model "$m" --device cpu -o "salida/$m.mid" || { echo "::error::FALLO $m"; fallos=1; }
             echo "TIEMPO $m: $(( $(date +%s) - inicio )) s"
           done
+          exit $fallos
       - name: Resumen
         if: always()
         run: |
