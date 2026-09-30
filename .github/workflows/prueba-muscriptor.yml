@@ -1,0 +1,57 @@
+name: Prueba MuScriptor (temporal)
+
+# Prueba si MuScriptor reconoce los instrumentos de la grabación orquestal y cuánto tarda en CPU.
+# Solo se lanza en la rama de desarrollo; se borrará antes de fusionar.
+on:
+  push:
+    branches: [claude/audio-instrument-note-extractor-4n1dfo]
+    paths: [".github/workflows/prueba-muscriptor.yml"]
+  workflow_dispatch:
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install muscriptor pretty_midi
+          nproc; free -h
+      - name: Transcribir (small y medium)
+        env:
+          AUDIO: notas-instrumento/web/canciones/grabacion-30-9-2026-11-37/mezcla.mp3
+        run: |
+          mkdir -p salida
+          for m in small medium; do
+            echo "=== modelo $m ==="
+            inicio=$(date +%s)
+            timeout 40m muscriptor transcribe "$AUDIO" --model "$m" --device cpu -o "salida/$m.mid" || echo "FALLO $m ($?)"
+            echo "TIEMPO $m: $(( $(date +%s) - inicio )) s"
+          done
+      - name: Resumen
+        if: always()
+        run: |
+          python - <<'EOF'
+          import glob, pretty_midi
+          for f in sorted(glob.glob("salida/*.mid")):
+              pm = pretty_midi.PrettyMIDI(f)
+              print(f"\n##### {f}  duración {pm.get_end_time():.1f} s  tempo {pm.estimate_tempo():.0f}")
+              for ins in sorted(pm.instruments, key=lambda i: -len(i.notes)):
+                  if not ins.notes:
+                      continue
+                  alturas = [n.pitch for n in ins.notes]
+                  nombre = "batería" if ins.is_drum else pretty_midi.program_to_instrument_name(ins.program)
+                  print(f"{ins.name or '-':28} programa {ins.program:3} ({nombre:24}) notas {len(ins.notes):5}  "
+                        f"rango {pretty_midi.note_number_to_name(min(alturas))}-{pretty_midi.note_number_to_name(max(alturas))}  "
+                        f"de {min(n.start for n in ins.notes):6.1f}s a {max(n.end for n in ins.notes):6.1f}s")
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: muscriptor
+          path: salida/
