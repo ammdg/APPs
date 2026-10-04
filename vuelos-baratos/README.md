@@ -20,7 +20,9 @@ vigilante de Renfe.
 - ✅ DIRECTOS: billete de ida y vuelta sin escalas. 🔁 CON 1 ESCALA: el billete más barato con escala
   (de como mucho `escala_max_minutos`) en algún trayecto, solo si sale más barato que el directo.
   Se descartan los billetes separados y el "autotransbordo".
-- 🆕 destino que aparece por primera vez; 📉/📈 el precio ha bajado/subido desde el día anterior.
+- **Negrita** y 🆕: destino que no estaba en la lista del mensaje anterior (se guarda en el historial,
+  `_mostrados`). 📉/📈: el precio ha bajado/subido desde el día anterior. El mensaje va en HTML de
+  Telegram; si Telegram rechazara el formato, se reenvía sin él (ntfy siempre va sin formato).
 - Precio = billete de ida y vuelta más barato (nunca dos de solo ida), por persona; el total
   multiplica por el número de pasajeros. Google da el precio del billete completo y el horario de la
   ida; el de la vuelta se elige al reservar (si la ida es directa y el billete lleva escala, la escala

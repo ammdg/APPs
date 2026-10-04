@@ -152,7 +152,8 @@ def test_ejecutar_guarda_historial_y_notifica(tmp_path, monkeypatch):
     h = tmp_path / "historial.json"
     assert vb.ejecutar(cfg(), h, falso, tmp_path / 'datos.json') == 0
     assert json.loads(h.read_text()) == {"iv:LIS": 95.0, "iv:OSL+escala": 115.0, "iv:CDG": 170.0,
-                                         "iv:CDG+escala": 130.0, "iv:JFK": 800.0, "iv:BER": 137.0}
+                                         "iv:CDG+escala": 130.0, "iv:JFK": 800.0, "iv:BER": 137.0,
+                                         "_mostrados": ["BER", "CDG", "LIS", "OSL"]}
     vb.ejecutar(cfg(), h, falso, tmp_path / 'datos.json')
     assert "🆕" not in enviados[1]
 
@@ -387,3 +388,70 @@ def test_datos_del_mapa_sin_cifrar(tmp_path, monkeypatch):
     mapa = tmp_path / "datos.json"
     vb.ejecutar(cfg(), tmp_path / "h.json", falso, mapa)
     assert "destinos" in json.loads(mapa.read_text())
+
+
+# ------------------------------------------------------------------ destinos nuevos en negrita
+
+
+def test_nuevos_en_negrita_respecto_al_mensaje_anterior():
+    resultados, _ = vb.buscar(cfg(), falso)
+    # En el mensaje anterior salían Lisboa y París; Berlín y Oslo son nuevos.
+    historial = {"iv:LIS": 95.0, "iv:CDG+escala": 130.0, "iv:JFK": 800.0, "_mostrados": ["CDG", "LIS"]}
+    texto = vb.formatear_mensaje(cfg(), resultados, historial, [], AHORA)
+    assert "<b>• Berlín (BER): 137 €/pers · 548 € total 🆕</b>" in texto
+    assert "<b>• Oslo (OSL): 115 €/pers · 460 € total 🆕</b>" in texto
+    assert "\n• Lisboa (LIS): 95 €/pers · 380 € total\n" in texto  # ya estaba: sin negrita ni 🆕
+    assert "\n• París (CDG): 130 €/pers · 520 € total\n" in texto
+    assert "En negrita y con 🆕: destinos que no estaban en el mensaje anterior." in texto
+    assert texto.count("<b>") == texto.count("</b>") == 2
+
+
+def test_nuevo_aunque_tuviera_precio_por_encima_del_limite():
+    # Berlín costaba 160 € (no salía en la lista) y hoy 137 €: es nuevo en la lista y además ha bajado.
+    resultados, _ = vb.buscar(cfg(), falso)
+    historial = {"iv:BER": 160.0, "_mostrados": ["LIS", "OSL", "CDG"]}
+    texto = vb.formatear_mensaje(cfg(), resultados, historial, [], AHORA)
+    assert "<b>• Berlín (BER): 137 €/pers · 548 € total 🆕 📉 antes 160 €</b>" in texto
+
+
+def test_historial_antiguo_sin_mostrados():
+    # Los historiales de antes de este cambio no guardan "_mostrados": se deducen de los precios < límite.
+    assert vb.mostrados_antes({"iv:LIS": 95.0, "iv:OSL+escala": 115.0, "iv:JFK": 800.0}, 150) == {"LIS", "OSL"}
+
+
+def test_sin_novedades_no_hay_negrita():
+    resultados, _ = vb.buscar(cfg(), falso)
+    historial = {"_mostrados": ["BER", "CDG", "LIS", "OSL"]}
+    texto = vb.formatear_mensaje(cfg(), resultados, historial, [], AHORA)
+    assert "<b>" not in texto and "🆕" not in texto and "En negrita" not in texto
+
+
+def test_texto_escapado_y_plano():
+    r = vb.Resultado("XYZ", "Tom & Jerry <Island>", billete_directo=b(50))
+    texto = vb.formatear_mensaje(cfg(destinos={"XYZ": "x"}), [r], {"_mostrados": []}, [], AHORA)
+    assert "<b>• Tom &amp; Jerry &lt;Island&gt; (XYZ)" in texto
+    assert "• Tom & Jerry <Island> (XYZ)" in vb.texto_plano(texto) and "<b>" not in vb.texto_plano(texto)
+
+
+def test_telegram_en_html_y_si_falla_sin_formato(monkeypatch):
+    enviados = []
+
+    class Resp:
+        def __init__(self, code):
+            self.status_code, self.text = code, "Bad Request: can't parse entities"
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise RuntimeError(self.status_code)
+
+    def post(url, json=None, data=None, headers=None, timeout=None):
+        enviados.append(json)
+        return Resp(400 if json.get("parse_mode") else 200)
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "c")
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    monkeypatch.setattr(vb.requests, "post", post)
+    assert vb.notificar("<b>Berlín &amp; más</b>") == ["telegram"]
+    assert enviados[0]["parse_mode"] == "HTML" and enviados[0]["text"] == "<b>Berlín &amp; más</b>"
+    assert "parse_mode" not in enviados[1] and enviados[1]["text"] == "Berlín & más"

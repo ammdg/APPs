@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import html
 import json
 import os
 import random
@@ -422,11 +423,25 @@ def leer_partes(cfg: Config, paths: list[Path]) -> tuple[list[Resultado], list[s
 # --------------------------------------------------------------------------- historial y mensaje
 
 
-def cargar_historial(path: Path) -> dict[str, float]:
+def cargar_historial(path: Path) -> dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+MOSTRADOS = "_mostrados"  # en el historial: destinos que salieron en la lista del último mensaje
+
+
+def mostrados_antes(historial: dict[str, Any], limite: float) -> set[str]:
+    """Destinos que salieron en la lista (por debajo del límite) del mensaje anterior.
+
+    Los historiales anteriores a este cambio no tienen MOSTRADOS: se deducen de sus precios.
+    """
+    if MOSTRADOS in historial:
+        return set(historial[MOSTRADOS])
+    return {k.removeprefix("iv:").split("+")[0] for k, v in historial.items()
+            if isinstance(v, (int, float)) and v < limite}
 
 
 def _clave(r: Resultado, c: Combinacion) -> str:
@@ -450,8 +465,9 @@ def _tramo(v: Vuelo) -> str:
 
 
 def formatear_mensaje(
-    cfg: Config, resultados: list[Resultado], historial: dict[str, float], avisos: list[str], ahora: datetime
+    cfg: Config, resultados: list[Resultado], historial: dict[str, Any], avisos: list[str], ahora: datetime
 ) -> str:
+    """El mensaje en HTML de Telegram: los destinos que no salían en el mensaje anterior van en negrita (🆕)."""
     limite = cfg.precio_max_persona
     directos = sorted(((r, r.directo) for r in resultados if r.directo), key=lambda x: x[1].precio)
     escalas = sorted(((r, r.con_escala) for r in resultados if r.con_escala), key=lambda x: x[1].precio)
@@ -474,15 +490,19 @@ def formatear_mensaje(
         "con billete de ida y vuelta",
     ]
 
+    vistos = mostrados_antes(historial, limite)
+    negrita: set[int] = set()  # índices de las líneas que van en negrita
+
     def bloque(r: Resultado, c: Combinacion) -> list[str]:
         anterior = historial.get(_clave(r, c))
-        marca = ""
-        if anterior is None:
-            marca = " 🆕"
-        elif c.precio < anterior - 0.5:
-            marca = f" 📉 antes {_euros(anterior)}"
-        elif c.precio > anterior + 0.5:
-            marca = f" 📈 antes {_euros(anterior)}"
+        nuevo = c.precio < limite and r.destino not in vistos
+        marca = " 🆕" if nuevo else ""
+        if anterior is not None and c.precio < anterior - 0.5:
+            marca += f" 📉 antes {_euros(anterior)}"
+        elif anterior is not None and c.precio > anterior + 0.5:
+            marca += f" 📈 antes {_euros(anterior)}"
+        if nuevo:
+            negrita.add(len(lineas))
         return [
             f"• {r.nombre} ({r.destino}): {_euros(c.precio)}/pers · {_euros(c.precio * cfg.pasajeros)} total{marca}",
             f"   ida {_tramo(c.ida)} · vuelta {_tramo(c.vuelta)}",
@@ -521,10 +541,23 @@ def formatear_mensaje(
         "solo da el horario de la ida; el de la vuelta se elige al reservar. Sin equipaje facturado. "
         "Comprueba que quedan plazas para todos antes de comprar.",
     ]
-    texto = "\n".join(lineas)
-    if len(texto) > LIMITE_TELEGRAM:
+    if negrita:
+        lineas.insert(2, "En negrita y con 🆕: destinos que no estaban en el mensaje anterior.")
+        negrita = {i + 1 if i >= 2 else i for i in negrita}
+    html_lineas = [f"<b>{_html(l)}</b>" if i in negrita else _html(l) for i, l in enumerate(lineas)]
+    texto = "\n".join(html_lineas)
+    if len(texto) > LIMITE_TELEGRAM:  # se corta por líneas enteras, así no queda ninguna etiqueta abierta
         texto = texto[: LIMITE_TELEGRAM - 30].rsplit("\n", 1)[0] + "\n… (lista recortada)"
     return texto
+
+
+def _html(texto: str) -> str:
+    return html.escape(texto, quote=False)
+
+
+def texto_plano(mensaje: str) -> str:
+    """El mensaje sin las etiquetas HTML (para ntfy y por si Telegram rechaza el formato)."""
+    return html.unescape(re.sub(r"</?b>", "", mensaje))
 
 
 def enlace_google_flights(origen: str, destino: str, ida: date, vuelta: date) -> str:
@@ -567,12 +600,14 @@ def datos_mapa(cfg: Config, resultados: list[Resultado], ahora: datetime, coorde
     }
 
 
-def actualizar_historial(resultados: list[Resultado]) -> dict[str, float]:
-    historial = {}
+def actualizar_historial(resultados: list[Resultado], limite: float = float("inf")) -> dict[str, Any]:
+    historial: dict[str, Any] = {}
     for r in resultados:
         for c in (r.directo, r.con_escala):
             if c:
                 historial[_clave(r, c)] = c.precio
+    if historial:
+        historial[MOSTRADOS] = sorted(r.destino for r in resultados if r.mejor and r.mejor.precio < limite)
     return historial
 
 
@@ -580,15 +615,19 @@ def actualizar_historial(resultados: list[Resultado]) -> dict[str, float]:
 
 
 def notificar(texto: str) -> list[str]:
-    """Envía el aviso por los canales configurados en variables de entorno. Devuelve los usados."""
+    """Envía el aviso (HTML de Telegram) por los canales configurados en variables de entorno.
+
+    Devuelve los canales usados. Si Telegram rechaza el formato, se reenvía como texto plano.
+    """
     usados = []
     token, chat = os.getenv("TELEGRAM_BOT_TOKEN"), os.getenv("TELEGRAM_CHAT_ID")
     if token and chat:
-        r = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat, "text": texto, "disable_web_page_preview": True},
-            timeout=20,
-        )
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        base = {"chat_id": chat, "disable_web_page_preview": True}
+        r = requests.post(url, json={**base, "text": texto, "parse_mode": "HTML"}, timeout=20)
+        if r.status_code == 400:
+            print(f"Telegram rechazó el HTML ({r.text[:200]}); se envía sin formato.", file=sys.stderr)
+            r = requests.post(url, json={**base, "text": texto_plano(texto)}, timeout=20)
         r.raise_for_status()
         usados.append("telegram")
     topic = os.getenv("NTFY_TOPIC")
@@ -596,7 +635,7 @@ def notificar(texto: str) -> list[str]:
         servidor = os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
         r = requests.post(
             f"{servidor}/{topic}",
-            data=texto.encode("utf-8"),
+            data=texto_plano(texto).encode("utf-8"),
             headers={"Title": "Vuelos baratos", "Tags": "airplane"},
             timeout=20,
         )
@@ -625,7 +664,7 @@ def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avi
     texto = formatear_mensaje(cfg, resultados, historial, avisos, ahora)
     print(texto)
     notificar(texto)
-    nuevo = actualizar_historial(resultados)
+    nuevo = actualizar_historial(resultados, cfg.precio_max_persona)
     if nuevo:  # si todo falló, se conserva el historial anterior
         historial_path.write_text(json.dumps(nuevo, indent=2, ensure_ascii=False), encoding="utf-8")
     # Falla (y GitHub lo marca en rojo) solo si no se obtuvo ningún vuelo.
