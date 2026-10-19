@@ -1,12 +1,31 @@
 {
   "origen": "MAD",
-  "fechas_ida": [
-    "2027-06-19",
-    "2027-06-20"
-  ],
-  "fechas_vuelta": [
-    "2027-06-26",
-    "2027-06-27"
+  "viajes": [
+    {
+      "id": "marzo",
+      "nombre": "Marzo 2027",
+      "fechas_ida": [
+        "2027-03-19",
+        "2027-03-20",
+        "2027-03-21"
+      ],
+      "fechas_vuelta": [
+        "2027-03-28",
+        "2027-03-29"
+      ]
+    },
+    {
+      "id": "verano",
+      "nombre": "Agosto-septiembre 2027",
+      "fechas_ida": [
+        "2027-08-28",
+        "2027-08-29"
+      ],
+      "fechas_vuelta": [
+        "2027-09-04",
+        "2027-09-05"
+      ]
+    }
   ],
   "pasajeros": 4,
   "precio_max_persona": 150,

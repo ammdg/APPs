@@ -188,7 +188,11 @@ def test_config_real_valida():
     c = vb.Config.desde_archivo(vb.AQUI / "config.json")
     assert c.origen == "MAD" and c.pasajeros == 4 and c.precio_max_persona == 150
     assert c.incluir_escalas and c.escala_max_minutos == 180
-    assert c.fechas_ida == [I1, I2] and c.fechas_vuelta == [V1, V2]
+    marzo, verano = c.por_viaje()
+    assert (marzo.viaje_id, marzo.fechas_ida, marzo.fechas_vuelta) == (
+        "marzo", [date(2027, 3, 19), date(2027, 3, 20), date(2027, 3, 21)], [date(2027, 3, 28), date(2027, 3, 29)])
+    assert (verano.viaje_id, verano.fechas_ida, verano.fechas_vuelta) == (
+        "verano", [date(2027, 8, 28), date(2027, 8, 29)], [date(2027, 9, 4), date(2027, 9, 5)])
     assert "BCN" not in c.destinos and "PMI" not in c.destinos and "BER" in c.destinos
 
 
@@ -208,14 +212,14 @@ def test_partes_se_guardan_y_se_juntan(tmp_path):
         sub = cfg(destinos=vb.partes_de(c.destinos, i, 3))
         resultados, avisos = vb.buscar(sub, falso)
         paths.append(tmp_path / f"parte_{i}.json")
-        vb.guardar_parte(paths[-1], resultados, avisos + ([f"aviso {i}"] if i == 1 else []))
-    juntos, avisos = vb.leer_partes(c, paths)
+        vb.guardar_parte(paths[-1], {"": (resultados, avisos + ([f"aviso {i}"] if i == 1 else []))})
+    juntos, avisos = vb.leer_partes(c, paths)[""]
     solos, _ = vb.buscar(c, falso)
     assert [r.destino for r in juntos] == list(c.destinos)
     assert vb.formatear_mensaje(c, juntos, {}, [], AHORA) == vb.formatear_mensaje(c, solos, {}, [], AHORA)
     assert avisos == ["aviso 1"]
     # Si falta una parte, se manda lo demás y se avisa.
-    juntos, avisos = vb.leer_partes(c, paths[:2])
+    juntos, avisos = vb.leer_partes(c, paths[:2])[""]
     assert len(juntos) < 7 and "Sin datos de" in avisos[-1]
 
 
@@ -455,3 +459,74 @@ def test_telegram_en_html_y_si_falla_sin_formato(monkeypatch):
     assert vb.notificar("<b>Berlín &amp; más</b>") == ["telegram"]
     assert enviados[0]["parse_mode"] == "HTML" and enviados[0]["text"] == "<b>Berlín &amp; más</b>"
     assert "parse_mode" not in enviados[1] and enviados[1]["text"] == "Berlín & más"
+
+
+# ------------------------------------------------------------------ varios viajes (intervalos de fechas)
+
+M1, M2, M3, MV1, MV2 = date(2027, 3, 19), date(2027, 3, 20), date(2027, 3, 21), date(2027, 3, 28), date(2027, 3, 29)
+VIAJES = [{"id": "marzo", "nombre": "Marzo 2027", "fechas_ida": [M1, M2, M3], "fechas_vuelta": [MV1, MV2]},
+          {"id": "verano", "nombre": "Agosto-septiembre 2027", "fechas_ida": [date(2027, 8, 28), date(2027, 8, 29)],
+           "fechas_vuelta": [date(2027, 9, 4), date(2027, 9, 5)]}]
+
+
+def falso_viajes(o, dst, ida, vuelta, escalas, c):
+    precios = {("BER", M3, MV1): 120, ("BER", M1, MV2): 99,  # en marzo, la mejor combinación es 19→29
+               ("BER", date(2027, 8, 28), date(2027, 9, 5)): 180,
+               ("LIS", date(2027, 8, 29), date(2027, 9, 4)): 70}
+    p = precios.get((dst, ida, vuelta))
+    return b(p, ida, vuelta) if p and not escalas else None
+
+
+def test_cada_viaje_con_sus_fechas_y_su_mejor_combinacion():
+    pedidas = []
+
+    def contar(*a):
+        pedidas.append(a[2:4])
+        return falso_viajes(*a)
+
+    c = cfg(viajes=VIAJES, destinos={"BER": "Berlín", "LIS": "Lisboa"})
+    por_viaje = vb.buscar_viajes(c, contar)
+    assert set(por_viaje) == {"marzo", "verano"}
+    assert len(pedidas) == 2 * (3 * 2 + 2 * 2) * 2  # destinos × combinaciones de fechas × (directo, escala)
+    marzo = {r.destino: r for r in por_viaje["marzo"][0]}
+    verano = {r.destino: r for r in por_viaje["verano"][0]}
+    assert (marzo["BER"].directo.precio, marzo["BER"].directo.ida.fecha, marzo["BER"].directo.vuelta.fecha) == (99, M1, MV2)
+    assert marzo["LIS"].mejor is None and verano["LIS"].directo.precio == 70 and verano["BER"].directo.precio == 180
+
+
+def test_un_mensaje_por_viaje_historial_y_mapa_por_viaje(tmp_path, monkeypatch):
+    enviados = []
+    monkeypatch.setattr(vb, "notificar", enviados.append)
+    monkeypatch.delenv("MAPA_USUARIO", raising=False)
+    c = cfg(viajes=VIAJES, destinos={"BER": "Berlín", "LIS": "Lisboa"})
+    h, mapa = tmp_path / "h.json", tmp_path / "datos.json"
+    h.write_text('{"iv:BER": 140.0}')  # historial de antes de los viajes: no vale para estas fechas
+    assert vb.ejecutar(c, h, falso_viajes, mapa) == 0
+    assert len(enviados) == 2
+    assert enviados[0].startswith("✈️ Marzo 2027 · vuelos baratos desde MAD · ida 19/20/21 mar → vuelta 28/29 mar 2027")
+    assert "<b>• Berlín (BER): 99 €/pers · 396 € total 🆕</b>" in enviados[0] and "Lisboa" not in enviados[0]
+    assert enviados[1].startswith("✈️ Agosto-septiembre 2027 · vuelos baratos desde MAD · ida 28/29 ago → vuelta 4/5 sep")
+    assert "<b>• Lisboa (LIS): 70 €/pers · 280 € total 🆕</b>" in enviados[1]
+    assert "\n• Berlín (BER): 180 €/pers · 720 € total\n" in enviados[1]  # referencia por encima del límite: sin 🆕
+    historial = json.loads(h.read_text())
+    assert historial["marzo"]["_mostrados"] == ["BER"] and historial["verano"]["_mostrados"] == ["LIS"]
+    datos = json.loads(mapa.read_text())
+    assert [v["id"] for v in datos["viajes"]] == ["marzo", "verano"]
+    assert datos["viajes"][1]["fechas_ida"] == ["2027-08-28", "2027-08-29"]
+    assert [d["codigo"] for d in datos["viajes"][0]["destinos"]] == ["BER"]
+    # Al día siguiente, nada es nuevo.
+    enviados.clear()
+    vb.ejecutar(c, h, falso_viajes, mapa)
+    assert "🆕" not in enviados[0] and "🆕" not in enviados[1]
+
+
+def test_partes_con_varios_viajes(tmp_path):
+    c = cfg(viajes=VIAJES, destinos={"BER": "Berlín", "LIS": "Lisboa"})
+    paths = []
+    for i in range(2):
+        sub = cfg(viajes=VIAJES, destinos=vb.partes_de(c.destinos, i, 2))
+        paths.append(tmp_path / f"parte_{i}.json")
+        vb.guardar_parte(paths[-1], vb.buscar_viajes(sub, falso_viajes))
+    por_viaje = vb.leer_partes(c, paths)
+    assert [r.destino for r in por_viaje["verano"][0]] == ["BER", "LIS"] and por_viaje["verano"][1] == []
+    assert {r.destino: r.mejor and r.mejor.precio for r in por_viaje["marzo"][0]} == {"BER": 99, "LIS": None}

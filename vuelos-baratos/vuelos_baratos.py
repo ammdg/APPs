@@ -71,15 +71,30 @@ class Config:
     mostrar_por_encima: int = 5  # cuántos destinos por encima del precio máximo enseñar como referencia
     pausa_segundos: float = 2
     url_mapa: str = ""  # enlace al mapa (GitHub Pages) que se añade al mensaje
+    viaje_id: str = ""  # cuando hay varios viajes (intervalos de fechas): cuál es este
+    viaje_nombre: str = ""
+    # Varios viajes: [{"id", "nombre", "fechas_ida", "fechas_vuelta"}]. Cada uno se busca y se avisa por separado.
+    viajes: list[dict] = dataclasses.field(default_factory=list)
+
+    def por_viaje(self) -> list["Config"]:
+        """Una configuración por viaje (con sus fechas), o esta misma si no hay viajes."""
+        if not self.viajes:
+            return [self]
+        return [dataclasses.replace(self, fechas_ida=v["fechas_ida"], fechas_vuelta=v["fechas_vuelta"],
+                                    viaje_id=v["id"], viaje_nombre=v.get("nombre", v["id"]), viajes=[])
+                for v in self.viajes]
 
     @classmethod
     def desde_archivo(cls, path: Path) -> "Config":
         d = json.loads(path.read_text(encoding="utf-8"))
         fechas = lambda xs: [datetime.strptime(x, "%Y-%m-%d").date() for x in xs]  # noqa: E731
+        viajes = [{**v, "fechas_ida": fechas(v["fechas_ida"]), "fechas_vuelta": fechas(v["fechas_vuelta"])}
+                  for v in d.get("viajes", [])]
         return cls(
             origen=d["origen"].upper(),
-            fechas_ida=fechas(d["fechas_ida"]),
-            fechas_vuelta=fechas(d["fechas_vuelta"]),
+            fechas_ida=viajes[0]["fechas_ida"] if viajes else fechas(d["fechas_ida"]),
+            fechas_vuelta=viajes[0]["fechas_vuelta"] if viajes else fechas(d["fechas_vuelta"]),
+            viajes=viajes,
             destinos={k.upper(): v for k, v in d["destinos"].items()},
             pasajeros=int(d.get("pasajeros", 1)),
             precio_max_persona=float(d.get("precio_max_persona", 150)),
@@ -391,33 +406,47 @@ def _combinacion_de_dict(d: dict | None) -> Combinacion | None:
     return Combinacion(_vuelo_de_dict(d["ida"]), _vuelo_de_dict(d["vuelta"]), d["billete_unico"])
 
 
-def guardar_parte(path: Path, resultados: list[Resultado], avisos: list[str]) -> None:
+PorViaje = dict[str, tuple[list[Resultado], list[str]]]  # id del viaje -> (resultados, avisos)
+
+
+def buscar_viajes(cfg: Config, buscador_billete: BuscadorBillete = buscar_billete) -> PorViaje:
+    return {v.viaje_id: buscar(v, buscador_billete) for v in cfg.por_viaje()}
+
+
+def guardar_parte(path: Path, por_viaje: PorViaje) -> None:
     datos = {
-        "resultados": [
-            {"destino": r.destino, "nombre": r.nombre, "directo": _combinacion_a_dict(r.billete_directo),
-             "escala": _combinacion_a_dict(r.billete_escala)}
-            for r in resultados
-        ],
-        "avisos": avisos,
+        viaje: {
+            "resultados": [
+                {"destino": r.destino, "nombre": r.nombre, "directo": _combinacion_a_dict(r.billete_directo),
+                 "escala": _combinacion_a_dict(r.billete_escala)}
+                for r in resultados
+            ],
+            "avisos": avisos,
+        }
+        for viaje, (resultados, avisos) in por_viaje.items()
     }
-    path.write_text(json.dumps(datos, indent=1, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps({"viajes": datos}, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
-def leer_partes(cfg: Config, paths: list[Path]) -> tuple[list[Resultado], list[str]]:
-    """Junta las partes en el orden de config.json. Si falta alguna, lo avisa."""
-    por_destino: dict[str, Resultado] = {}
-    avisos: list[str] = []
-    for path in paths:
-        datos = json.loads(path.read_text(encoding="utf-8"))
-        avisos += datos["avisos"]
-        for x in datos["resultados"]:
-            por_destino[x["destino"]] = Resultado(
-                x["destino"], x["nombre"], billete_directo=_combinacion_de_dict(x["directo"]),
-                billete_escala=_combinacion_de_dict(x["escala"]))
-    faltan = [c for c in cfg.destinos if c not in por_destino]
-    if faltan:
-        avisos.append(f"Sin datos de {len(faltan)} destinos (falló alguna parte): {', '.join(faltan)}.")
-    return [por_destino[c] for c in cfg.destinos if c in por_destino], avisos
+def leer_partes(cfg: Config, paths: list[Path]) -> PorViaje:
+    """Junta las partes, por viaje y en el orden de config.json. Si falta alguna, lo avisa."""
+    por_viaje: PorViaje = {}
+    archivos = [json.loads(p.read_text(encoding="utf-8"))["viajes"] for p in paths]
+    for v in cfg.por_viaje():
+        por_destino: dict[str, Resultado] = {}
+        avisos: list[str] = []
+        for datos in archivos:
+            parte = datos.get(v.viaje_id, {"resultados": [], "avisos": []})
+            avisos += parte["avisos"]
+            for x in parte["resultados"]:
+                por_destino[x["destino"]] = Resultado(
+                    x["destino"], x["nombre"], billete_directo=_combinacion_de_dict(x["directo"]),
+                    billete_escala=_combinacion_de_dict(x["escala"]))
+        faltan = [c for c in v.destinos if c not in por_destino]
+        if faltan:
+            avisos.append(f"Sin datos de {len(faltan)} destinos (falló alguna parte): {', '.join(faltan)}.")
+        por_viaje[v.viaje_id] = ([por_destino[c] for c in v.destinos if c in por_destino], avisos)
+    return por_viaje
 
 
 # --------------------------------------------------------------------------- historial y mensaje
@@ -448,6 +477,16 @@ def _clave(r: Resultado, c: Combinacion) -> str:
     # "iv:" = precio de billete de ida y vuelta (antes se guardaba la suma de dos solo idas; así no se
     # comparan precios de distinto tipo).
     return f"iv:{r.destino}+escala" if c.con_escala else f"iv:{r.destino}"
+
+
+MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def _dias(fechas: list[date]) -> str:
+    """19/20/21 mar; si cambian de mes: 31 ago/1 sep."""
+    if len({f.month for f in fechas}) == 1:
+        return "/".join(str(f.day) for f in fechas) + f" {MESES[fechas[0].month - 1]}"
+    return "/".join(f"{f.day} {MESES[f.month - 1]}" for f in fechas)
 
 
 def _euros(x: float) -> str:
@@ -481,11 +520,10 @@ def formatear_mensaje(
     directos_caros = directos_caros[: cfg.mostrar_por_encima]
     escalas_caras = escalas_caras[: cfg.mostrar_por_encima]
 
-    ida = "/".join(f"{f:%d}" for f in cfg.fechas_ida)
-    vuelta = "/".join(f"{f:%d}" for f in cfg.fechas_vuelta)
+    titulo = f"✈️ {cfg.viaje_nombre} · vuelos" if cfg.viaje_nombre else "✈️ Vuelos"
     lineas = [
-        f"✈️ Vuelos baratos desde {cfg.origen} · ida {ida} → vuelta {vuelta} "
-        f"{cfg.fechas_vuelta[0]:%m/%Y} · {cfg.pasajeros} pers.",
+        f"{titulo} baratos desde {cfg.origen} · ida {_dias(cfg.fechas_ida)} → vuelta {_dias(cfg.fechas_vuelta)} "
+        f"{cfg.fechas_vuelta[-1]:%Y} · {cfg.pasajeros} pers.",
         f"🕐 {ahora:%d/%m %H:%M} · {sum(1 for r in resultados if r.mejor)} de {len(cfg.destinos)} destinos "
         "con billete de ida y vuelta",
     ]
@@ -654,28 +692,39 @@ def guardar_datos_mapa(path: Path, datos: dict) -> None:
     path.write_text(json.dumps(datos, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
-def informar(cfg: Config, historial_path: Path, resultados: list[Resultado], avisos: list[str],
-             mapa_path: Path = MAPA_DATOS) -> int:
-    """Manda el mensaje, guarda los datos del mapa y actualiza el historial."""
-    historial = cargar_historial(historial_path)
+def informar(cfg: Config, historial_path: Path, por_viaje: PorViaje, mapa_path: Path = MAPA_DATOS) -> int:
+    """Manda un mensaje por viaje, guarda los datos del mapa y actualiza el historial (uno por viaje)."""
+    guardado = cargar_historial(historial_path)
     ahora = datetime.now(ZONA)
     coordenadas = json.loads((AQUI / "coordenadas.json").read_text(encoding="utf-8"))
-    guardar_datos_mapa(mapa_path, datos_mapa(cfg, resultados, ahora, coordenadas))
-    texto = formatear_mensaje(cfg, resultados, historial, avisos, ahora)
-    print(texto)
-    notificar(texto)
-    nuevo = actualizar_historial(resultados, cfg.precio_max_persona)
-    if nuevo:  # si todo falló, se conserva el historial anterior
-        historial_path.write_text(json.dumps(nuevo, indent=2, ensure_ascii=False), encoding="utf-8")
+    mapa_viajes, nuevo_historial, algun_vuelo = [], {}, False
+    for v in cfg.por_viaje():
+        resultados, avisos = por_viaje.get(v.viaje_id, ([], ["Sin resultados de este viaje."]))
+        # Historial por viaje; uno de antes de haber viajes (sin claves de viaje) no vale para estas fechas.
+        historial = guardado.get(v.viaje_id, {}) if v.viaje_id else guardado
+        mapa_viajes.append({"id": v.viaje_id, "nombre": v.viaje_nombre,
+                            **datos_mapa(v, resultados, ahora, coordenadas)})
+        texto = formatear_mensaje(v, resultados, historial, avisos, ahora)
+        print(texto)
+        notificar(texto)
+        nuevo = actualizar_historial(resultados, v.precio_max_persona) or historial  # si todo falló, el anterior
+        if v.viaje_id:
+            nuevo_historial[v.viaje_id] = nuevo
+        else:
+            nuevo_historial = nuevo
+        algun_vuelo |= any(r.mejor for r in resultados)
+    guardar_datos_mapa(mapa_path, mapa_viajes[0] if not cfg.viajes else
+                       {"actualizado": ahora.isoformat(timespec="minutes"), "viajes": mapa_viajes})
+    if nuevo_historial:
+        historial_path.write_text(json.dumps(nuevo_historial, indent=2, ensure_ascii=False), encoding="utf-8")
     # Falla (y GitHub lo marca en rojo) solo si no se obtuvo ningún vuelo.
-    return 0 if any(r.mejor for r in resultados) else 1
+    return 0 if algun_vuelo else 1
 
 
 def ejecutar(cfg: Config, historial_path: Path, buscador_billete: BuscadorBillete = buscar_billete,
              mapa_path: Path = MAPA_DATOS) -> int:
     """Búsqueda completa en un solo proceso (para usarlo en tu ordenador)."""
-    resultados, avisos = buscar(cfg, buscador_billete)
-    return informar(cfg, historial_path, resultados, avisos, mapa_path)
+    return informar(cfg, historial_path, buscar_viajes(cfg, buscador_billete), mapa_path)
 
 
 def main() -> int:
@@ -693,11 +742,10 @@ def main() -> int:
     cfg = Config.desde_archivo(a.config)
     if a.parte is not None:
         cfg.destinos = partes_de(cfg.destinos, a.parte, a.de)
-        resultados, avisos = buscar(cfg)
-        guardar_parte(AQUI / f"parte_{a.parte}.json", resultados, avisos)
+        guardar_parte(AQUI / f"parte_{a.parte}.json", buscar_viajes(cfg))
         return 0
     if a.informe:
-        return informar(cfg, a.historial, *leer_partes(cfg, a.informe))
+        return informar(cfg, a.historial, leer_partes(cfg, a.informe))
     return ejecutar(cfg, a.historial)
 
 
