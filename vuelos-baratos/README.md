@@ -47,7 +47,7 @@ en `main` (un commit al día de github-actions) y pide que se vuelva a publicar.
 | Campo | Qué es |
 |---|---|
 | `origen` | Aeropuerto de salida (código IATA) |
-| `fechas_ida`, `fechas_vuelta` | Fechas posibles (AAAA-MM-DD); se elige la combinación más barata |
+| `viajes` | Uno o varios viajes, cada uno con `id`, `nombre`, `fechas_ida` y `fechas_vuelta` (AAAA-MM-DD). Para cada viaje y destino se elige la combinación de fechas con el billete de ida y vuelta más barato; llega un mensaje por viaje y el mapa tiene un botón por viaje. (Sin `viajes`, valen `fechas_ida` y `fechas_vuelta` sueltas.) |
 | `pasajeros` | Para calcular el total |
 | `precio_max_persona` | Límite de "barato", ida y vuelta por persona |
 | `incluir_escalas` | `true` = además de los directos, busca vuelos con 1 escala (apartado 🔁) |
@@ -57,10 +57,11 @@ en `main` (un commit al día de github-actions) y pide que se vuelva a publicar.
 | `url_mapa` | Enlace al mapa que se añade al final del mensaje (vacío = sin enlace) |
 | `destinos` | Código IATA → nombre. Añade o quita los que quieras |
 
-Google Flights solo admite un destino y unas fechas por consulta: cada destino son 4 combinaciones de
-fechas × (directo + con escala) = 8 consultas; con ~90 destinos, unas 730. Para que no tarde casi una
-hora, GitHub Actions reparte los destinos en 4 partes que se consultan a la vez y un último paso junta
-los resultados y manda el mensaje. Si Google falla 6 veces seguidas en una parte, esa parte se
+Google Flights solo admite un destino y unas fechas por consulta: cada destino son, por viaje, las
+combinaciones de fechas × (directo + con escala). Con los dos viajes actuales (marzo: 3 idas × 2 vueltas;
+agosto-septiembre: 2 × 2) son 20 consultas por destino; con ~90 destinos, unas 1.800. Para que no tarde
+demasiado, GitHub Actions reparte los destinos en 8 partes que se consultan a la vez y un último paso junta
+los resultados y manda un mensaje por viaje. Si Google falla 6 veces seguidas en una parte, esa parte se
 interrumpe y el mensaje lo indica con ⚠️.
 
 La lista de destinos inicial es aproximada: si un destino no tiene vuelo directo, simplemente no sale.
