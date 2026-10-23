@@ -2,10 +2,11 @@ name: Vuelos baratos
 
 on:
   schedule:
-    # GitHub programa en UTC y no sigue el cambio de hora, así que hay dos horarios y cada día
-    # solo se ejecuta el que cae a las 07:00 de Madrid (ver el job "hora").
-    - cron: "0 5 * * *" # 07:00 en Madrid con horario de verano (UTC+2)
-    - cron: "0 6 * * *" # 07:00 en Madrid con horario de invierno (UTC+1)
+    # GitHub programa en UTC, no sigue el cambio de hora y a veces retrasa o se salta ejecuciones (sobre todo
+    # a las horas en punto). Por eso hay un intento cada hora a los :47 y el job "hora" decide: solo se busca
+    # a partir de las 06:45 de Madrid y si hoy aún no se ha mandado el mensaje. Así el primer intento cae a las
+    # 06:47 de Madrid (verano: 4:47 UTC; invierno: 5:47 UTC) y los siguientes son de reserva.
+    - cron: "47 4,5,6,7,8 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -15,24 +16,38 @@ concurrency:
 jobs:
   hora:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read # para ver si hoy ya hubo una ejecución que mandó el mensaje
     outputs:
       toca: ${{ steps.decidir.outputs.toca }}
     steps:
       - id: decidir
         env:
-          HORARIO: ${{ github.event.schedule }}
+          GH_TOKEN: ${{ github.token }}
+          EVENTO: ${{ github.event_name }}
         run: |
-          # Lanzado a mano: siempre. Programado: solo el horario que corresponde al cambio de hora
-          # vigente en Madrid (se mira qué cron lo lanzó, no la hora real, por si GitHub se retrasa).
-          desfase=$(TZ=Europe/Madrid date +%z)
-          if [ -z "$HORARIO" ] \
-             || { [ "$HORARIO" = "0 5 * * *" ] && [ "$desfase" = "+0200" ]; } \
-             || { [ "$HORARIO" = "0 6 * * *" ] && [ "$desfase" = "+0100" ]; }; then
-            echo "toca=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "toca=false" >> "$GITHUB_OUTPUT"
-            echo "Horario '$HORARIO' no corresponde a las 07:00 de Madrid (desfase $desfase); se omite."
+          # Lanzado a mano: siempre.
+          if [ "$EVENTO" != "schedule" ]; then echo "toca=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          ahora=$(TZ=Europe/Madrid date +%H%M)
+          if [ "$ahora" -lt 0645 ]; then
+            echo "toca=false" >> "$GITHUB_OUTPUT"; echo "Son las $ahora en Madrid: aún es pronto."; exit 0
           fi
+          # ¿Alguna ejecución de hoy (hora de Madrid) llegó a mandar el mensaje (job "informe" correcto)?
+          desde=$(date -u -d "$(TZ=Europe/Madrid date +%Y-%m-%d) 00:00 $(TZ=Europe/Madrid date +%z)" +%Y-%m-%dT%H:%M:%SZ)
+          api="https://api.github.com/repos/${{ github.repository }}/actions"
+          ids=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+            "$api/workflows/vuelos-baratos.yml/runs?created=%3E%3D$desde&per_page=50" \
+            | jq -r --arg yo "${{ github.run_id }}" '.workflow_runs[] | select((.id|tostring) != $yo) | .id')
+          for id in $ids; do
+            if curl -fsS -H "Authorization: Bearer $GH_TOKEN" "$api/runs/$id/jobs" \
+                | jq -e '.jobs[] | select(.name == "informe" and .conclusion == "success")' > /dev/null; then
+              echo "toca=false" >> "$GITHUB_OUTPUT"
+              echo "Hoy ya se mandó el mensaje (ejecución $id); este intento de reserva no hace nada."
+              exit 0
+            fi
+          done
+          echo "toca=true" >> "$GITHUB_OUTPUT"
+          echo "Son las $ahora en Madrid y hoy aún no se ha mandado el mensaje: se busca."
 
   # Los destinos se reparten en partes que se consultan a la vez (cada destino, en cada viaje, son 2 consultas
   # de billete de ida y vuelta por combinación de fechas: directo y con escala); luego "informe" junta y manda
