@@ -1,10 +1,10 @@
 {
- "actualizado": "2026-10-22T07:34+02:00",
+ "actualizado": "2026-10-23T08:39+02:00",
  "viajes": [
   {
    "id": "marzo",
    "nombre": "Marzo 2027",
-   "actualizado": "2026-10-22T07:34+02:00",
+   "actualizado": "2026-10-23T08:39+02:00",
    "origen": {
     "codigo": "MAD",
     "lat": 40.4934,
@@ -172,8 +172,8 @@
      "lat": 53.3494,
      "lon": -2.2795,
      "directo": {
-      "precio": 121.0,
-      "total": 484.0,
+      "precio": 122.0,
+      "total": 488.0,
       "ida": {
        "fecha": "2027-03-20",
        "salida": "06:00",
@@ -199,9 +199,9 @@
       "precio": 132.0,
       "total": 528.0,
       "ida": {
-       "fecha": "2027-03-19",
-       "salida": "12:10",
-       "llegada": "13:50",
+       "fecha": "2027-03-21",
+       "salida": "20:50",
+       "llegada": "22:30",
        "aerolinea": "Volotea",
        "escala": null,
        "espera_min": null
@@ -210,7 +210,7 @@
        "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20NTE%20on%202027-03-19%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20NTE%20on%202027-03-21%20through%202027-03-28"
      },
      "escala": null
     },
@@ -335,30 +335,6 @@
      "escala": null
     },
     {
-     "codigo": "STN",
-     "nombre": "Londres Stansted",
-     "lat": 51.885,
-     "lon": 0.235,
-     "directo": {
-      "precio": 175.0,
-      "total": 700.0,
-      "ida": {
-       "fecha": "2027-03-20",
-       "salida": "18:55",
-       "llegada": "20:25",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20STN%20on%202027-03-20%20through%202027-03-29"
-     },
-     "escala": null
-    },
-    {
      "codigo": "ORY",
      "nombre": "París Orly",
      "lat": 48.7295,
@@ -391,9 +367,9 @@
       "precio": 178.0,
       "total": 712.0,
       "ida": {
-       "fecha": "2027-03-19",
-       "salida": "21:25",
-       "llegada": "22:40",
+       "fecha": "2027-03-20",
+       "salida": "18:10",
+       "llegada": "19:25",
        "aerolinea": "British Airways",
        "escala": null,
        "espera_min": null
@@ -402,7 +378,7 @@
        "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LHR%20on%202027-03-19%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LHR%20on%202027-03-20%20through%202027-03-28"
      },
      "escala": null
     },
@@ -431,13 +407,61 @@
      "escala": null
     },
     {
+     "codigo": "FCO",
+     "nombre": "Roma",
+     "lat": 41.8045,
+     "lon": 12.252,
+     "directo": {
+      "precio": 185.0,
+      "total": 740.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "05:55",
+       "llegada": "08:25",
+       "aerolinea": "Wizz Air",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FCO%20on%202027-03-21%20through%202027-03-29"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "STN",
+     "nombre": "Londres Stansted",
+     "lat": 51.885,
+     "lon": 0.235,
+     "directo": {
+      "precio": 186.0,
+      "total": 744.0,
+      "ida": {
+       "fecha": "2027-03-20",
+       "salida": "18:55",
+       "llegada": "20:25",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20STN%20on%202027-03-20%20through%202027-03-29"
+     },
+     "escala": null
+    },
+    {
      "codigo": "BGY",
      "nombre": "Bérgamo",
      "lat": 45.6694,
      "lon": 9.7089,
      "directo": {
-      "precio": 188.0,
-      "total": 752.0,
+      "precio": 187.0,
+      "total": 748.0,
       "ida": {
        "fecha": "2027-03-21",
        "salida": "06:15",
@@ -455,18 +479,18 @@
      "escala": null
     },
     {
-     "codigo": "FCO",
-     "nombre": "Roma",
-     "lat": 41.8045,
-     "lon": 12.252,
+     "codigo": "LGW",
+     "nombre": "Londres Gatwick",
+     "lat": 51.1487,
+     "lon": -0.1857,
      "directo": {
-      "precio": 193.0,
-      "total": 772.0,
+      "precio": 207.0,
+      "total": 828.0,
       "ida": {
-       "fecha": "2027-03-21",
-       "salida": "05:55",
-       "llegada": "08:15",
-       "aerolinea": "ITA",
+       "fecha": "2027-03-20",
+       "salida": "16:45",
+       "llegada": "18:10",
+       "aerolinea": "easyJet",
        "escala": null,
        "espera_min": null
       },
@@ -474,16 +498,9 @@
        "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FCO%20on%202027-03-21%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LGW%20on%202027-03-20%20through%202027-03-29"
      },
-     "escala": null
-    },
-    {
-     "codigo": "LGW",
-     "nombre": "Londres Gatwick",
-     "lat": 51.1487,
-     "lon": -0.1857,
-     "directo": {
+     "escala": {
       "precio": 201.0,
       "total": 804.0,
       "ida": {
@@ -496,11 +513,10 @@
       },
       "vuelta": {
        "fecha": "2027-03-29",
-       "con_escala": false
+       "con_escala": true
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LGW%20on%202027-03-19%20through%202027-03-29"
-     },
-     "escala": null
+     }
     },
     {
      "codigo": "ZRH",
@@ -527,18 +543,18 @@
      "escala": null
     },
     {
-     "codigo": "DUB",
-     "nombre": "Dublín",
-     "lat": 53.4287,
-     "lon": -6.2621,
+     "codigo": "SOF",
+     "nombre": "Sofía",
+     "lat": 42.6964,
+     "lon": 23.4177,
      "directo": {
       "precio": 205.0,
       "total": 820.0,
       "ida": {
-       "fecha": "2027-03-21",
-       "salida": "10:40",
-       "llegada": "12:20",
-       "aerolinea": "Aer Lingus",
+       "fecha": "2027-03-19",
+       "salida": "20:35",
+       "llegada": "01:10",
+       "aerolinea": "Wizz Air",
        "escala": null,
        "espera_min": null
       },
@@ -546,7 +562,7 @@
        "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DUB%20on%202027-03-21%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SOF%20on%202027-03-19%20through%202027-03-29"
      },
      "escala": null
     },
@@ -623,30 +639,6 @@
      "escala": null
     },
     {
-     "codigo": "SOF",
-     "nombre": "Sofía",
-     "lat": 42.6964,
-     "lon": 23.4177,
-     "directo": {
-      "precio": 212.0,
-      "total": 848.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "17:20",
-       "llegada": "21:50",
-       "aerolinea": "Bulgaria Air",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SOF%20on%202027-03-19%20through%202027-03-29"
-     },
-     "escala": null
-    },
-    {
      "codigo": "GVA",
      "nombre": "Ginebra",
      "lat": 46.2381,
@@ -676,6 +668,23 @@
      "lat": 35.8459,
      "lon": 14.4915,
      "directo": {
+      "precio": 229.0,
+      "total": 916.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "13:20",
+       "llegada": "16:00",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MLA%20on%202027-03-21%20through%202027-03-29"
+     },
+     "escala": {
       "precio": 216.0,
       "total": 864.0,
       "ida": {
@@ -688,33 +697,32 @@
       },
       "vuelta": {
        "fecha": "2027-03-29",
-       "con_escala": false
+       "con_escala": true
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MLA%20on%202027-03-19%20through%202027-03-29"
-     },
-     "escala": null
+     }
     },
     {
-     "codigo": "DUS",
-     "nombre": "Düsseldorf",
-     "lat": 51.2895,
-     "lon": 6.7668,
+     "codigo": "DUB",
+     "nombre": "Dublín",
+     "lat": 53.4287,
+     "lon": -6.2621,
      "directo": {
-      "precio": 220.0,
-      "total": 880.0,
+      "precio": 217.0,
+      "total": 868.0,
       "ida": {
-       "fecha": "2027-03-20",
-       "salida": "08:45",
-       "llegada": "11:20",
-       "aerolinea": "Iberia",
+       "fecha": "2027-03-21",
+       "salida": "10:40",
+       "llegada": "12:20",
+       "aerolinea": "Aer Lingus",
        "escala": null,
        "espera_min": null
       },
       "vuelta": {
-       "fecha": "2027-03-28",
+       "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DUS%20on%202027-03-20%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DUB%20on%202027-03-21%20through%202027-03-29"
      },
      "escala": null
     },
@@ -748,6 +756,23 @@
      "lat": 55.6179,
      "lon": 12.656,
      "directo": {
+      "precio": 322.0,
+      "total": 1288.0,
+      "ida": {
+       "fecha": "2027-03-19",
+       "salida": "06:30",
+       "llegada": "09:45",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CPH%20on%202027-03-19%20through%202027-03-28"
+     },
+     "escala": {
       "precio": 221.0,
       "total": 884.0,
       "ida": {
@@ -760,11 +785,10 @@
       },
       "vuelta": {
        "fecha": "2027-03-28",
-       "con_escala": false
+       "con_escala": true
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CPH%20on%202027-03-21%20through%202027-03-28"
-     },
-     "escala": null
+     }
     },
     {
      "codigo": "WAW",
@@ -787,6 +811,54 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20WAW%20on%202027-03-19%20through%202027-03-28"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "EDI",
+     "nombre": "Edimburgo",
+     "lat": 55.9501,
+     "lon": -3.3723,
+     "directo": {
+      "precio": 226.0,
+      "total": 904.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "20:50",
+       "llegada": "22:50",
+       "aerolinea": "easyJet",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20EDI%20on%202027-03-21%20through%202027-03-28"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "DUS",
+     "nombre": "Düsseldorf",
+     "lat": 51.2895,
+     "lon": 6.7668,
+     "directo": {
+      "precio": 226.0,
+      "total": 904.0,
+      "ida": {
+       "fecha": "2027-03-20",
+       "salida": "08:45",
+       "llegada": "11:20",
+       "aerolinea": "Iberia",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DUS%20on%202027-03-20%20through%202027-03-28"
      },
      "escala": null
     },
@@ -863,46 +935,6 @@
      "escala": null
     },
     {
-     "codigo": "RAK",
-     "nombre": "Marrakech",
-     "lat": 31.6048,
-     "lon": -8.0358,
-     "directo": {
-      "precio": 242.0,
-      "total": 968.0,
-      "ida": {
-       "fecha": "2027-03-21",
-       "salida": "09:50",
-       "llegada": "10:55",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20RAK%20on%202027-03-21%20through%202027-03-29"
-     },
-     "escala": {
-      "precio": 237.0,
-      "total": 948.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "19:05",
-       "llegada": "21:55",
-       "aerolinea": "Royal Air Maroc",
-       "escala": "CMN",
-       "espera_min": 75
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20RAK%20on%202027-03-19%20through%202027-03-28"
-     }
-    },
-    {
      "codigo": "PRG",
      "nombre": "Praga",
      "lat": 50.1009,
@@ -923,30 +955,6 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PRG%20on%202027-03-21%20through%202027-03-29"
-     },
-     "escala": null
-    },
-    {
-     "codigo": "CDG",
-     "nombre": "París CDG",
-     "lat": 49.009,
-     "lon": 2.5541,
-     "directo": {
-      "precio": 240.0,
-      "total": 960.0,
-      "ida": {
-       "fecha": "2027-03-20",
-       "salida": "21:40",
-       "llegada": "23:50",
-       "aerolinea": "Iberia",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CDG%20on%202027-03-20%20through%202027-03-28"
      },
      "escala": null
     },
@@ -999,18 +1007,42 @@
      "escala": null
     },
     {
-     "codigo": "EDI",
-     "nombre": "Edimburgo",
-     "lat": 55.9501,
-     "lon": -3.3723,
+     "codigo": "RAK",
+     "nombre": "Marrakech",
+     "lat": 31.6048,
+     "lon": -8.0358,
      "directo": {
       "precio": 242.0,
       "total": 968.0,
       "ida": {
        "fecha": "2027-03-21",
-       "salida": "20:50",
-       "llegada": "22:50",
-       "aerolinea": "easyJet",
+       "salida": "09:50",
+       "llegada": "10:55",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20RAK%20on%202027-03-21%20through%202027-03-29"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "CDG",
+     "nombre": "París CDG",
+     "lat": 49.009,
+     "lon": 2.5541,
+     "directo": {
+      "precio": 245.0,
+      "total": 980.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "20:05",
+       "llegada": "22:15",
+       "aerolinea": "Air France",
        "escala": null,
        "espera_min": null
       },
@@ -1018,7 +1050,7 @@
        "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20EDI%20on%202027-03-21%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CDG%20on%202027-03-21%20through%202027-03-28"
      },
      "escala": null
     },
@@ -1095,6 +1127,30 @@
      "escala": null
     },
     {
+     "codigo": "PSA",
+     "nombre": "Pisa",
+     "lat": 43.6839,
+     "lon": 10.3927,
+     "directo": {
+      "precio": 260.0,
+      "total": 1040.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "14:10",
+       "llegada": "16:25",
+       "aerolinea": "Wizz Air",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PSA%20on%202027-03-21%20through%202027-03-28"
+     },
+     "escala": null
+    },
+    {
      "codigo": "TRN",
      "nombre": "Turín",
      "lat": 45.2008,
@@ -1119,28 +1175,44 @@
      "escala": null
     },
     {
-     "codigo": "PSA",
-     "nombre": "Pisa",
-     "lat": 43.6839,
-     "lon": 10.3927,
+     "codigo": "KRK",
+     "nombre": "Cracovia",
+     "lat": 50.0777,
+     "lon": 19.7848,
      "directo": {
-      "precio": 270.0,
-      "total": 1080.0,
+      "precio": 299.0,
+      "total": 1196.0,
       "ida": {
-       "fecha": "2027-03-21",
-       "salida": "14:10",
-       "llegada": "16:25",
-       "aerolinea": "Wizz Air",
+       "fecha": "2027-03-19",
+       "salida": "20:00",
+       "llegada": "23:25",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20KRK%20on%202027-03-19%20through%202027-03-29"
+     },
+     "escala": {
+      "precio": 272.0,
+      "total": 1088.0,
+      "ida": {
+       "fecha": "2027-03-19",
+       "salida": "20:00",
+       "llegada": "23:25",
+       "aerolinea": "Ryanair",
        "escala": null,
        "espera_min": null
       },
       "vuelta": {
        "fecha": "2027-03-28",
-       "con_escala": false
+       "con_escala": true
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PSA%20on%202027-03-21%20through%202027-03-28"
-     },
-     "escala": null
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20KRK%20on%202027-03-19%20through%202027-03-28"
+     }
     },
     {
      "codigo": "ARN",
@@ -1191,6 +1263,46 @@
      "escala": null
     },
     {
+     "codigo": "FNC",
+     "nombre": "Madeira",
+     "lat": 32.6978,
+     "lon": -16.7746,
+     "directo": {
+      "precio": 564.0,
+      "total": 2256.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "11:50",
+       "llegada": "13:30",
+       "aerolinea": "Iberia",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FNC%20on%202027-03-21%20through%202027-03-28"
+     },
+     "escala": {
+      "precio": 277.0,
+      "total": 1108.0,
+      "ida": {
+       "fecha": "2027-03-20",
+       "salida": "21:10",
+       "llegada": "01:00",
+       "aerolinea": "Tap Air Portugal",
+       "escala": "LIS",
+       "espera_min": 95
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FNC%20on%202027-03-20%20through%202027-03-28"
+     }
+    },
+    {
      "codigo": "OSL",
      "nombre": "Oslo",
      "lat": 60.1939,
@@ -1231,10 +1343,10 @@
        "espera_min": null
       },
       "vuelta": {
-       "fecha": "2027-03-28",
+       "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BUD%20on%202027-03-19%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BUD%20on%202027-03-19%20through%202027-03-29"
      },
      "escala": null
     },
@@ -1303,46 +1415,6 @@
      "escala": null
     },
     {
-     "codigo": "FNC",
-     "nombre": "Madeira",
-     "lat": 32.6978,
-     "lon": -16.7746,
-     "directo": {
-      "precio": 564.0,
-      "total": 2256.0,
-      "ida": {
-       "fecha": "2027-03-21",
-       "salida": "11:50",
-       "llegada": "13:30",
-       "aerolinea": "Iberia",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FNC%20on%202027-03-21%20through%202027-03-28"
-     },
-     "escala": {
-      "precio": 293.0,
-      "total": 1172.0,
-      "ida": {
-       "fecha": "2027-03-20",
-       "salida": "21:10",
-       "llegada": "01:00",
-       "aerolinea": "Tap Air Portugal",
-       "escala": "LIS",
-       "espera_min": 95
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20FNC%20on%202027-03-20%20through%202027-03-28"
-     }
-    },
-    {
      "codigo": "ATH",
      "nombre": "Atenas",
      "lat": 37.9364,
@@ -1383,77 +1455,13 @@
      }
     },
     {
-     "codigo": "PMO",
-     "nombre": "Palermo",
-     "lat": 38.176,
-     "lon": 13.091,
-     "directo": {
-      "precio": 400.0,
-      "total": 1600.0,
-      "ida": {
-       "fecha": "2027-03-20",
-       "salida": "22:35",
-       "llegada": "01:05",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PMO%20on%202027-03-20%20through%202027-03-28"
-     },
-     "escala": {
-      "precio": 299.0,
-      "total": 1196.0,
-      "ida": {
-       "fecha": "2027-03-21",
-       "salida": "05:55",
-       "llegada": "11:50",
-       "aerolinea": "ITA",
-       "escala": "FCO",
-       "espera_min": 145
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PMO%20on%202027-03-21%20through%202027-03-29"
-     }
-    },
-    {
-     "codigo": "KRK",
-     "nombre": "Cracovia",
-     "lat": 50.0777,
-     "lon": 19.7848,
-     "directo": {
-      "precio": 299.0,
-      "total": 1196.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "20:00",
-       "llegada": "23:25",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20KRK%20on%202027-03-19%20through%202027-03-28"
-     },
-     "escala": null
-    },
-    {
      "codigo": "CTA",
      "nombre": "Catania",
      "lat": 37.4668,
      "lon": 15.0664,
      "directo": {
-      "precio": 447.0,
-      "total": 1788.0,
+      "precio": 446.0,
+      "total": 1784.0,
       "ida": {
        "fecha": "2027-03-20",
        "salida": "06:05",
@@ -1517,8 +1525,8 @@
      "lon": -25.6979,
      "directo": null,
      "escala": {
-      "precio": 307.0,
-      "total": 1228.0,
+      "precio": 304.0,
+      "total": 1216.0,
       "ida": {
        "fecha": "2027-03-21",
        "salida": "14:55",
@@ -1533,30 +1541,6 @@
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PDL%20on%202027-03-21%20through%202027-03-29"
      }
-    },
-    {
-     "codigo": "SAW",
-     "nombre": "Estambul Sabiha",
-     "lat": 40.8986,
-     "lon": 29.3092,
-     "directo": {
-      "precio": 308.0,
-      "total": 1232.0,
-      "ida": {
-       "fecha": "2027-03-21",
-       "salida": "12:40",
-       "llegada": "18:50",
-       "aerolinea": "Pegasus",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SAW%20on%202027-03-21%20through%202027-03-28"
-     },
-     "escala": null
     },
     {
      "codigo": "HEL",
@@ -1596,6 +1580,70 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20HEL%20on%202027-03-21%20through%202027-03-29"
+     }
+    },
+    {
+     "codigo": "SAW",
+     "nombre": "Estambul Sabiha",
+     "lat": 40.8986,
+     "lon": 29.3092,
+     "directo": {
+      "precio": 310.0,
+      "total": 1240.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "12:40",
+       "llegada": "18:50",
+       "aerolinea": "Pegasus",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-28",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SAW%20on%202027-03-21%20through%202027-03-28"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "PMO",
+     "nombre": "Palermo",
+     "lat": 38.176,
+     "lon": 13.091,
+     "directo": {
+      "precio": 352.0,
+      "total": 1408.0,
+      "ida": {
+       "fecha": "2027-03-20",
+       "salida": "22:35",
+       "llegada": "01:05",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PMO%20on%202027-03-20%20through%202027-03-29"
+     },
+     "escala": {
+      "precio": 314.0,
+      "total": 1256.0,
+      "ida": {
+       "fecha": "2027-03-21",
+       "salida": "05:55",
+       "llegada": "11:50",
+       "aerolinea": "ITA",
+       "escala": "FCO",
+       "espera_min": 145
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PMO%20on%202027-03-21%20through%202027-03-29"
      }
     },
     {
@@ -1692,8 +1740,8 @@
      "lat": 33.9273,
      "lon": -4.978,
      "directo": {
-      "precio": 365.0,
-      "total": 1460.0,
+      "precio": 351.0,
+      "total": 1404.0,
       "ida": {
        "fecha": "2027-03-19",
        "salida": "16:15",
@@ -1716,13 +1764,13 @@
      "lat": 30.1115,
      "lon": 31.3967,
      "directo": {
-      "precio": 864.0,
-      "total": 3456.0,
+      "precio": 1073.0,
+      "total": 4292.0,
       "ida": {
-       "fecha": "2027-03-20",
-       "salida": "16:30",
-       "llegada": "22:15",
-       "aerolinea": "Iberia Express",
+       "fecha": "2027-03-21",
+       "salida": "14:50",
+       "llegada": "20:40",
+       "aerolinea": "EgyptAir",
        "escala": null,
        "espera_min": null
       },
@@ -1730,7 +1778,7 @@
        "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CAI%20on%202027-03-20%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CAI%20on%202027-03-21%20through%202027-03-29"
      },
      "escala": {
       "precio": 370.0,
@@ -1999,30 +2047,6 @@
      }
     },
     {
-     "codigo": "JTR",
-     "nombre": "Santorini",
-     "lat": 36.4,
-     "lon": 25.4786,
-     "directo": null,
-     "escala": {
-      "precio": 585.0,
-      "total": 2340.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "14:20",
-       "llegada": "21:10",
-       "aerolinea": "SKY express",
-       "escala": "ATH",
-       "espera_min": 90
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JTR%20on%202027-03-19%20through%202027-03-29"
-     }
-    },
-    {
      "codigo": "MIA",
      "nombre": "Miami",
      "lat": 25.796,
@@ -2045,45 +2069,45 @@
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-03-19%20through%202027-03-29"
      },
      "escala": {
-      "precio": 604.0,
-      "total": 2416.0,
+      "precio": 573.0,
+      "total": 2292.0,
       "ida": {
        "fecha": "2027-03-21",
-       "salida": "05:55",
-       "llegada": "17:15",
-       "aerolinea": "ITA",
-       "escala": "FCO",
-       "espera_min": 125
-      },
-      "vuelta": {
-       "fecha": "2027-03-28",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-03-21%20through%202027-03-28"
-     }
-    },
-    {
-     "codigo": "BRI",
-     "nombre": "Bari",
-     "lat": 41.1389,
-     "lon": 16.7606,
-     "directo": null,
-     "escala": {
-      "precio": 652.0,
-      "total": 2608.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "12:00",
-       "llegada": "17:35",
-       "aerolinea": "Lufthansa City Airlines, Air Dolomiti",
-       "escala": "MUC",
-       "espera_min": 85
+       "salida": "07:40",
+       "llegada": "15:50",
+       "aerolinea": "Tap Air Portugal",
+       "escala": "LIS",
+       "espera_min": 115
       },
       "vuelta": {
        "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BRI%20on%202027-03-19%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-03-21%20through%202027-03-29"
+     }
+    },
+    {
+     "codigo": "JTR",
+     "nombre": "Santorini",
+     "lat": 36.4,
+     "lon": 25.4786,
+     "directo": null,
+     "escala": {
+      "precio": 585.0,
+      "total": 2340.0,
+      "ida": {
+       "fecha": "2027-03-19",
+       "salida": "14:20",
+       "llegada": "21:10",
+       "aerolinea": "SKY express",
+       "escala": "ATH",
+       "espera_min": 90
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JTR%20on%202027-03-19%20through%202027-03-29"
      }
     },
     {
@@ -2111,6 +2135,30 @@
      "escala": null
     },
     {
+     "codigo": "BRI",
+     "nombre": "Bari",
+     "lat": 41.1389,
+     "lon": 16.7606,
+     "directo": null,
+     "escala": {
+      "precio": 720.0,
+      "total": 2880.0,
+      "ida": {
+       "fecha": "2027-03-19",
+       "salida": "12:00",
+       "llegada": "17:35",
+       "aerolinea": "Lufthansa City Airlines, Air Dolomiti",
+       "escala": "MUC",
+       "espera_min": 85
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BRI%20on%202027-03-19%20through%202027-03-29"
+     }
+    },
+    {
      "codigo": "LIM",
      "nombre": "Lima",
      "lat": -12.0219,
@@ -2127,16 +2175,16 @@
        "espera_min": null
       },
       "vuelta": {
-       "fecha": "2027-03-28",
+       "fecha": "2027-03-29",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-03-19%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-03-19%20through%202027-03-29"
      },
      "escala": {
       "precio": 748.0,
       "total": 2992.0,
       "ida": {
-       "fecha": "2027-03-21",
+       "fecha": "2027-03-20",
        "salida": "01:25",
        "llegada": "10:40",
        "aerolinea": "Avianca",
@@ -2147,7 +2195,7 @@
        "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-03-21%20through%202027-03-28"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20LIM%20on%202027-03-20%20through%202027-03-28"
      }
     },
     {
@@ -2167,10 +2215,10 @@
        "espera_min": null
       },
       "vuelta": {
-       "fecha": "2027-03-29",
+       "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BOG%20on%202027-03-19%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20BOG%20on%202027-03-19%20through%202027-03-28"
      },
      "escala": null
     },
@@ -2208,10 +2256,10 @@
        "espera_min": 130
       },
       "vuelta": {
-       "fecha": "2027-03-29",
+       "fecha": "2027-03-28",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-03-19%20through%202027-03-29"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MEX%20on%202027-03-19%20through%202027-03-28"
      }
     },
     {
@@ -2255,46 +2303,6 @@
      }
     },
     {
-     "codigo": "PUJ",
-     "nombre": "Punta Cana",
-     "lat": 18.5671,
-     "lon": -68.3646,
-     "directo": {
-      "precio": 1233.0,
-      "total": 4932.0,
-      "ida": {
-       "fecha": "2027-03-19",
-       "salida": "16:40",
-       "llegada": "20:45",
-       "aerolinea": "Air Europa",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PUJ%20on%202027-03-19%20through%202027-03-29"
-     },
-     "escala": {
-      "precio": 959.0,
-      "total": 3836.0,
-      "ida": {
-       "fecha": "2027-03-20",
-       "salida": "10:00",
-       "llegada": "19:05",
-       "aerolinea": "Air France",
-       "escala": "CDG",
-       "espera_min": 140
-      },
-      "vuelta": {
-       "fecha": "2027-03-29",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PUJ%20on%202027-03-20%20through%202027-03-29"
-     }
-    },
-    {
      "codigo": "EZE",
      "nombre": "Buenos Aires",
      "lat": -34.8222,
@@ -2317,6 +2325,46 @@
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20EZE%20on%202027-03-19%20through%202027-03-28"
      },
      "escala": null
+    },
+    {
+     "codigo": "PUJ",
+     "nombre": "Punta Cana",
+     "lat": 18.5671,
+     "lon": -68.3646,
+     "directo": {
+      "precio": 1233.0,
+      "total": 4932.0,
+      "ida": {
+       "fecha": "2027-03-19",
+       "salida": "16:40",
+       "llegada": "20:45",
+       "aerolinea": "Air Europa",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PUJ%20on%202027-03-19%20through%202027-03-29"
+     },
+     "escala": {
+      "precio": 1004.0,
+      "total": 4016.0,
+      "ida": {
+       "fecha": "2027-03-20",
+       "salida": "10:00",
+       "llegada": "19:05",
+       "aerolinea": "Air France",
+       "escala": "CDG",
+       "espera_min": 140
+      },
+      "vuelta": {
+       "fecha": "2027-03-29",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20PUJ%20on%202027-03-20%20through%202027-03-29"
+     }
     },
     {
      "codigo": "HAV",
@@ -2347,7 +2395,7 @@
   {
    "id": "verano",
    "nombre": "Agosto-septiembre 2027",
-   "actualizado": "2026-10-22T07:34+02:00",
+   "actualizado": "2026-10-23T08:39+02:00",
    "origen": {
     "codigo": "MAD",
     "lat": 40.4934,
@@ -2653,6 +2701,46 @@
      "escala": null
     },
     {
+     "codigo": "MLA",
+     "nombre": "Malta",
+     "lat": 35.8459,
+     "lon": 14.4915,
+     "directo": {
+      "precio": 141.0,
+      "total": 564.0,
+      "ida": {
+       "fecha": "2027-08-28",
+       "salida": "06:15",
+       "llegada": "09:00",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-09-05",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MLA%20on%202027-08-28%20through%202027-09-05"
+     },
+     "escala": {
+      "precio": 131.0,
+      "total": 524.0,
+      "ida": {
+       "fecha": "2027-08-28",
+       "salida": "06:15",
+       "llegada": "09:00",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-09-04",
+       "con_escala": true
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MLA%20on%202027-08-28%20through%202027-09-04"
+     }
+    },
+    {
      "codigo": "BRU",
      "nombre": "Bruselas",
      "lat": 50.9014,
@@ -2769,30 +2857,6 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20CDG%20on%202027-08-28%20through%202027-09-04"
-     },
-     "escala": null
-    },
-    {
-     "codigo": "MLA",
-     "nombre": "Malta",
-     "lat": 35.8459,
-     "lon": 14.4915,
-     "directo": {
-      "precio": 141.0,
-      "total": 564.0,
-      "ida": {
-       "fecha": "2027-08-28",
-       "salida": "06:15",
-       "llegada": "09:00",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-09-04",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MLA%20on%202027-08-28%20through%202027-09-04"
      },
      "escala": null
     },
@@ -2957,10 +3021,34 @@
        "espera_min": null
       },
       "vuelta": {
-       "fecha": "2027-09-04",
+       "fecha": "2027-09-05",
        "con_escala": false
       },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20AMS%20on%202027-08-28%20through%202027-09-04"
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20AMS%20on%202027-08-28%20through%202027-09-05"
+     },
+     "escala": null
+    },
+    {
+     "codigo": "STN",
+     "nombre": "Londres Stansted",
+     "lat": 51.885,
+     "lon": 0.235,
+     "directo": {
+      "precio": 177.0,
+      "total": 708.0,
+      "ida": {
+       "fecha": "2027-08-28",
+       "salida": "06:30",
+       "llegada": "07:55",
+       "aerolinea": "Ryanair",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-09-05",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20STN%20on%202027-08-28%20through%202027-09-05"
      },
      "escala": null
     },
@@ -3057,30 +3145,6 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20SOF%20on%202027-08-28%20through%202027-09-05"
-     },
-     "escala": null
-    },
-    {
-     "codigo": "STN",
-     "nombre": "Londres Stansted",
-     "lat": 51.885,
-     "lon": 0.235,
-     "directo": {
-      "precio": 191.0,
-      "total": 764.0,
-      "ida": {
-       "fecha": "2027-08-28",
-       "salida": "06:30",
-       "llegada": "07:55",
-       "aerolinea": "Ryanair",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-09-05",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20STN%20on%202027-08-28%20through%202027-09-05"
      },
      "escala": null
     },
@@ -3453,30 +3517,6 @@
      }
     },
     {
-     "codigo": "ARN",
-     "nombre": "Estocolmo",
-     "lat": 59.6485,
-     "lon": 17.9288,
-     "directo": null,
-     "escala": {
-      "precio": 287.0,
-      "total": 1148.0,
-      "ida": {
-       "fecha": "2027-08-29",
-       "salida": "12:20",
-       "llegada": "18:00",
-       "aerolinea": "Norwegian",
-       "escala": "OSL",
-       "espera_min": 70
-      },
-      "vuelta": {
-       "fecha": "2027-09-04",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20ARN%20on%202027-08-29%20through%202027-09-04"
-     }
-    },
-    {
      "codigo": "BRI",
      "nombre": "Bari",
      "lat": 41.1389,
@@ -3525,6 +3565,30 @@
      "escala": null
     },
     {
+     "codigo": "ARN",
+     "nombre": "Estocolmo",
+     "lat": 59.6485,
+     "lon": 17.9288,
+     "directo": null,
+     "escala": {
+      "precio": 350.0,
+      "total": 1400.0,
+      "ida": {
+       "fecha": "2027-08-29",
+       "salida": "12:20",
+       "llegada": "18:00",
+       "aerolinea": "Norwegian",
+       "escala": "OSL",
+       "espera_min": 70
+      },
+      "vuelta": {
+       "fecha": "2027-09-04",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20ARN%20on%202027-08-29%20through%202027-09-04"
+     }
+    },
+    {
      "codigo": "SAW",
      "nombre": "Estambul Sabiha",
      "lat": 40.8986,
@@ -3571,8 +3635,8 @@
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-08-29%20through%202027-09-05"
      },
      "escala": {
-      "precio": 437.0,
-      "total": 1748.0,
+      "precio": 517.0,
+      "total": 2068.0,
       "ida": {
        "fecha": "2027-08-28",
        "salida": "05:55",
@@ -3586,46 +3650,6 @@
        "con_escala": false
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20DXB%20on%202027-08-28%20through%202027-09-04"
-     }
-    },
-    {
-     "codigo": "JFK",
-     "nombre": "Nueva York",
-     "lat": 40.6394,
-     "lon": -73.7793,
-     "directo": {
-      "precio": 623.0,
-      "total": 2492.0,
-      "ida": {
-       "fecha": "2027-08-28",
-       "salida": "15:35",
-       "llegada": "17:45",
-       "aerolinea": "Air Europa",
-       "escala": null,
-       "espera_min": null
-      },
-      "vuelta": {
-       "fecha": "2027-09-04",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JFK%20on%202027-08-28%20through%202027-09-04"
-     },
-     "escala": {
-      "precio": 549.0,
-      "total": 2196.0,
-      "ida": {
-       "fecha": "2027-08-29",
-       "salida": "13:40",
-       "llegada": "20:05",
-       "aerolinea": "Tap Air Portugal",
-       "escala": "LIS",
-       "espera_min": 175
-      },
-      "vuelta": {
-       "fecha": "2027-09-04",
-       "con_escala": false
-      },
-      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JFK%20on%202027-08-29%20through%202027-09-04"
      }
     },
     {
@@ -3666,6 +3690,46 @@
        "con_escala": true
       },
       "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20MIA%20on%202027-08-28%20through%202027-09-05"
+     }
+    },
+    {
+     "codigo": "JFK",
+     "nombre": "Nueva York",
+     "lat": 40.6394,
+     "lon": -73.7793,
+     "directo": {
+      "precio": 623.0,
+      "total": 2492.0,
+      "ida": {
+       "fecha": "2027-08-28",
+       "salida": "15:35",
+       "llegada": "17:45",
+       "aerolinea": "Air Europa",
+       "escala": null,
+       "espera_min": null
+      },
+      "vuelta": {
+       "fecha": "2027-09-04",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JFK%20on%202027-08-28%20through%202027-09-04"
+     },
+     "escala": {
+      "precio": 574.0,
+      "total": 2296.0,
+      "ida": {
+       "fecha": "2027-08-28",
+       "salida": "13:40",
+       "llegada": "20:05",
+       "aerolinea": "Tap Air Portugal",
+       "escala": "LIS",
+       "espera_min": 175
+      },
+      "vuelta": {
+       "fecha": "2027-09-04",
+       "con_escala": false
+      },
+      "google_flights": "https://www.google.com/travel/flights?hl=es&curr=EUR&q=Flights%20from%20MAD%20to%20JFK%20on%202027-08-28%20through%202027-09-04"
      }
     },
     {
@@ -3722,8 +3786,8 @@
      "lat": -12.0219,
      "lon": -77.1143,
      "directo": {
-      "precio": 842.0,
-      "total": 3368.0,
+      "precio": 941.0,
+      "total": 3764.0,
       "ida": {
        "fecha": "2027-08-28",
        "salida": "11:00",
@@ -3746,8 +3810,8 @@
      "lat": 19.4358,
      "lon": -99.0703,
      "directo": {
-      "precio": 1117.0,
-      "total": 4468.0,
+      "precio": 1127.0,
+      "total": 4508.0,
       "ida": {
        "fecha": "2027-08-28",
        "salida": "13:15",
