@@ -62,3 +62,28 @@ def test_actualizar_usa_reserva_y_anota_errores():
     assert datos["fondos"]["A"]["historial"] == [["2026-11-20", 5.0]]
     assert datos["fondos"]["A"]["fuente"] == "quefondos"
     assert "error" in datos["fondos"]["B"]
+
+
+def _p(fuente, fecha, nav):
+    return {"fuente": fuente, "fecha": fecha, "nav": nav, "moneda": "EUR"}
+
+
+def test_elegir_precio_exacto_si_cuadra():
+    precio, aviso = p.elegir(_p("ft", "2026-11-19", 11.99), _p("quefondos", "2026-11-19", 11.989))
+    assert precio["nav"] == 11.989 and aviso is None
+
+
+def test_elegir_ft_si_no_cuadra():
+    precio, aviso = p.elegir(_p("ft", "2026-11-19", 11.99), _p("quefondos", "2026-11-19", 1.199))
+    assert precio["fuente"] == "ft" and aviso
+
+
+def test_elegir_el_mas_reciente():
+    assert p.elegir(_p("ft", "2026-11-20", 10), _p("quefondos", "2026-11-19", 10.0001))[0]["fuente"] == "ft"
+    assert p.elegir(_p("ft", "2026-11-19", 10), _p("quefondos", "2026-11-20", 10.2))[0]["fuente"] == "quefondos"
+    assert p.elegir(_p("ft", "2026-11-19", 10), _p("quefondos", "2026-11-20", 20))[0]["fuente"] == "ft"
+
+
+def test_elegir_con_una_sola_fuente():
+    assert p.elegir(None, _p("quefondos", "2026-11-19", 5))[0]["fuente"] == "quefondos"
+    assert p.elegir(None, None)[0] is None

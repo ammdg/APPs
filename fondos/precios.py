@@ -111,18 +111,45 @@ def de_quefondos(sesion: requests.Session, isin: str, moneda: str) -> dict:
 
 FUENTES = [("ft", de_ft), ("quefondos", de_quefondos)]
 
+# FT redondea a 2 decimales; Quefondos suele dar el valor liquidativo completo. Se usa el de Quefondos
+# solo si cuadra con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
+TOLERANCIA_MISMO_DIA = 0.005  # 0,5 %: el redondeo de FT nunca se acerca a esto
+TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si Quefondos tiene un día más reciente, solo se descarta lo absurdo
+
+
+def elegir(ft: dict | None, precisa: dict | None) -> tuple[dict | None, str | None]:
+    """Decide qué precio usar. Devuelve (precio, aviso)."""
+    if not ft or not precisa:
+        return ft or precisa, None
+    dif = abs(precisa["nav"] - ft["nav"]) / ft["nav"]
+    if precisa["fecha"] == ft["fecha"]:
+        if dif <= TOLERANCIA_MISMO_DIA:
+            return precisa, None
+        return ft, (f"{precisa['fuente']} da {precisa['nav']} y FT {ft['nav']} el {ft['fecha']}: "
+                    "no cuadran, se usa FT")
+    if precisa["fecha"] > ft["fecha"]:
+        if dif <= TOLERANCIA_OTRO_DIA:
+            return precisa, None
+        return ft, (f"{precisa['fuente']} da {precisa['nav']} ({precisa['fecha']}), muy lejos de FT "
+                    f"{ft['nav']} ({ft['fecha']}): se usa FT")
+    return ft, None  # FT es más reciente
+
 
 def ultimo_precio(sesion: requests.Session, fondo: dict) -> tuple[dict | None, list[str]]:
-    errores = []
+    errores, obtenidos = [], {}
     for nombre, f in FUENTES:
         try:
             p = f(sesion, fondo["isin"], fondo.get("moneda", "EUR"))
             if p["nav"] <= 0:
-                raise SinPrecio(f"{nombre}: precio no válido {p['nav']}")
-            return p, errores
-        except Exception as e:  # cualquier fallo de una fuente: se prueba la siguiente
+                raise SinPrecio(f"precio no válido {p['nav']}")
+            obtenidos[nombre] = p
+            print(f"  {fondo['isin']} {nombre}: {p['fecha']} {p['nav']}")
+        except Exception as e:  # cualquier fallo de una fuente: se usa la otra
             errores.append(f"{nombre}: {e}")
-    return None, errores
+    precio, aviso = elegir(obtenidos.get("ft"), obtenidos.get("quefondos"))
+    if aviso:
+        errores.append(aviso)
+    return precio, errores
 
 
 # ---------------------------------------------------------------- historial
@@ -142,7 +169,7 @@ def anadir(historial: list, fecha: str, nav: float) -> bool:
 
 
 def actualizar(datos: dict, fondos: list, obtener) -> tuple[bool, list[str]]:
-    cambiado, avisos = False, []
+    cambiado, avisos, avisos_fuente = False, [], []
     actuales = datos.setdefault("fondos", {})
     for fondo in fondos:
         isin = fondo["isin"]
@@ -154,12 +181,16 @@ def actualizar(datos: dict, fondos: list, obtener) -> tuple[bool, list[str]]:
             reg["error"] = "; ".join(errores)[:300]
             continue
         reg.pop("error", None)
+        if errores:
+            avisos_fuente.append(f"{isin}: {'; '.join(errores)}")
         reg["fuente"] = precio["fuente"]
         if precio.get("moneda"):
             reg["moneda"] = precio["moneda"]
         if anadir(reg["historial"], precio["fecha"], precio["nav"]):
             cambiado = True
         print(f"{isin} {precio['fecha']} {precio['nav']} ({precio['fuente']})")
+    for a in avisos_fuente:
+        print("Nota", a)
     return cambiado, avisos
 
 
