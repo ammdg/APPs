@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1F4E8C">
+<meta name="description" content="Valor y rentabilidad de tu cartera de fondos con el último valor liquidativo publicado.">
+<meta name="robots" content="noindex">
+<title>Mi cartera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --surface2:#F3F5F8;
+  --ink:#141B26; --ink2:#3F4B5C; --muted:#5D6878; --line:#D8DEE6;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:rgba(31,78,140,.11);
+  --up:#0F7B4F; --down:#B42318; --chart:#1F4E8C; --chart-fill:rgba(31,78,140,.10);
+  --shadow:0 1px 2px rgba(20,27,38,.06),0 10px 28px rgba(20,27,38,.07);
+  --display:'Bricolage Grotesque','DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1219; --surface:#161D27; --surface2:#1C2531;
+    --ink:#E8EDF4; --ink2:#B6C0CD; --muted:#8C97A6; --line:#2A3442;
+    --accent:#7FB0F0; --accent-ink:#0B1A2E; --accent-soft:rgba(127,176,240,.14);
+    --up:#4ACB8E; --down:#F97066; --chart:#7FB0F0; --chart-fill:rgba(127,176,240,.12);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1219; --surface:#161D27; --surface2:#1C2531;
+  --ink:#E8EDF4; --ink2:#B6C0CD; --muted:#8C97A6; --line:#2A3442;
+  --accent:#7FB0F0; --accent-ink:#0B1A2E; --accent-soft:rgba(127,176,240,.14);
+  --up:#4ACB8E; --down:#F97066; --chart:#7FB0F0; --chart-fill:rgba(127,176,240,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1rem}
+.num{font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)}
+.app{max-width:560px;margin:0 auto;padding:14px 16px 56px;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.top h1{font-size:1.15rem}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--ink2);border-radius:999px;padding:6px 14px;font-size:.85rem;font-weight:500}
+.ghost:active{background:var(--surface2)}
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:10px 16px;font-weight:600}
+.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:16px}
+.hero-label{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hero-val{font-family:var(--display);font-size:clamp(2.6rem,13vw,3.6rem);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin-top:2px}
+.hero-row{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:.95rem;color:var(--ink2)}
+.hero-row b{font-weight:600}
+.status{font-size:.8rem;color:var(--muted)}
+.banner{font-size:.85rem;color:var(--ink2);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+.banner.warn{background:rgba(180,35,24,.10)}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.seg{display:flex;gap:4px}
+.seg button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:3px 10px;font-size:.78rem;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+svg.chart{display:block;width:100%;height:180px;overflow:visible}
+.chart-note{font-size:.75rem;color:var(--muted);margin-top:6px}
+.alloc{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--surface2);margin:4px 0 2px}
+.list{display:flex;flex-direction:column;gap:10px}
+.fund{display:block;width:100%;text-align:left;background:var(--surface);border:0;border-radius:16px;box-shadow:var(--shadow);padding:14px}
+.fund-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fund-name{font-weight:600;font-size:.95rem;line-height:1.25}
+.fund-val{font-weight:700;white-space:nowrap}
+.fund-sub{display:flex;justify-content:space-between;gap:10px;margin-top:6px;font-size:.82rem;color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+dialog{border:0;border-radius:18px;padding:0;background:var(--surface);color:var(--ink);width:min(520px,calc(100vw - 24px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:18px;display:flex;flex-direction:column;gap:12px}
+.dlg label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--ink2)}
+.dlg input,.dlg textarea,.dlg select{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface2);font-size:1rem;width:100%}
+.dlg textarea{min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.danger{color:var(--down);border-color:var(--down)}
+.hint{font-size:.78rem;color:var(--muted)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-120%)}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <h1>Mi cartera</h1>
+    <div class="actions">
+      <button class="ghost" id="btnRefrescar" type="button">Actualizar</button>
+      <button class="ghost" id="btnMenu" type="button">Datos</button>
+    </div>
+  </header>
+
+  <div id="vacio" class="card" hidden>
+    <h2>Aún no hay fondos</h2>
+    <p class="hint">Importa tus posiciones (botón «Datos» → Importar) o añade un fondo. Todo se guarda solo en este navegador.</p>
+    <div class="actions"><button class="primary" type="button" data-accion="importar">Importar</button>
+      <button class="ghost" type="button" data-accion="nuevo">Añadir fondo</button></div>
+  </div>
+
+  <section id="resumen" hidden>
+    <div class="hero-label">Valor de la cartera</div>
+    <div class="hero-val num" id="total">—</div>
+    <div class="hero-row num">
+      <span>Resultado <b id="ganancia">—</b></span>
+      <span>Último día <b id="dia">—</b></span>
+    </div>
+    <div class="hero-row"><span>Invertido <b class="num" id="invertido">—</b></span></div>
+    <p class="status" id="estado"></p>
+  </section>
+
+  <div id="avisos"></div>
+
+  <section class="card" id="graficaCard" hidden>
+    <div class="chart-head">
+      <h2>Evolución</h2>
+      <div class="seg" id="rango">
+        <button type="button" data-d="30" aria-pressed="false">1M</button>
+        <button type="button" data-d="91" aria-pressed="false">3M</button>
+        <button type="button" data-d="365" aria-pressed="true">1A</button>
+        <button type="button" data-d="0" aria-pressed="false">Todo</button>
+      </div>
+    </div>
+    <div style="position:relative"><svg class="chart" id="grafica" role="img" aria-label="Evolución del valor de la cartera"></svg><div class="tip" id="tip" hidden></div></div>
+    <p class="chart-note" id="notaGrafica"></p>
+  </section>
+
+  <section id="fondosSec" hidden>
+    <div class="chart-head"><h2>Fondos</h2><button class="ghost" type="button" data-accion="nuevo">+ Añadir</button></div>
+    <div class="alloc" id="reparto" aria-hidden="true"></div>
+    <div class="list" id="lista"></div>
+  </section>
+</main>
+
+<dialog id="dlgFondo"><form class="dlg" method="dialog" id="formFondo">
+  <h2 id="dlgTitulo">Fondo</h2>
+  <label>ISIN<input name="isin" required pattern="[A-Za-z]{2}[A-Za-z0-9]{9}[0-9]" autocapitalize="characters" autocomplete="off"></label>
+  <label>Nombre<input name="nombre" required></label>
+  <div class="row2">
+    <label>Participaciones<input name="part" inputmode="decimal" required></label>
+    <label>Invertido (€)<input name="inv" inputmode="decimal" required></label>
+  </div>
+  <div class="row2">
+    <label>Valor liquidativo manual<input name="navm" inputmode="decimal" placeholder="opcional"></label>
+    <label>Fecha de ese valor<input name="navf" type="date"></label>
+  </div>
+  <p class="hint">El precio manual solo se usa si es más reciente que el descargado automáticamente (sin fecha, solo mientras no haya ninguno descargado).</p>
+  <fieldset id="opBox" style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+    <legend class="hint">Registrar compra o venta</legend>
+    <div class="row2">
+      <label>Tipo<select name="optipo"><option value="">—</option><option value="compra">Compra</option><option value="venta">Venta</option></select></label>
+      <label>Participaciones<input name="oppart" inputmode="decimal"></label>
+    </div>
+    <label>Importe de la compra (€)<input name="opimp" inputmode="decimal" placeholder="solo en compras"></label>
+    <p class="hint">En una venta, lo invertido baja en proporción (a coste medio).</p>
+  </fieldset>
+  <div class="dlg-foot">
+    <button class="ghost danger" type="button" id="btnBorrar">Eliminar</button>
+    <div class="actions"><button class="ghost" value="cancel" formnovalidate>Cancelar</button><button class="primary" value="ok">Guardar</button></div>
+  </div>
+</form></dialog>
+
+<dialog id="dlgDatos"><form class="dlg" method="dialog">
+  <h2>Tus datos</h2>
+  <p class="hint">Tus participaciones e importes se guardan solo en este navegador (no se suben a ningún sitio). Exporta una copia de vez en cuando.</p>
+  <label>Pega aquí una copia (JSON) para importarla<textarea id="txtImport" spellcheck="false"></textarea></label>
+  <div class="actions">
+    <button class="primary" type="button" id="btnImportar">Importar (sustituye)</button>
+    <label class="ghost" style="display:inline-flex;flex-direction:row">Abrir archivo<input type="file" id="fileImport" accept=".json,application/json" hidden></label>
+    <button class="ghost" type="button" id="btnExportar">Exportar copia</button>
+  </div>
+  <div class="dlg-foot"><span></span><button class="ghost" value="cancel">Cerrar</button></div>
+</form></dialog>
+
+<script>
+(function () {
+'use strict';
+var LS = 'fondos.v1';
+var COLORES = ['#1F4E8C', '#D97706', '#0F7B4F', '#9333EA', '#DC2626', '#0891B2', '#65A30D', '#DB2777', '#6B7280', '#B45309'];
+var eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+var pct = new Intl.NumberFormat('es-ES', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'always' });
+var nf = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 6 });
+var $ = function (id) { return document.getElementById(id); };
+
+var cartera = cargar();
+var precios = { fondos: {} };
+var rangoDias = 365;
+var editando = null;
+
+function cargar() {
+  try { var d = JSON.parse(localStorage.getItem(LS)); if (d && Array.isArray(d.posiciones)) return d; } catch (e) {}
+  return { version: 1, posiciones: [] };
+}
+function guardar() { try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {} }
+
+function num(v) {
+  if (typeof v === 'number') return v;
+  if (v == null) return NaN;
+  var t = String(v).trim().replace(/\s|€/g, '');
+  if (!t) return NaN;
+  if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+  return parseFloat(t);
+}
+function signo(v) { return v > 0 ? 'up' : v < 0 ? 'down' : ''; }
+function fEur(v, conSigno) { var s = eur.format(v); return conSigno && v > 0 ? '+' + s : s; }
+function fFecha(iso) { if (!iso || iso === '0000-00-00') return 'fecha ?'; var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); }
+function hoyISO() { var d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/* Historial de precios de un fondo: el descargado más el manual (si lo hay). */
+function historial(pos) {
+  var auto = (precios.fondos[pos.isin] && precios.fondos[pos.isin].historial) || [];
+  var h = auto.slice();
+  if (pos.navManual && pos.navManual.nav > 0) {
+    var f = pos.navManual.fecha || '0000-00-00';
+    h = h.filter(function (p) { return p[0] !== f; });
+    h.push([f, pos.navManual.nav, 'manual']);
+    h.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+  }
+  return h;
+}
+
+function calcular() {
+  var filas = cartera.posiciones.map(function (pos, i) {
+    var h = historial(pos), ult = h[h.length - 1], ant = h[h.length - 2];
+    var valor = ult ? pos.participaciones * ult[1] : NaN;
+    var dia = ult && ant ? pos.participaciones * (ult[1] - ant[1]) : NaN;
+    return { pos: pos, color: COLORES[i % COLORES.length], h: h, ult: ult, ant: ant, valor: valor, dia: dia,
+      diaPct: ult && ant ? ult[1] / ant[1] - 1 : NaN,
+      gan: valor - pos.invertido, ganPct: pos.invertido > 0 ? valor / pos.invertido - 1 : NaN };
+  });
+  return filas;
+}
+
+function render() {
+  var hay = cartera.posiciones.length > 0;
+  $('vacio').hidden = hay; $('resumen').hidden = !hay; $('fondosSec').hidden = !hay;
+  if (!hay) { $('graficaCard').hidden = true; $('avisos').innerHTML = ''; return; }
+  var filas = calcular();
+  var conPrecio = filas.filter(function (f) { return !isNaN(f.valor); });
+  var total = conPrecio.reduce(function (s, f) { return s + f.valor; }, 0);
+  var inv = conPrecio.reduce(function (s, f) { return s + f.pos.invertido; }, 0);
+  var invTodo = filas.reduce(function (s, f) { return s + f.pos.invertido; }, 0);
+  var conDia = filas.filter(function (f) { return !isNaN(f.dia); });
+  var dia = conDia.reduce(function (s, f) { return s + f.dia; }, 0);
+  var baseDia = conDia.reduce(function (s, f) { return s + f.valor - f.dia; }, 0);
+
+  $('total').textContent = conPrecio.length ? eur.format(total) : '—';
+  var g = total - inv;
+  $('ganancia').className = signo(g);
+  $('ganancia').textContent = conPrecio.length ? fEur(g, true) + ' (' + pct.format(inv ? g / inv : 0) + ')' : '—';
+  $('dia').className = signo(dia);
+  $('dia').textContent = conDia.length ? fEur(dia, true) + ' (' + pct.format(baseDia ? dia / baseDia : 0) + ')' : 'sin datos aún';
+  $('invertido').textContent = eur.format(invTodo);
+
+  var fechas = conPrecio.map(function (f) { return f.ult[0]; }).filter(function (d) { return d !== '0000-00-00'; }).sort();
+  var est = '';
+  if (fechas.length) {
+    est = 'Valores liquidativos del ' + fFecha(fechas[0]) + (fechas[0] !== fechas[fechas.length - 1] ? ' al ' + fFecha(fechas[fechas.length - 1]) : '') + '.';
+  }
+  if (conPrecio.some(function (f) { return f.ult[0] === '0000-00-00'; })) est += ' Algún fondo usa un precio manual sin fecha.';
+  if (precios.actualizado) est += ' Último precio nuevo descargado: ' + new Date(precios.actualizado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) + '.';
+  $('estado').textContent = est;
+
+  var av = [];
+  var sinPrecio = filas.filter(function (f) { return isNaN(f.valor); });
+  if (sinPrecio.length) av.push('<div class="banner warn">Sin precio: ' + sinPrecio.map(function (f) { return esc(f.pos.nombre); }).join(', ') +
+    '. No cuentan en el total. Toca el fondo para escribir su valor liquidativo a mano.</div>');
+  var conError = filas.filter(function (f) { var r = precios.fondos[f.pos.isin]; return r && r.error; });
+  if (conError.length) av.push('<div class="banner warn">La última descarga falló para: ' + conError.map(function (f) { return esc(f.pos.nombre); }).join(', ') + '.</div>');
+  var noSeguidos = filas.filter(function (f) { return !precios.fondos[f.pos.isin]; });
+  if (noSeguidos.length && precios._cargado) av.push('<div class="banner">No se descargan precios de: ' + noSeguidos.map(function (f) { return esc(f.pos.isin); }).join(', ') +
+    '. Para que se descarguen, hay que añadir su ISIN a fondos/fondos.json en el repositorio.</div>');
+  $('avisos').innerHTML = av.join('');
+
+  // reparto y lista
+  var orden = filas.slice().sort(function (a, b) { return (b.valor || 0) - (a.valor || 0); });
+  $('reparto').innerHTML = orden.filter(function (f) { return f.valor > 0; }).map(function (f) {
+    return '<span style="width:' + (f.valor / total * 100) + '%;background:' + f.color + '"></span>';
+  }).join('');
+  $('lista').innerHTML = orden.map(function (f) {
+    var peso = total && f.valor > 0 ? (f.valor / total * 100).toFixed(1).replace('.', ',') + ' %' : '';
+    var precio = f.ult ? 'VL ' + nf.format(f.ult[1]) + ' · ' + fFecha(f.ult[0]) + (f.ult[2] ? ' (manual)' : '') : 'sin precio';
+    var d = isNaN(f.diaPct) ? '' : ' <span class="' + signo(f.diaPct) + '">' + pct.format(f.diaPct) + '</span>';
+    return '<button class="fund" type="button" data-isin="' + esc(f.pos.isin) + '">' +
+      '<div class="fund-top"><span class="fund-name"><span class="dot" style="background:' + f.color + '"></span>' + esc(f.pos.nombre) + '</span>' +
+      '<span class="fund-val num">' + (isNaN(f.valor) ? '—' : eur.format(f.valor)) + '</span></div>' +
+      '<div class="fund-sub num"><span>' + precio + d + '</span><span class="' + signo(f.gan) + '">' +
+      (isNaN(f.gan) ? '' : fEur(f.gan, true) + ' · ' + pct.format(f.ganPct)) + '</span></div>' +
+      '<div class="fund-sub num"><span>' + nf.format(f.pos.participaciones) + ' part. · invertido ' + eur.format(f.pos.invertido) + '</span><span>' + peso + '</span></div>' +
+      '</button>';
+  }).join('');
+  grafica(filas);
+}
+
+/* Valor de la cartera en cada fecha con precio, usando las participaciones ACTUALES
+   (no se conocen las fechas de las aportaciones pasadas). Cada fondo usa su último precio conocido. */
+function serie(filas) {
+  var fechas = {};
+  filas.forEach(function (f) { f.h.forEach(function (p) { if (p[0] !== '0000-00-00') fechas[p[0]] = 1; }); });
+  var lista = Object.keys(fechas).sort();
+  var inicio = lista.filter(function (d) { return filas.every(function (f) { return f.h.length && f.h[0][0] <= d; }); })[0];
+  if (!inicio) return [];
+  lista = lista.filter(function (d) { return d >= inicio; });
+  var idx = filas.map(function () { return 0; });
+  return lista.map(function (d) {
+    var v = 0;
+    filas.forEach(function (f, i) {
+      while (idx[i] + 1 < f.h.length && f.h[idx[i] + 1][0] <= d) idx[i]++;
+      v += f.pos.participaciones * f.h[idx[i]][1];
+    });
+    return [d, v];
+  });
+}
+
+function grafica(filas) {
+  var s = serie(filas);
+  if (rangoDias) {
+    var lim = new Date(Date.now() - rangoDias * 864e5).toISOString().slice(0, 10);
+    s = s.filter(function (p) { return p[0] >= lim; });
+  }
+  $('graficaCard').hidden = false;
+  var svg = $('grafica');
+  if (s.length < 2) {
+    svg.innerHTML = '';
+    $('notaGrafica').textContent = 'La gráfica aparecerá cuando haya al menos dos días con precio de todos los fondos. Los precios se van guardando cada día desde hoy.';
+    return;
+  }
+  var W = svg.clientWidth || 500, H = 180, pl = 4, pr = 4, pt = 10, pb = 18;
+  var vals = s.map(function (p) { return p[1]; });
+  var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+  if (mx - mn < 1) { mx += 1; mn -= 1; }
+  var pad = (mx - mn) * 0.08; mn -= pad; mx += pad;
+  var x = function (i) { return pl + i / (s.length - 1) * (W - pl - pr); };
+  var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
+  var d = s.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p[1]).toFixed(1); }).join('');
+  var area = d + 'L' + x(s.length - 1).toFixed(1) + ' ' + (H - pb) + 'L' + x(0).toFixed(1) + ' ' + (H - pb) + 'Z';
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.innerHTML = '<path d="' + area + '" fill="var(--chart-fill)"/>' +
+    '<path d="' + d + '" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round"/>' +
+    '<text x="' + pl + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)">' + fFecha(s[0][0]) + '</text>' +
+    '<text x="' + (W - pr) + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)" text-anchor="end">' + fFecha(s[s.length - 1][0]) + '</text>' +
+    '<circle id="cur" r="4" fill="var(--chart)" visibility="hidden"/>';
+  var cambio = s[s.length - 1][1] - s[0][1];
+  $('notaGrafica').innerHTML = 'Variación en el periodo: <span class="' + signo(cambio) + '">' + fEur(cambio, true) + ' (' + pct.format(cambio / s[0][1]) + ')</span>. ' +
+    'Calculada con tus participaciones actuales, sin contar aportaciones ni ventas del periodo.';
+  var tip = $('tip'), cur = svg.querySelector('#cur');
+  function mover(ev) {
+    var r = svg.getBoundingClientRect();
+    var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+    var i = Math.round((cx / r.width * W - pl) / (W - pl - pr) * (s.length - 1));
+    i = Math.max(0, Math.min(s.length - 1, i));
+    cur.setAttribute('cx', x(i)); cur.setAttribute('cy', y(s[i][1])); cur.setAttribute('visibility', 'visible');
+    tip.hidden = false; tip.style.left = (x(i) / W * r.width) + 'px'; tip.style.top = (y(s[i][1]) / H * r.height) + 'px';
+    tip.textContent = fFecha(s[i][0]) + ' · ' + eur.format(s[i][1]);
+  }
+  svg.onpointermove = mover; svg.onpointerdown = mover;
+  svg.onpointerleave = function () { tip.hidden = true; cur.setAttribute('visibility', 'hidden'); };
+}
+
+/* ---------------- precios.json ---------------- */
+function descargarPrecios() {
+  $('btnRefrescar').disabled = true;
+  return fetch('precios.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (d) { d.fondos = d.fondos || {}; d._cargado = true; precios = d; })
+    .catch(function () { $('estado').textContent = 'No se han podido cargar los precios (¿sin conexión?).'; })
+    .then(function () { $('btnRefrescar').disabled = false; render(); });
+}
+
+/* ---------------- editar fondo ---------------- */
+function abrirFondo(isin) {
+  var f = $('formFondo'); f.reset();
+  editando = isin ? cartera.posiciones.filter(function (p) { return p.isin === isin; })[0] : null;
+  $('dlgTitulo').textContent = editando ? 'Editar fondo' : 'Añadir fondo';
+  $('btnBorrar').hidden = !editando; $('opBox').hidden = !editando;
+  f.isin.readOnly = !!editando;
+  if (editando) {
+    f.isin.value = editando.isin; f.nombre.value = editando.nombre;
+    f.part.value = nf.format(editando.participaciones); f.inv.value = editando.invertido.toFixed(2).replace('.', ',');
+    if (editando.navManual) { f.navm.value = nf.format(editando.navManual.nav); f.navf.value = editando.navManual.fecha || ''; }
+  } else {
+    f.navf.value = hoyISO();
+    f.isin.oninput = function () {
+      var r = precios.fondos[f.isin.value.trim().toUpperCase()];
+      if (r && !f.nombre.value) f.nombre.value = r.nombre;
+    };
+  }
+  $('dlgFondo').showModal();
+}
+
+$('formFondo').addEventListener('submit', function (ev) {
+  if (ev.submitter && ev.submitter.value === 'cancel') return;
+  var f = ev.target;
+  var pos = {
+    isin: f.isin.value.trim().toUpperCase(), nombre: f.nombre.value.trim(),
+    participaciones: num(f.part.value), invertido: num(f.inv.value)
+  };
+  if (isNaN(pos.participaciones) || isNaN(pos.invertido)) { ev.preventDefault(); alert('Revisa participaciones e invertido.'); return; }
+  var navm = num(f.navm.value);
+  if (navm > 0) pos.navManual = { nav: navm, fecha: f.navf.value || null };
+  if (editando && f.optipo.value) {
+    var u = num(f.oppart.value);
+    if (!(u > 0)) { ev.preventDefault(); alert('Indica las participaciones de la operación.'); return; }
+    if (f.optipo.value === 'compra') {
+      var imp = num(f.opimp.value);
+      if (!(imp > 0)) { ev.preventDefault(); alert('Indica el importe de la compra.'); return; }
+      pos.participaciones += u; pos.invertido += imp;
+    } else {
+      if (u > pos.participaciones + 1e-9) { ev.preventDefault(); alert('No tienes tantas participaciones.'); return; }
+      pos.invertido -= pos.invertido * (u / pos.participaciones); pos.participaciones -= u;
+    }
+  }
+  if (editando) {
+    cartera.posiciones[cartera.posiciones.indexOf(editando)] = pos;
+  } else {
+    if (cartera.posiciones.some(function (p) { return p.isin === pos.isin; })) { ev.preventDefault(); alert('Ese ISIN ya está en la cartera.'); return; }
+    cartera.posiciones.push(pos);
+  }
+  guardar(); render();
+});
+$('btnBorrar').addEventListener('click', function () {
+  if (!editando || !confirm('¿Eliminar ' + editando.nombre + ' de la cartera?')) return;
+  cartera.posiciones.splice(cartera.posiciones.indexOf(editando), 1);
+  guardar(); $('dlgFondo').close(); render();
+});
+
+/* ---------------- importar / exportar ---------------- */
+function importar(texto) {
+  var d;
+  try { d = JSON.parse(texto); } catch (e) { alert('El texto no es un JSON válido.'); return false; }
+  var lista = Array.isArray(d) ? d : d.posiciones;
+  if (!Array.isArray(lista)) { alert('No encuentro la lista «posiciones».'); return false; }
+  var ok = [];
+  for (var i = 0; i < lista.length; i++) {
+    var p = lista[i], pos = { isin: String(p.isin || '').toUpperCase(), nombre: String(p.nombre || p.isin || ''),
+      participaciones: num(p.participaciones), invertido: num(p.invertido) };
+    if (!pos.isin || isNaN(pos.participaciones) || isNaN(pos.invertido)) { alert('Fila ' + (i + 1) + ' incompleta.'); return false; }
+    if (p.navManual && num(p.navManual.nav) > 0) pos.navManual = { nav: num(p.navManual.nav), fecha: p.navManual.fecha || null };
+    ok.push(pos);
+  }
+  if (cartera.posiciones.length && !confirm('Esto sustituye los ' + cartera.posiciones.length + ' fondos actuales. ¿Seguir?')) return false;
+  cartera = { version: 1, posiciones: ok }; guardar(); render();
+  return true;
+}
+$('btnImportar').addEventListener('click', function () { if (importar($('txtImport').value)) $('dlgDatos').close(); });
+$('fileImport').addEventListener('change', function () {
+  var file = this.files[0]; if (!file) return;
+  file.text().then(function (t) { if (importar(t)) $('dlgDatos').close(); });
+  this.value = '';
+});
+$('btnExportar').addEventListener('click', function () {
+  var blob = new Blob([JSON.stringify(cartera, null, 1)], { type: 'application/json' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'cartera-' + hoyISO() + '.json'; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
+
+/* ---------------- eventos ---------------- */
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest('[data-accion],[data-isin]'); if (!b) return;
+  if (b.dataset.isin) abrirFondo(b.dataset.isin);
+  else if (b.dataset.accion === 'nuevo') abrirFondo(null);
+  else if (b.dataset.accion === 'importar') $('dlgDatos').showModal();
+});
+$('btnMenu').addEventListener('click', function () { $('txtImport').value = ''; $('dlgDatos').showModal(); });
+$('btnRefrescar').addEventListener('click', descargarPrecios);
+$('rango').addEventListener('click', function (ev) {
+  var b = ev.target.closest('button'); if (!b) return;
+  rangoDias = +b.dataset.d;
+  this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+  render();
+});
+document.addEventListener('visibilitychange', function () { if (!document.hidden) descargarPrecios(); });
+window.addEventListener('resize', function () { if (cartera.posiciones.length) grafica(calcular()); });
+setInterval(function () { if (!document.hidden) descargarPrecios(); }, 5 * 60 * 1000);
+
+render();
+descargarPrecios();
+})();
+</script>
+</body>
+</html>

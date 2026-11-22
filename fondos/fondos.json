@@ -1,0 +1,13 @@
+{
+ "_nota": "Fondos cuyo precio se descarga. Aquí solo van ISIN y nombre (públicos); las participaciones e importes se guardan solo en tu navegador.",
+ "fondos": [
+  {"isin": "IE000ZYRH0Q7", "nombre": "iShares Developed World Index (IE) Acc EUR S"},
+  {"isin": "FR0000989626", "nombre": "Groupama Trésorerie IC"},
+  {"isin": "IE00BH65QK91", "nombre": "Vanguard Global Short-Term Bond Index Inv EUR Hedged Acc"},
+  {"isin": "LU1694789451", "nombre": "DNCA Invest Alpha Bonds A EUR"},
+  {"isin": "LU1598719752", "nombre": "Cobas International Fund P Acc"},
+  {"isin": "IE00B42W4L06", "nombre": "Vanguard Global Small-Cap Index Inv EUR Acc"},
+  {"isin": "IE000QAZP7L2", "nombre": "iShares Emerging Markets Index (IE) Acc EUR S"},
+  {"isin": "LU0329355670", "nombre": "Robeco QI EM Active Equities D EUR"}
+ ]
+}
