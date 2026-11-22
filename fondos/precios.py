@@ -159,20 +159,18 @@ def de_finect(sesion: requests.Session, isin: str, moneda: str) -> dict:
     r = sesion.get(f"https://www.finect.com/fondos-inversion/{isin}-x", timeout=30)
     t = r.text
     out = []
-    for ld in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', t, flags=re.S):
-        out.append("LD: " + re.sub(r"\s+", " ", ld)[:1500])
-    i = t.find('"price":"105.1118"')
-    out.append("CERCA PRECIO: " + t[max(0, i - 700):i + 500])
-    for clave in ("history", "historic", "chart", "series", "navs", "prices", "performance", "evolution"):
-        j = t.find(f'"{clave}')
-        if j >= 0:
-            out.append(f"CLAVE {clave}: " + t[j:j + 400])
-    pares = re.findall(r"\[\s*1[67]\d{11}\s*,\s*[\d.]+\s*\]", t)
-    out.append(f"pares_ms={len(pares)} {pares[:3]}")
-    fechas = re.findall(r'"(?:date|fecha|navDate|priceDate|lastDate|asOfDate)"\s*:\s*"[^"]{0,30}"', t)[:8]
-    out.append(f"fechas={fechas}")
-    scripts = re.findall(r'<script[^>]+src="([^"]+)"', t)[:12]
-    out.append(f"scripts={scripts}")
+    for m in list(re.finditer(r"105\.11", t))[:6]:
+        out.append("OCURRENCIA: " + t[max(0, m.start() - 300):m.start() + 150].replace("\n", " "))
+    for clave in ("lastNav", "navDate", "nav", "lastPrice", "priceDate", "quote", "timeseries", "historical"):
+        for m in list(re.finditer(r'\\?"' + clave + r'\\?"', t))[:1]:
+            out.append(f"CLAVE {clave}: " + t[m.start():m.start() + 250].replace("\n", " "))
+    js = re.findall(r'<script[^>]+src="(https://www.finect.com/front-products/resources/main-[^"]+)"', t)
+    if js:
+        c = sesion.get(js[0], timeout=30).text
+        rutas = sorted(set(re.findall(r'["\x60](/(?:api|v\d)[A-Za-z0-9/_${}.:-]{3,80})', c)))[:40]
+        hosts = sorted(set(re.findall(r'https://[a-z0-9.-]*finect\.com[A-Za-z0-9/_.-]*', c)))[:20]
+        cerca = [c[max(0, m.start() - 150):m.start() + 150] for m in re.finditer(r"(?i)timeseries|historical|navs", c)][:4]
+        out.append(f"JS {len(c)}B rutas={rutas}\nhosts={hosts}\ncerca={cerca}")
     raise SinPrecio("Finect:\n" + "\n".join(out))
 
 
