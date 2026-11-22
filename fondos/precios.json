@@ -4,11 +4,11 @@
    "historial": [
     [
      "2026-11-19",
-     11.99
+     11.989
     ]
    ],
    "nombre": "iShares Developed World Index (IE) Acc EUR S",
-   "fuente": "ft",
+   "fuente": "quefondos",
    "moneda": "EUR"
   },
   "FR0000989626": {
@@ -19,7 +19,7 @@
     ]
    ],
    "nombre": "Groupama Trésorerie IC",
-   "fuente": "ft",
+   "fuente": "quefondos",
    "moneda": "EUR"
   },
   "IE00BH65QK91": {
@@ -85,9 +85,9 @@
     ]
    ],
    "nombre": "Robeco QI EM Active Equities D EUR",
-   "fuente": "ft",
+   "fuente": "quefondos",
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-22T10:36:03+00:00"
+ "actualizado": "2026-11-22T10:51:31+00:00"
 }
