@@ -21,8 +21,12 @@ haya y su fecha; se recarga sola cada 5 minutos y al volver a abrirla.
   mismo día); si no, el de FT. De Yahoo solo se usan las series de fondos (símbolos `0P...`). Si una
   fuente falla, se usan las demás. **No son APIs oficiales**: si cambian su web, la descarga
   puede romperse; en ese caso la web avisa y puedes poner el precio a mano.
-- Tus **participaciones e importes invertidos se guardan solo en tu navegador** (`localStorage`,
-  clave `fondos.v1`). No se suben a ningún sitio. Exporta una copia de vez en cuando (botón «Datos»).
+- Tus **participaciones e importes se guardan en tu navegador** (`localStorage`, clave `fondos.v1`) y
+  **también en el propio enlace**, tras `#c=` (JSON en base64url). Esa parte del enlace no se envía al
+  servidor. Al abrir un enlace con `#c=`, sus datos sustituyen a los del navegador; cada cambio actualiza
+  el enlace. Guardado como marcador o en la pantalla de inicio, recupera la cartera aunque el navegador
+  borre su almacenamiento. Quien tenga el enlace ve la cartera. Botón «Datos» → «Copiar enlace con mis
+  datos» o «Exportar copia».
 
 ## Qué calcula
 
