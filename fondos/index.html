@@ -146,7 +146,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
   <section class="card" id="cmpCard" hidden>
     <div class="chart-head"><h2>Comparativa de fondos</h2><span class="hint" id="cmpFecha"></span></div>
-    <div style="position:relative"><svg class="chart" id="cmp" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+    <div style="position:relative"><svg class="chart" id="cmp" style="height:260px" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
     <div class="cmp-leg" id="cmpLeyenda"></div>
     <p class="chart-note" id="cmpNota"></p>
   </section>
@@ -395,7 +395,7 @@ function comparativa(filas) {
     });
     return { f: x.f, v: out };
   });
-  var svg = $('cmp'), W = svg.clientWidth || 500, H = 200, pl = 4, pr = 40, pt = 10, pb = 18;
+  var svg = $('cmp'), W = svg.clientWidth || 500, H = 260, pl = 4, pr = 40, pt = 10, pb = 18;
   var todos = [0]; series.forEach(function (s) { todos = todos.concat(s.v); });
   var mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
   if (mx - mn < 0.002) { mx += 0.001; mn -= 0.001; }
@@ -403,18 +403,14 @@ function comparativa(filas) {
   var x = function (i) { return pl + i / (fechas.length - 1) * (W - pl - pr); };
   var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  // Líneas horizontales de escala en valores redondos (0,5 %, 1 %, 2 %, 5 %…), unas 4-7 en total.
-  var paso = [0.001, 0.002, 0.0025, 0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1].filter(function (p) {
-    return (mx - mn) / p <= 7;
-  })[0] || 1;
-  var decs = paso < 0.01 ? 1 : 0;
-  var html = '';
-  for (var t = Math.ceil(mn / paso) * paso; t <= mx + 1e-12; t += paso) {
-    var yy = y(t).toFixed(1), cero = Math.abs(t) < paso / 2;
+  // Líneas horizontales de escala cada 1 %. Si hay muchas, solo se rotulan las de 0 % y múltiplos de 5 %.
+  var nLineas = Math.floor(mx * 100) - Math.ceil(mn * 100) + 1, html = '';
+  for (var k = Math.ceil(mn * 100); k <= Math.floor(mx * 100); k++) {
+    var yy = y(k / 100).toFixed(1), cero = k === 0, rotulo = nLineas <= 12 || k % 5 === 0;
     html += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--' + (cero ? 'muted' : 'line') + ')"' +
-      (cero ? ' stroke-dasharray="3 4"' : '') + '/>' +
-      '<text x="' + (W - pr + 4) + '" y="' + (+yy + 3.5).toFixed(1) + '" font-size="10" fill="var(--muted)">' +
-      (cero ? '0 %' : (t > 0 ? '+' : '−') + (Math.abs(t) * 100).toFixed(decs).replace('.', ',') + ' %') + '</text>';
+      (cero ? ' stroke-dasharray="3 4"' : (k % 5 === 0 ? '' : ' stroke-opacity=".6"')) + '/>' +
+      (rotulo ? '<text x="' + (W - pr + 4) + '" y="' + (+yy + 3.5).toFixed(1) + '" font-size="10" fill="var(--muted)">' +
+        (cero ? '0 %' : (k > 0 ? '+' : '−') + Math.abs(k) + ' %') + '</text>' : '');
   }
   series.forEach(function (s) {
     var d = s.v.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join('');
