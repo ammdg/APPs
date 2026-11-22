@@ -92,6 +92,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .legend{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:4px}
 .legend i{display:inline-block;width:14px;height:0;border-top:2px solid var(--chart);vertical-align:middle;margin-right:5px}
 .legend i.ap{border-top:2px dashed var(--muted)}
+.cmp-leg{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:8px;font-size:.8rem}
+.cmp-leg .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
+.cmp-leg .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-120%)}
 </style>
 </head>
@@ -139,6 +142,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div style="position:relative"><svg class="chart" id="grafica" role="img" aria-label="Evolución del valor de la cartera"></svg><div class="tip" id="tip" hidden></div></div>
     <div class="legend" id="leyenda" hidden><span><i></i>Valor</span><span><i class="ap"></i>Aportado</span></div>
     <p class="chart-note" id="notaGrafica"></p>
+  </section>
+
+  <section class="card" id="cmpCard" hidden>
+    <div class="chart-head"><h2>Comparativa de fondos</h2><span class="hint" id="cmpFecha"></span></div>
+    <div style="position:relative"><svg class="chart" id="cmp" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+    <div class="cmp-leg" id="cmpLeyenda"></div>
+    <p class="chart-note" id="cmpNota"></p>
   </section>
 
   <section id="fondosSec" hidden>
@@ -357,6 +367,75 @@ function render() {
       '</button>';
   }).join('');
   grafica(filas);
+  comparativa(filas);
+}
+
+/* Variación porcentual de cada fondo desde el primer día en que todos tienen valor liquidativo publicado
+   (ese día = 0 %). Los días sin precio de un fondo se usa su último precio anterior. */
+function comparativa(filas) {
+  var fs = filas.map(function (f) {
+    return { f: f, h: f.h.filter(function (p) { return p[0] !== '0000-00-00'; }) };
+  }).filter(function (x) { return x.h.length; });
+  var card = $('cmpCard');
+  if (fs.length < 2) { card.hidden = true; return; }
+  var sets = fs.map(function (x) { var o = {}; x.h.forEach(function (p) { o[p[0]] = 1; }); return o; });
+  var todas = {}; fs.forEach(function (x) { x.h.forEach(function (p) { todas[p[0]] = 1; }); });
+  var fechas = Object.keys(todas).sort();
+  var base = fechas.filter(function (d) { return sets.every(function (o) { return o[d]; }); })[0];
+  if (!base) { card.hidden = true; return; }
+  fechas = fechas.filter(function (d) { return d >= base; });
+  if (fechas.length < 2) { card.hidden = true; return; }
+  card.hidden = false;
+  var series = fs.map(function (x) {
+    var i = 0, ref = null, out = [];
+    fechas.forEach(function (d) {
+      while (i + 1 < x.h.length && x.h[i + 1][0] <= d) i++;
+      if (ref === null) { while (x.h[i][0] < base) i++; ref = x.h[i][1]; }
+      out.push(x.h[i][1] / ref - 1);
+    });
+    return { f: x.f, v: out };
+  });
+  var svg = $('cmp'), W = svg.clientWidth || 500, H = 200, pl = 4, pr = 40, pt = 10, pb = 18;
+  var todos = [0]; series.forEach(function (s) { todos = todos.concat(s.v); });
+  var mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
+  if (mx - mn < 0.002) { mx += 0.001; mn -= 0.001; }
+  var pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
+  var x = function (i) { return pl + i / (fechas.length - 1) * (W - pl - pr); };
+  var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
+  var pf = function (v) { return pct.format(v).replace(/\u00a0/g, ' '); };
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  var html = '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>' +
+    '<text x="' + (W - pr + 4) + '" y="' + (y(0) + 4).toFixed(1) + '" font-size="10" fill="var(--muted)">0 %</text>' +
+    '<text x="' + (W - pr + 4) + '" y="' + (pt + 8) + '" font-size="10" fill="var(--muted)">' + pf(mx - pad) + '</text>' +
+    '<text x="' + (W - pr + 4) + '" y="' + (H - pb) + '" font-size="10" fill="var(--muted)">' + pf(mn + pad) + '</text>';
+  series.forEach(function (s) {
+    var d = s.v.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join('');
+    html += '<path d="' + d + '" fill="none" stroke="' + s.f.color + '" stroke-width="1.8" stroke-linejoin="round"/>';
+  });
+  html += '<text x="' + pl + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)">' + fFecha(base) + '</text>' +
+    '<text x="' + (W - pr) + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)" text-anchor="end">' + fFecha(fechas[fechas.length - 1]) + '</text>' +
+    '<line id="cmpCur" y1="' + pt + '" y2="' + (H - pb) + '" stroke="var(--muted)" visibility="hidden"/>';
+  svg.innerHTML = html;
+  function leyenda(i) {
+    $('cmpFecha').textContent = fFecha(fechas[i]);
+    $('cmpLeyenda').innerHTML = series.slice().sort(function (a, b) { return b.v[i] - a.v[i]; }).map(function (s) {
+      return '<span class="n"><span class="dot" style="background:' + s.f.color + '"></span>' + esc(s.f.pos.nombre) + '</span>' +
+        '<span class="v ' + signo(s.v[i]) + '">' + pct.format(s.v[i]) + '</span>';
+    }).join('');
+  }
+  leyenda(fechas.length - 1);
+  $('cmpNota').textContent = 'Variación del valor liquidativo de cada fondo desde el ' + fFecha(base) +
+    ', primer día con precio de todos (0 %). No depende de cuánto tengas en cada uno. Toca la gráfica para ver otro día.';
+  var cur = svg.querySelector('#cmpCur');
+  function mover(ev) {
+    var r = svg.getBoundingClientRect();
+    var i = Math.round(((ev.clientX - r.left) / r.width * W - pl) / (W - pl - pr) * (fechas.length - 1));
+    i = Math.max(0, Math.min(fechas.length - 1, i));
+    cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.setAttribute('visibility', 'visible');
+    leyenda(i);
+  }
+  svg.onpointermove = mover; svg.onpointerdown = mover;
+  svg.onpointerleave = function () { cur.setAttribute('visibility', 'hidden'); leyenda(fechas.length - 1); };
 }
 
 /* Valor de la cartera en cada fecha con precio. Sin movimientos: con las participaciones ACTUALES.
@@ -561,7 +640,7 @@ $('rango').addEventListener('click', function (ev) {
   render();
 });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) descargarPrecios(); });
-window.addEventListener('resize', function () { if (cartera.posiciones.length) grafica(calcular()); });
+window.addEventListener('resize', function () { if (cartera.posiciones.length) { var f = calcular(); grafica(f); comparativa(f); } });
 setInterval(function () { if (!document.hidden) descargarPrecios(); }, 5 * 60 * 1000);
 
 render();

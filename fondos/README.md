@@ -29,6 +29,9 @@ haya y su fecha; se recarga sola cada 5 minutos y al volver a abrirla.
 - Valor de la cartera = participaciones × último valor liquidativo de cada fondo.
 - Resultado = valor − invertido (en € y %). «Invertido» es tu coste, como en la app de tu banco.
 - Último día: variación entre los dos últimos precios de cada fondo.
+- Comparativa de fondos: variación porcentual del valor liquidativo de cada fondo desde el primer día en
+  que todos tienen precio publicado (ese día todos están en 0 %). Al tocar la gráfica, la leyenda muestra
+  los porcentajes de ese día. Los días sin precio de un fondo se usa su último precio anterior.
 - Gráfica: sin movimientos, valor con tus participaciones **actuales** aplicadas a los precios pasados (no
   es tu rentabilidad real del periodo); con movimientos, valor real de cada día.
 - Operaciones (opcional, solo por importación): la copia JSON puede llevar una lista `movimientos`
