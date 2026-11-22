@@ -150,33 +150,42 @@ def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return p
 
 
-# ---------------------------------------------------------------- Finect (en pruebas)
+# ---------------------------------------------------------------- Finect
+
+def parsear_finect(pagina: str) -> dict:
+    """Precio: el de la ficha schema.org (offers.price). Fecha: la de "lastQuote" con ese mismo precio,
+    dentro de los datos internos de la página (vienen como JSON escapado)."""
+    precio = moneda = None
+    for ld in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', pagina, flags=re.S):
+        try:
+            oferta = json.loads(ld).get("offers") or {}
+        except (ValueError, AttributeError):
+            continue
+        if oferta.get("price"):
+            precio, moneda = float(oferta["price"]), oferta.get("priceCurrency")
+            break
+    if not precio:
+        raise SinPrecio("Finect: no aparece el precio")
+    plano = pagina.replace('\\"', '"')
+    for f, p in re.findall(r'"lastQuote":\{"datetime":"(\d{4}-\d{2}-\d{2})T[^"]*","price":([\d.]+)', plano):
+        if abs(float(p) - precio) < 1e-9:
+            return {"fecha": f, "nav": precio, "moneda": moneda, "fuente": "finect"}
+    raise SinPrecio("Finect: no aparece la fecha del precio")
+
 
 def de_finect(sesion: requests.Session, isin: str, moneda: str) -> dict:
-    """De momento solo informa de lo que devuelve Finect, para ver si se puede usar."""
-    if isin != "IE00BH65QK91":
-        raise SinPrecio("Finect: sonda solo para un fondo")
+    # Finect redirige ISIN-<cualquier texto> a la ficha del fondo.
     r = sesion.get(f"https://www.finect.com/fondos-inversion/{isin}-x", timeout=30)
-    t = r.text
-    out = []
-    for m in list(re.finditer(r"105\.11", t))[:6]:
-        out.append("OCURRENCIA: " + t[max(0, m.start() - 300):m.start() + 150].replace("\n", " "))
-    for clave in ("lastNav", "navDate", "nav", "lastPrice", "priceDate", "quote", "timeseries", "historical"):
-        for m in list(re.finditer(r'\\?"' + clave + r'\\?"', t))[:1]:
-            out.append(f"CLAVE {clave}: " + t[m.start():m.start() + 250].replace("\n", " "))
-    js = re.findall(r'<script[^>]+src="(https://www.finect.com/front-products/resources/main-[^"]+)"', t)
-    if js:
-        c = sesion.get(js[0], timeout=30).text
-        rutas = sorted(set(re.findall(r'["\x60](/(?:api|v\d)[A-Za-z0-9/_${}.:-]{3,80})', c)))[:40]
-        hosts = sorted(set(re.findall(r'https://[a-z0-9.-]*finect\.com[A-Za-z0-9/_.-]*', c)))[:20]
-        cerca = [c[max(0, m.start() - 150):m.start() + 150] for m in re.finditer(r"(?i)timeseries|historical|navs", c)][:4]
-        out.append(f"JS {len(c)}B rutas={rutas}\nhosts={hosts}\ncerca={cerca}")
-    raise SinPrecio("Finect:\n" + "\n".join(out))
+    r.raise_for_status()
+    if isin not in r.url:
+        raise SinPrecio(f"Finect: redirige a otra página ({r.url})")
+    return parsear_finect(r.text)
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo), ("finect", de_finect)]
+# Tras FT, por preferencia en caso de empate de fecha.
+FUENTES = [("ft", de_ft), ("finect", de_finect), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
 
-# FT redondea a 2 decimales; Quefondos y Yahoo (series de Morningstar) suelen dar el valor
+# FT redondea a 2 decimales; Finect, Quefondos y Yahoo (series de Morningstar) suelen dar el valor
 # liquidativo completo. Se usan solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
 TOLERANCIA_MISMO_DIA = 0.005  # 0,5 %: el redondeo de FT nunca se acerca a esto
 TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si la otra fuente tiene un día más reciente, solo se descarta lo absurdo
