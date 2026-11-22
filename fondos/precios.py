@@ -109,30 +109,90 @@ def de_quefondos(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return parsear_quefondos(r.text)
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos)]
+# ---------------------------------------------------------------- Morningstar
 
-# FT redondea a 2 decimales; Quefondos suele dar el valor liquidativo completo. Se usa el de Quefondos
-# solo si cuadra con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
+# Claves públicas que usan las propias webs de Morningstar para sus gráficas (no es una API oficial).
+MS_SERIES = [
+    ("https://tools.morningstar.es/api/rest.svc/timeseries_price/2nhcdckzon", "es"),
+    ("https://tools.morningstar.co.uk/api/rest.svc/timeseries_price/t92wz0sj7c", "uk"),
+]
+
+
+def morningstar_id(sesion: requests.Session, isin: str) -> str:
+    r = sesion.get("https://www.morningstar.es/es/util/SecuritySearch.ashx",
+                   params={"q": isin, "limit": 1, "preferedList": ""}, timeout=30)
+    r.raise_for_status()
+    m = re.search(r'"i"\s*:\s*"([A-Z0-9]{10})"', r.text)
+    if not m:
+        raise SinPrecio(f"Morningstar: no encuentro el fondo ({r.text[:120]!r})")
+    return m.group(1)
+
+
+def parsear_serie_morningstar(datos) -> dict:
+    """COMPACTJSON: [[milisegundos_epoch, precio], ...] -> último punto."""
+    if isinstance(datos, dict):  # algunas variantes envuelven la serie
+        datos = next((v for v in datos.values() if isinstance(v, list)), [])
+    puntos = [p for p in datos if isinstance(p, list) and len(p) >= 2 and p[1] is not None]
+    if not puntos:
+        raise SinPrecio("Morningstar: serie vacía")
+    ms, nav = puntos[-1][:2]
+    fecha = datetime.fromtimestamp(ms / 1000, tz=timezone.utc).date()
+    return {"fecha": fecha.isoformat(), "nav": float(nav), "moneda": None, "fuente": "morningstar"}
+
+
+def de_morningstar(sesion: requests.Session, isin: str, moneda: str) -> dict:
+    secid = morningstar_id(sesion, isin)
+    desde = date.fromordinal(date.today().toordinal() - 20).isoformat()
+    errores = []
+    for url, nombre in MS_SERIES:
+        try:
+            r = sesion.get(url, params={"id": secid, "currencyId": moneda, "idtype": "Morningstar",
+                                        "frequency": "daily", "startDate": desde,
+                                        "outputType": "COMPACTJSON"}, timeout=30)
+            r.raise_for_status()
+            p = parsear_serie_morningstar(r.json())
+            p["moneda"] = moneda
+            return p
+        except Exception as e:
+            errores.append(f"{nombre} {secid}: {str(e)[:120]}")
+    raise SinPrecio("Morningstar: " + " | ".join(errores))
+
+
+FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("morningstar", de_morningstar)]
+
+# FT redondea a 2 decimales; Quefondos y Morningstar suelen dar el valor liquidativo completo. Se usan
+# solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
 TOLERANCIA_MISMO_DIA = 0.005  # 0,5 %: el redondeo de FT nunca se acerca a esto
-TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si Quefondos tiene un día más reciente, solo se descarta lo absurdo
+TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si la otra fuente tiene un día más reciente, solo se descarta lo absurdo
 
 
-def elegir(ft: dict | None, precisa: dict | None) -> tuple[dict | None, str | None]:
-    """Decide qué precio usar. Devuelve (precio, aviso)."""
-    if not ft or not precisa:
-        return ft or precisa, None
-    dif = abs(precisa["nav"] - ft["nav"]) / ft["nav"]
-    if precisa["fecha"] == ft["fecha"]:
-        if dif <= TOLERANCIA_MISMO_DIA:
-            return precisa, None
-        return ft, (f"{precisa['fuente']} da {precisa['nav']} y FT {ft['nav']} el {ft['fecha']}: "
-                    "no cuadran, se usa FT")
-    if precisa["fecha"] > ft["fecha"]:
-        if dif <= TOLERANCIA_OTRO_DIA:
-            return precisa, None
-        return ft, (f"{precisa['fuente']} da {precisa['nav']} ({precisa['fecha']}), muy lejos de FT "
-                    f"{ft['nav']} ({ft['fecha']}): se usa FT")
-    return ft, None  # FT es más reciente
+def elegir(ft: dict | None, precisas) -> tuple[dict | None, str | None]:
+    """Decide qué precio usar entre FT y las fuentes precisas (dict o lista, por preferencia).
+    Devuelve (precio, aviso)."""
+    if isinstance(precisas, dict) or precisas is None:
+        precisas = [precisas] if precisas else []
+    if not ft:
+        return (precisas[0] if precisas else None), None
+    validas, avisos = [], []
+    for precisa in precisas:
+        dif = abs(precisa["nav"] - ft["nav"]) / ft["nav"]
+        if precisa["fecha"] == ft["fecha"]:
+            if dif <= TOLERANCIA_MISMO_DIA:
+                validas.append(precisa)
+            else:
+                avisos.append(f"{precisa['fuente']} da {precisa['nav']} y FT {ft['nav']} el {ft['fecha']}: "
+                              "no cuadran")
+        elif precisa["fecha"] > ft["fecha"]:
+            if dif <= TOLERANCIA_OTRO_DIA:
+                validas.append(precisa)
+            else:
+                avisos.append(f"{precisa['fuente']} da {precisa['nav']} ({precisa['fecha']}), muy lejos de FT "
+                              f"{ft['nav']} ({ft['fecha']})")
+    aviso = "; ".join(avisos) or None
+    if not validas:
+        return ft, aviso
+    mejor = max(validas, key=lambda p: p["fecha"])  # max devuelve el primero en caso de empate
+    return mejor, aviso
 
 
 def ultimo_precio(sesion: requests.Session, fondo: dict) -> tuple[dict | None, list[str]]:
@@ -146,7 +206,8 @@ def ultimo_precio(sesion: requests.Session, fondo: dict) -> tuple[dict | None, l
             print(f"  {fondo['isin']} {nombre}: {p['fecha']} {p['nav']}")
         except Exception as e:  # cualquier fallo de una fuente: se usa la otra
             errores.append(f"{nombre}: {e}")
-    precio, aviso = elegir(obtenidos.get("ft"), obtenidos.get("quefondos"))
+    precisas = [obtenidos[n] for n, _ in FUENTES if n != "ft" and n in obtenidos]
+    precio, aviso = elegir(obtenidos.get("ft"), precisas)
     if aviso:
         errores.append(aviso)
     return precio, errores
