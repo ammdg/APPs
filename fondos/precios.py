@@ -118,14 +118,27 @@ MS_SERIES = [
 ]
 
 
+MS_BUSQUEDAS = [
+    ("https://www.morningstar.es/es/util/SecuritySearch.ashx",
+     {"source": "nav", "moduleId": 6, "ifIncludeAds": "False", "usrtType": "v"}),
+    ("https://www.morningstar.co.uk/uk/util/SecuritySearch.ashx",
+     {"source": "nav", "moduleId": 6, "ifIncludeAds": "False", "usrtType": "v"}),
+    ("https://www.morningstar.co.uk/uk/util/SecuritySearch.ashx", {"limit": 1}),
+]
+
+
 def morningstar_id(sesion: requests.Session, isin: str) -> str:
-    r = sesion.get("https://www.morningstar.es/es/util/SecuritySearch.ashx",
-                   params={"q": isin, "limit": 1, "preferedList": ""}, timeout=30)
-    r.raise_for_status()
-    m = re.search(r'"i"\s*:\s*"([A-Z0-9]{10})"', r.text)
-    if not m:
-        raise SinPrecio(f"Morningstar: no encuentro el fondo ({r.text[:120]!r})")
-    return m.group(1)
+    vistos = []
+    for url, extra in MS_BUSQUEDAS:
+        try:
+            r = sesion.get(url, params={"q": isin, **extra}, timeout=30)
+            m = re.search(r'"i"\s*:\s*"([A-Z0-9]{10})"', r.text)
+            if m:
+                return m.group(1)
+            vistos.append(f"{url.split('/')[2]} HTTP {r.status_code} {r.text[:80]!r}")
+        except Exception as e:
+            vistos.append(f"{url.split('/')[2]} {str(e)[:80]}")
+    raise SinPrecio("Morningstar: no encuentro el fondo (" + " | ".join(vistos) + ")")
 
 
 def parsear_serie_morningstar(datos) -> dict:
@@ -158,7 +171,44 @@ def de_morningstar(sesion: requests.Session, isin: str, moneda: str) -> dict:
     raise SinPrecio("Morningstar: " + " | ".join(errores))
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("morningstar", de_morningstar)]
+# ---------------------------------------------------------------- Yahoo Finance
+
+def yahoo_simbolo(sesion: requests.Session, isin: str) -> str:
+    r = sesion.get("https://query2.finance.yahoo.com/v1/finance/search",
+                   params={"q": isin, "quotesCount": 5, "newsCount": 0}, timeout=30)
+    r.raise_for_status()
+    quotes = r.json().get("quotes", [])
+    if not quotes:
+        raise SinPrecio("Yahoo: no encuentro el fondo")
+    return quotes[0]["symbol"]
+
+
+def parsear_chart_yahoo(datos: dict, moneda: str) -> dict:
+    res = datos["chart"]["result"][0]
+    meta = res.get("meta", {})
+    if meta.get("currency") and meta["currency"] != moneda:
+        raise SinPrecio(f"Yahoo: moneda {meta['currency']}, no {moneda}")
+    cierres = res["indicators"]["quote"][0]["close"]
+    puntos = [(t, c) for t, c in zip(res["timestamp"], cierres) if c is not None]
+    if not puntos:
+        raise SinPrecio("Yahoo: serie vacía")
+    t, nav = puntos[-1]
+    return {"fecha": datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat(), "nav": float(nav),
+            "moneda": meta.get("currency"), "fuente": "yahoo"}
+
+
+def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
+    simbolo = yahoo_simbolo(sesion, isin)
+    r = sesion.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{simbolo}",
+                   params={"range": "1mo", "interval": "1d"}, timeout=30)
+    r.raise_for_status()
+    p = parsear_chart_yahoo(r.json(), moneda)
+    p["fuente"] = f"yahoo"
+    print(f"    (yahoo {isin} -> {simbolo})")
+    return p
+
+
+FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("morningstar", de_morningstar), ("yahoo", de_yahoo)]
 
 # FT redondea a 2 decimales; Quefondos y Morningstar suelen dar el valor liquidativo completo. Se usan
 # solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.

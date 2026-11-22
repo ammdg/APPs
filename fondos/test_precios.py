@@ -103,3 +103,12 @@ def test_serie_morningstar():
     assert r["nav"] == 12.591 and r["fecha"] == "2025-11-19"
     with pytest.raises(p.SinPrecio):
         p.parsear_serie_morningstar([])
+
+
+def test_chart_yahoo():
+    datos = {"chart": {"result": [{"meta": {"currency": "EUR"}, "timestamp": [1763337600, 1763510400, 1763596800],
+                                   "indicators": {"quote": [{"close": [12.5, 12.591, None]}]}}]}}
+    r = p.parsear_chart_yahoo(datos, "EUR")
+    assert r["nav"] == 12.591 and r["fecha"] == "2025-11-19"
+    with pytest.raises(p.SinPrecio):
+        p.parsear_chart_yahoo(datos, "USD")
