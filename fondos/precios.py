@@ -150,27 +150,7 @@ def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return p
 
 
-# ---------------------------------------------------------------- Finect (en pruebas)
-
-def de_finect(sesion: requests.Session, isin: str, moneda: str) -> dict:
-    """De momento solo informa de lo que devuelve Finect, para ver si se puede usar."""
-    notas = []
-    for url in (f"https://www.finect.com/fondos-inversion/{isin}",
-                f"https://www.finect.com/buscador?q={isin}"):
-        try:
-            r = sesion.get(url, timeout=30)
-            plano = texto_plano(r.text)
-            trozos = [plano[max(0, m.start() - 60):m.start() + 120]
-                      for m in re.finditer(r"(?i)valor liquidativo|VL\b|NAV", plano)][:2]
-            apis = sorted(set(re.findall(r"https://[a-z0-9.-]*finect[a-z0-9./_-]*api[a-z0-9./_-]*", r.text)))[:5]
-            notas.append(f"[{url} -> HTTP {r.status_code} {r.url} {len(r.text)}B; "
-                         f"trozos={trozos!r}; apis={apis}; json={'__NEXT_DATA__' in r.text}]")
-        except Exception as e:
-            notas.append(f"[{url} -> {str(e)[:100]}]")
-    raise SinPrecio("Finect: " + " ".join(notas))
-
-
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo), ("finect", de_finect)]
+FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
 
 # FT redondea a 2 decimales; Quefondos y Yahoo (series de Morningstar) suelen dar el valor
 # liquidativo completo. Se usan solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
