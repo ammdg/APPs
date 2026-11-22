@@ -21,12 +21,17 @@ haya y su fecha; se recarga sola cada 5 minutos y al volver a abrirla.
   mismo día); si no, el de FT. De Yahoo solo se usan las series de fondos (símbolos `0P...`). Si una
   fuente falla, se usan las demás. **No son APIs oficiales**: si cambian su web, la descarga
   puede romperse; en ese caso la web avisa y puedes poner el precio a mano.
-- Tus **participaciones e importes se guardan en tu navegador** (`localStorage`, clave `fondos.v1`) y
-  **también en el propio enlace**, tras `#c=` (JSON en base64url). Esa parte del enlace no se envía al
-  servidor. Al abrir un enlace con `#c=`, sus datos sustituyen a los del navegador; cada cambio actualiza
-  el enlace. Guardado como marcador o en la pantalla de inicio, recupera la cartera aunque el navegador
-  borre su almacenamiento. Quien tenga el enlace ve la cartera. Botón «Datos» → «Copiar enlace con mis
-  datos» o «Exportar copia».
+- Tus **participaciones e importes se guardan en tu navegador** (`localStorage`, clave `fondos.v1`) y,
+  si creas una **copia cifrada**, también en el repositorio como `fondos/cartera.enc.json`:
+  AES-GCM 256 con clave derivada de tu contraseña (PBKDF2-SHA256, 600.000 iteraciones, sal aleatoria).
+  Sin la contraseña no se puede leer; fuera del cifrado solo va la fecha de la copia. Si se olvida la
+  contraseña, la copia no se puede recuperar.
+  - «Datos» → «Crear copia cifrada»: la web cifra los datos en el navegador y da el archivo, que se sube
+    al repositorio a mano (la web no escribe en GitHub).
+  - Al abrir la web, si la copia de GitHub es más reciente que la del navegador (o el navegador está
+    vacío), la abre con la clave recordada en ese dispositivo o pide la contraseña.
+  - Si hay cambios en el navegador posteriores a la copia, la web avisa para crear una nueva.
+  - «Exportar copia» sigue dando el JSON sin cifrar.
 
 ## Qué calcula
 
