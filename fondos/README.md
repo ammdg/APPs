@@ -29,10 +29,14 @@ haya y su fecha; se recarga sola cada 5 minutos y al volver a abrirla.
 - Valor de la cartera = participaciones × último valor liquidativo de cada fondo.
 - Resultado = valor − invertido (en € y %). «Invertido» es tu coste, como en la app de tu banco.
 - Último día: variación entre los dos últimos precios de cada fondo.
-- Gráfica: valor de la cartera con tus participaciones **actuales** aplicadas a los precios pasados (no
-  conoce las fechas de tus aportaciones, así que no es tu rentabilidad real del periodo). El historial se
-  va acumulando desde que empieza a funcionar el workflow.
-- Compras y ventas: en la ficha de cada fondo. Una venta reduce lo invertido a coste medio.
+- Gráfica: sin movimientos, valor con tus participaciones **actuales** aplicadas a los precios pasados (no
+  es tu rentabilidad real del periodo); con movimientos, valor real de cada día.
+- Movimientos (sección «Movimientos»): aportaciones, reembolsos y traspasos con fecha, participaciones e
+  importe. Si hay aportaciones, el resultado se calcula frente al dinero aportado (aportaciones −
+  reembolsos; los traspasos no cuentan como dinero nuevo) y se muestra la rentabilidad anualizada (TIR
+  ponderada por dinero, con asterisco si hay menos de un año de datos). La gráfica usa entonces las
+  participaciones de cada día y dibuja también la línea de lo aportado. Si los movimientos no cuadran con
+  las participaciones de algún fondo, la web lo avisa.
 
 ## Añadir un fondo
 

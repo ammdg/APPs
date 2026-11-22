@@ -89,6 +89,18 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .danger{color:var(--down);border-color:var(--down)}
 .hint{font-size:.78rem;color:var(--muted)}
+.movs summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.movs summary::-webkit-details-marker{display:none}
+.mov{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:.85rem}
+.mov:first-child{border-top:0}
+.mov .m-main{min-width:0;display:flex;flex-direction:column}
+.mov .m-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mov .m-sub{color:var(--muted);font-size:.78rem}
+.mov .m-imp{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.mov .m-del{background:none;border:0;color:var(--muted);font-size:1.1rem;padding:4px 6px}
+.legend{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px solid var(--chart);vertical-align:middle;margin-right:5px}
+.legend i.ap{border-top:2px dashed var(--muted)}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-120%)}
 </style>
 </head>
@@ -116,7 +128,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <span>Resultado <b id="ganancia">—</b></span>
       <span>Último día <b id="dia">—</b></span>
     </div>
-    <div class="hero-row"><span>Invertido <b class="num" id="invertido">—</b></span></div>
+    <div class="hero-row"><span><span id="lblInvertido">Invertido</span> <b class="num" id="invertido">—</b></span>
+      <span id="tirBox" hidden>Anualizada <b class="num" id="tir">—</b></span></div>
     <p class="status" id="estado"></p>
   </section>
 
@@ -133,6 +146,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       </div>
     </div>
     <div style="position:relative"><svg class="chart" id="grafica" role="img" aria-label="Evolución del valor de la cartera"></svg><div class="tip" id="tip" hidden></div></div>
+    <div class="legend" id="leyenda" hidden><span><i></i>Valor</span><span><i class="ap"></i>Aportado</span></div>
     <p class="chart-note" id="notaGrafica"></p>
   </section>
 
@@ -141,7 +155,40 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="alloc" id="reparto" aria-hidden="true"></div>
     <div class="list" id="lista"></div>
   </section>
+
+  <section class="card" id="movsSec" hidden>
+    <details class="movs" id="movsDet">
+      <summary><h2 id="movsTitulo">Movimientos</h2><span class="hint">ver / ocultar</span></summary>
+      <p class="hint">Con tus aportaciones y traspasos, el resultado se calcula frente al dinero que has metido y se obtiene la rentabilidad anualizada.</p>
+      <div id="movsLista"></div>
+      <div class="actions" style="margin-top:8px"><button class="ghost" type="button" data-accion="nuevoMov">+ Añadir movimiento</button></div>
+    </details>
+  </section>
 </main>
+
+<dialog id="dlgMov"><form class="dlg" method="dialog" id="formMov">
+  <h2>Nuevo movimiento</h2>
+  <div class="row2">
+    <label>Fecha<input name="fecha" type="date" required></label>
+    <label>Tipo<select name="tipo">
+      <option value="aport">Aportación (dinero nuevo)</option>
+      <option value="trasp_in">Entrada por traspaso</option>
+      <option value="trasp_out">Salida por traspaso</option>
+      <option value="retir">Reembolso (sacas dinero)</option>
+    </select></label>
+  </div>
+  <label>Fondo<select name="isin" id="movFondo"></select></label>
+  <div class="row2">
+    <label>Participaciones<input name="part" inputmode="decimal" required></label>
+    <label>Importe (€)<input name="imp" inputmode="decimal" required></label>
+  </div>
+  <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="actualizar" checked style="width:auto">
+    Actualizar también las participaciones e invertido del fondo</label>
+  <p class="hint">Desmárcalo si el fondo ya refleja esta operación (por ejemplo, al apuntar movimientos antiguos).</p>
+  <div class="dlg-foot"><span></span>
+    <div class="actions"><button class="ghost" value="cancel" formnovalidate>Cancelar</button><button class="primary" value="ok">Guardar</button></div>
+  </div>
+</form></dialog>
 
 <dialog id="dlgFondo"><form class="dlg" method="dialog" id="formFondo">
   <h2 id="dlgTitulo">Fondo</h2>
@@ -156,15 +203,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <label>Fecha de ese valor<input name="navf" type="date"></label>
   </div>
   <p class="hint">El precio manual solo se usa si es más reciente que el descargado automáticamente (sin fecha, solo mientras no haya ninguno descargado).</p>
-  <fieldset id="opBox" style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
-    <legend class="hint">Registrar compra o venta</legend>
-    <div class="row2">
-      <label>Tipo<select name="optipo"><option value="">—</option><option value="compra">Compra</option><option value="venta">Venta</option></select></label>
-      <label>Participaciones<input name="oppart" inputmode="decimal"></label>
-    </div>
-    <label>Importe de la compra (€)<input name="opimp" inputmode="decimal" placeholder="solo en compras"></label>
-    <p class="hint">En una venta, lo invertido baja en proporción (a coste medio).</p>
-  </fieldset>
+  <p class="hint">Para apuntar compras, ventas o traspasos usa «Movimientos», debajo de la lista de fondos.</p>
   <div class="dlg-foot">
     <button class="ghost danger" type="button" id="btnBorrar">Eliminar</button>
     <div class="actions"><button class="ghost" value="cancel" formnovalidate>Cancelar</button><button class="primary" value="ok">Guardar</button></div>
@@ -199,8 +238,11 @@ var rangoDias = 365;
 var editando = null;
 
 function cargar() {
-  try { var d = JSON.parse(localStorage.getItem(LS)); if (d && Array.isArray(d.posiciones)) return d; } catch (e) {}
-  return { version: 1, posiciones: [] };
+  try {
+    var d = JSON.parse(localStorage.getItem(LS));
+    if (d && Array.isArray(d.posiciones)) { if (!Array.isArray(d.movimientos)) d.movimientos = []; return d; }
+  } catch (e) {}
+  return { version: 1, posiciones: [], movimientos: [] };
 }
 function guardar() { try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {} }
 
@@ -231,6 +273,43 @@ function historial(pos) {
   return h;
 }
 
+/* ---------------- movimientos ----------------
+   {fecha, isin, tipo: 'compra'|'venta', participaciones, importe, externo}
+   externo = dinero que entra o sale de la cartera (aportación / reembolso). Los traspasos no son externos. */
+var TIPOS = { aport: ['compra', true], trasp_in: ['compra', false], trasp_out: ['venta', false], retir: ['venta', true] };
+function etiqueta(m) {
+  return m.tipo === 'compra' ? (m.externo ? 'Aportación' : 'Entrada por traspaso') : (m.externo ? 'Reembolso' : 'Salida por traspaso');
+}
+function movs() {
+  return (cartera.movimientos || []).slice().sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+}
+function hayAportaciones() { return movs().some(function (m) { return m.externo; }); }
+/* Dinero neto metido en la cartera hasta una fecha (aportaciones − reembolsos). */
+function aportado(hasta) {
+  return movs().reduce(function (s, m) {
+    if (!m.externo || (hasta && m.fecha > hasta)) return s;
+    return s + (m.tipo === 'compra' ? m.importe : -m.importe);
+  }, 0);
+}
+/* Rentabilidad anualizada ponderada por dinero (TIR / XIRR) de los flujos externos, valorando la cartera en `fechaValor`. */
+function tir(valor, fechaValor) {
+  var T = Date.parse(fechaValor), flujos = movs().filter(function (m) { return m.externo; }).map(function (m) {
+    return [(T - Date.parse(m.fecha)) / 864e5 / 365, m.tipo === 'compra' ? m.importe : -m.importe];
+  });
+  if (!flujos.length || !(valor > 0)) return NaN;
+  var f = function (r) { return valor - flujos.reduce(function (s, x) { return s + x[1] * Math.pow(1 + r, x[0]); }, 0); };
+  var lo = -0.99, hi = 10;
+  if (f(lo) * f(hi) > 0) return NaN;
+  for (var i = 0; i < 200; i++) { var m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+/* Participaciones de cada fondo según los movimientos (para comprobar que cuadran con la lista de fondos). */
+function unidadesMovs() {
+  var u = {};
+  movs().forEach(function (m) { u[m.isin] = (u[m.isin] || 0) + (m.tipo === 'compra' ? 1 : -1) * m.participaciones; });
+  return u;
+}
+
 function calcular() {
   var filas = cartera.posiciones.map(function (pos, i) {
     var h = historial(pos), ult = h[h.length - 1], ant = h[h.length - 2];
@@ -257,12 +336,15 @@ function render() {
   var baseDia = conDia.reduce(function (s, f) { return s + f.valor - f.dia; }, 0);
 
   $('total').textContent = conPrecio.length ? eur.format(total) : '—';
+  var conMovs = hayAportaciones();
+  if (conMovs) inv = aportado();
   var g = total - inv;
   $('ganancia').className = signo(g);
   $('ganancia').textContent = conPrecio.length ? fEur(g, true) + ' (' + pct.format(inv ? g / inv : 0) + ')' : '—';
   $('dia').className = signo(dia);
   $('dia').textContent = conDia.length ? fEur(dia, true) + ' (' + pct.format(baseDia ? dia / baseDia : 0) + ')' : 'sin datos aún';
-  $('invertido').textContent = eur.format(invTodo);
+  $('invertido').textContent = eur.format(conMovs ? inv : invTodo);
+  $('lblInvertido').textContent = conMovs ? 'Aportado' : 'Invertido';
 
   var fechas = conPrecio.map(function (f) { return f.ult[0]; }).filter(function (d) { return d !== '0000-00-00'; }).sort();
   var est = '';
@@ -273,6 +355,16 @@ function render() {
   if (precios.actualizado) est += ' Último precio nuevo descargado: ' + new Date(precios.actualizado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) + '.';
   $('estado').textContent = est;
 
+  $('tirBox').hidden = !conMovs;
+  if (conMovs && fechas.length) {
+    var r = tir(total, fechas[fechas.length - 1]);
+    var dias = (Date.parse(fechas[fechas.length - 1]) - Date.parse(movs()[0].fecha)) / 864e5;
+    $('tir').className = signo(r);
+    $('tir').textContent = isNaN(r) ? '—' : pct.format(r) + (dias < 365 ? ' *' : '');
+    $('tir').title = dias < 365 ? 'Menos de un año invertido: la cifra anualizada exagera las subidas y bajadas.' : '';
+    if (dias < 365) $('estado').textContent += ' * Anualizada con menos de un año de datos: exagera las variaciones.';
+  }
+
   var av = [];
   var sinPrecio = filas.filter(function (f) { return isNaN(f.valor); });
   if (sinPrecio.length) av.push('<div class="banner warn">Sin precio: ' + sinPrecio.map(function (f) { return esc(f.pos.nombre); }).join(', ') +
@@ -282,7 +374,16 @@ function render() {
   var noSeguidos = filas.filter(function (f) { return !precios.fondos[f.pos.isin]; });
   if (noSeguidos.length && precios._cargado) av.push('<div class="banner">No se descargan precios de: ' + noSeguidos.map(function (f) { return esc(f.pos.isin); }).join(', ') +
     '. Para que se descarguen, hay que añadir su ISIN a fondos/fondos.json en el repositorio.</div>');
+  if (cartera.movimientos.length) {
+    var um = unidadesMovs(), desc = filas.filter(function (f) {
+      return Math.abs((um[f.pos.isin] || 0) - f.pos.participaciones) > 1e-6;
+    });
+    if (desc.length) av.push('<div class="banner warn">Los movimientos no cuadran con las participaciones de: ' + desc.map(function (f) {
+      return esc(f.pos.nombre) + ' (movimientos ' + nf.format(um[f.pos.isin] || 0) + ', fondo ' + nf.format(f.pos.participaciones) + ')';
+    }).join('; ') + '. La gráfica usa los movimientos.</div>');
+  }
   $('avisos').innerHTML = av.join('');
+  renderMovs();
 
   // reparto y lista
   var orden = filas.slice().sort(function (a, b) { return (b.valor || 0) - (a.valor || 0); });
@@ -304,24 +405,39 @@ function render() {
   grafica(filas);
 }
 
-/* Valor de la cartera en cada fecha con precio, usando las participaciones ACTUALES
-   (no se conocen las fechas de las aportaciones pasadas). Cada fondo usa su último precio conocido. */
+/* Valor de la cartera en cada fecha con precio. Sin movimientos: con las participaciones ACTUALES.
+   Con movimientos: con las participaciones de cada día, más el dinero de traspasos «en camino»
+   (salió de un fondo y aún no ha entrado en otro), y la línea de lo aportado. */
 function serie(filas) {
-  var fechas = {};
-  filas.forEach(function (f) { f.h.forEach(function (p) { if (p[0] !== '0000-00-00') fechas[p[0]] = 1; }); });
-  var lista = Object.keys(fechas).sort();
-  var inicio = lista.filter(function (d) { return filas.every(function (f) { return f.h.length && f.h[0][0] <= d; }); })[0];
-  if (!inicio) return [];
-  lista = lista.filter(function (d) { return d >= inicio; });
-  var idx = filas.map(function () { return 0; });
-  return lista.map(function (d) {
-    var v = 0;
+  var lista = {}, conMovs = cartera.movimientos.length > 0, ms = movs();
+  filas.forEach(function (f) { f.h.forEach(function (p) { if (p[0] !== '0000-00-00') lista[p[0]] = 1; }); });
+  lista = Object.keys(lista).sort();
+  var idx = filas.map(function () { return -1; }), u = filas.map(function (f) { return conMovs ? 0 : f.pos.participaciones; });
+  var pos = {}; filas.forEach(function (f, i) { pos[f.pos.isin] = i; });
+  var k = 0, enCamino = 0, apor = 0, out = [];
+  lista.forEach(function (d) {
+    while (k < ms.length && ms[k].fecha <= d) {
+      var dia = ms[k].fecha, entra = false;
+      for (; k < ms.length && ms[k].fecha === dia; k++) {
+        var m = ms[k], sg = m.tipo === 'compra' ? 1 : -1;
+        if (pos[m.isin] !== undefined) u[pos[m.isin]] += sg * m.participaciones;
+        if (m.externo) apor += sg * m.importe;
+        else if (m.tipo === 'venta') enCamino += m.importe;
+        else entra = true;
+      }
+      if (entra) enCamino = 0;
+    }
+    var v = enCamino, falta = false;
     filas.forEach(function (f, i) {
       while (idx[i] + 1 < f.h.length && f.h[idx[i] + 1][0] <= d) idx[i]++;
-      v += f.pos.participaciones * f.h[idx[i]][1];
+      if (u[i] > 1e-9) { if (idx[i] < 0 || f.h[idx[i]][0] === '0000-00-00') falta = true; else v += u[i] * f.h[idx[i]][1]; }
     });
-    return [d, v];
+    if (!falta) out.push([d, v, conMovs ? apor : null]);
   });
+  // Solo el tramo final continuo (desde que todos los fondos con participaciones tienen precio)
+  var ultimoHueco = -1;
+  for (var i = 0; i < out.length - 1; i++) if (lista.indexOf(out[i + 1][0]) - lista.indexOf(out[i][0]) > 1) ultimoHueco = i;
+  return out.slice(ultimoHueco + 1);
 }
 
 function grafica(filas) {
@@ -335,26 +451,37 @@ function grafica(filas) {
   if (s.length < 2) {
     svg.innerHTML = '';
     $('notaGrafica').textContent = 'La gráfica aparecerá cuando haya al menos dos días con precio de todos los fondos. Los precios se van guardando cada día desde hoy.';
+    $('leyenda').hidden = true;
     return;
   }
   var W = svg.clientWidth || 500, H = 180, pl = 4, pr = 4, pt = 10, pb = 18;
-  var vals = s.map(function (p) { return p[1]; });
+  var conMovs = s[0][2] !== null;
+  var vals = s.map(function (p) { return p[1]; }).concat(conMovs ? s.map(function (p) { return p[2]; }) : []);
   var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
   if (mx - mn < 1) { mx += 1; mn -= 1; }
   var pad = (mx - mn) * 0.08; mn -= pad; mx += pad;
   var x = function (i) { return pl + i / (s.length - 1) * (W - pl - pr); };
   var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
   var d = s.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p[1]).toFixed(1); }).join('');
+  var dA = conMovs ? s.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p[2]).toFixed(1); }).join('') : '';
   var area = d + 'L' + x(s.length - 1).toFixed(1) + ' ' + (H - pb) + 'L' + x(0).toFixed(1) + ' ' + (H - pb) + 'Z';
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   svg.innerHTML = '<path d="' + area + '" fill="var(--chart-fill)"/>' +
+    (dA ? '<path d="' + dA + '" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>' : '') +
     '<path d="' + d + '" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round"/>' +
     '<text x="' + pl + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)">' + fFecha(s[0][0]) + '</text>' +
     '<text x="' + (W - pr) + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)" text-anchor="end">' + fFecha(s[s.length - 1][0]) + '</text>' +
     '<circle id="cur" r="4" fill="var(--chart)" visibility="hidden"/>';
-  var cambio = s[s.length - 1][1] - s[0][1];
-  $('notaGrafica').innerHTML = 'Variación en el periodo: <span class="' + signo(cambio) + '">' + fEur(cambio, true) + ' (' + pct.format(cambio / s[0][1]) + ')</span>. ' +
-    'Calculada con tus participaciones actuales, sin contar aportaciones ni ventas del periodo.';
+  $('leyenda').hidden = !conMovs;
+  if (conMovs) {
+    var res = (s[s.length - 1][1] - s[0][1]) - (s[s.length - 1][2] - s[0][2]);
+    $('notaGrafica').innerHTML = 'Resultado en el periodo (sin contar lo aportado): <span class="' + signo(res) + '">' + fEur(res, true) + '</span>. ' +
+      'Valor con las participaciones que tenías cada día.';
+  } else {
+    var cambio = s[s.length - 1][1] - s[0][1];
+    $('notaGrafica').innerHTML = 'Variación en el periodo: <span class="' + signo(cambio) + '">' + fEur(cambio, true) + ' (' + pct.format(cambio / s[0][1]) + ')</span>. ' +
+      'Calculada con tus participaciones actuales, sin contar aportaciones ni ventas del periodo.';
+  }
   var tip = $('tip'), cur = svg.querySelector('#cur');
   function mover(ev) {
     var r = svg.getBoundingClientRect();
@@ -363,7 +490,7 @@ function grafica(filas) {
     i = Math.max(0, Math.min(s.length - 1, i));
     cur.setAttribute('cx', x(i)); cur.setAttribute('cy', y(s[i][1])); cur.setAttribute('visibility', 'visible');
     tip.hidden = false; tip.style.left = (x(i) / W * r.width) + 'px'; tip.style.top = (y(s[i][1]) / H * r.height) + 'px';
-    tip.textContent = fFecha(s[i][0]) + ' · ' + eur.format(s[i][1]);
+    tip.textContent = fFecha(s[i][0]) + ' · ' + eur.format(s[i][1]) + (conMovs ? ' · aportado ' + eur.format(s[i][2]) : '');
   }
   svg.onpointermove = mover; svg.onpointerdown = mover;
   svg.onpointerleave = function () { tip.hidden = true; cur.setAttribute('visibility', 'hidden'); };
@@ -384,7 +511,7 @@ function abrirFondo(isin) {
   var f = $('formFondo'); f.reset();
   editando = isin ? cartera.posiciones.filter(function (p) { return p.isin === isin; })[0] : null;
   $('dlgTitulo').textContent = editando ? 'Editar fondo' : 'Añadir fondo';
-  $('btnBorrar').hidden = !editando; $('opBox').hidden = !editando;
+  $('btnBorrar').hidden = !editando;
   f.isin.readOnly = !!editando;
   if (editando) {
     f.isin.value = editando.isin; f.nombre.value = editando.nombre;
@@ -410,18 +537,6 @@ $('formFondo').addEventListener('submit', function (ev) {
   if (isNaN(pos.participaciones) || isNaN(pos.invertido)) { ev.preventDefault(); alert('Revisa participaciones e invertido.'); return; }
   var navm = num(f.navm.value);
   if (navm > 0) pos.navManual = { nav: navm, fecha: f.navf.value || null };
-  if (editando && f.optipo.value) {
-    var u = num(f.oppart.value);
-    if (!(u > 0)) { ev.preventDefault(); alert('Indica las participaciones de la operación.'); return; }
-    if (f.optipo.value === 'compra') {
-      var imp = num(f.opimp.value);
-      if (!(imp > 0)) { ev.preventDefault(); alert('Indica el importe de la compra.'); return; }
-      pos.participaciones += u; pos.invertido += imp;
-    } else {
-      if (u > pos.participaciones + 1e-9) { ev.preventDefault(); alert('No tienes tantas participaciones.'); return; }
-      pos.invertido -= pos.invertido * (u / pos.participaciones); pos.participaciones -= u;
-    }
-  }
   if (editando) {
     cartera.posiciones[cartera.posiciones.indexOf(editando)] = pos;
   } else {
@@ -434,6 +549,46 @@ $('btnBorrar').addEventListener('click', function () {
   if (!editando || !confirm('¿Eliminar ' + editando.nombre + ' de la cartera?')) return;
   cartera.posiciones.splice(cartera.posiciones.indexOf(editando), 1);
   guardar(); $('dlgFondo').close(); render();
+});
+
+/* ---------------- lista y alta de movimientos ---------------- */
+function nombreFondo(isin) {
+  var p = cartera.posiciones.filter(function (x) { return x.isin === isin; })[0];
+  return p ? p.nombre : isin;
+}
+function renderMovs() {
+  var ms = movs().reverse();
+  $('movsSec').hidden = !cartera.posiciones.length;
+  $('movsTitulo').textContent = 'Movimientos (' + ms.length + ')';
+  $('movsLista').innerHTML = ms.length ? ms.map(function (m) {
+    var sg = m.tipo === 'compra' ? '+' : '−';
+    return '<div class="mov"><span class="m-main"><span class="m-txt">' + esc(nombreFondo(m.isin)) + '</span>' +
+      '<span class="m-sub num">' + fFecha(m.fecha) + ' · ' + etiqueta(m) + ' · ' + nf.format(m.participaciones) + ' part.</span></span>' +
+      '<span class="m-imp ' + (m.externo ? (m.tipo === 'compra' ? 'up' : 'down') : '') + '">' + sg + eur.format(m.importe) + '</span>' +
+      '<button class="m-del" type="button" title="Borrar" data-borrarmov="' + cartera.movimientos.indexOf(m) + '">×</button></div>';
+  }).join('') : '<p class="hint">Aún no hay movimientos.</p>';
+}
+function abrirMov() {
+  var f = $('formMov'); f.reset(); f.fecha.value = hoyISO();
+  $('movFondo').innerHTML = cartera.posiciones.map(function (p) {
+    return '<option value="' + esc(p.isin) + '">' + esc(p.nombre) + '</option>';
+  }).join('');
+  $('dlgMov').showModal();
+}
+$('formMov').addEventListener('submit', function (ev) {
+  if (ev.submitter && ev.submitter.value === 'cancel') return;
+  var f = ev.target, t = TIPOS[f.tipo.value];
+  var m = { fecha: f.fecha.value, isin: f.isin.value, tipo: t[0], externo: t[1], participaciones: num(f.part.value), importe: num(f.imp.value) };
+  if (!m.fecha || !(m.participaciones > 0) || !(m.importe > 0)) { ev.preventDefault(); alert('Revisa la fecha, las participaciones y el importe.'); return; }
+  var pos = cartera.posiciones.filter(function (p) { return p.isin === m.isin; })[0];
+  if (f.actualizar.checked && pos) {
+    if (m.tipo === 'compra') { pos.participaciones += m.participaciones; pos.invertido += m.importe; }
+    else {
+      if (m.participaciones > pos.participaciones + 1e-9) { ev.preventDefault(); alert('No tienes tantas participaciones.'); return; }
+      pos.invertido -= pos.invertido * (m.participaciones / pos.participaciones); pos.participaciones -= m.participaciones;
+    }
+  }
+  cartera.movimientos.push(m); guardar(); render();
 });
 
 /* ---------------- importar / exportar ---------------- */
@@ -450,8 +605,17 @@ function importar(texto) {
     if (p.navManual && num(p.navManual.nav) > 0) pos.navManual = { nav: num(p.navManual.nav), fecha: p.navManual.fecha || null };
     ok.push(pos);
   }
-  if (cartera.posiciones.length && !confirm('Esto sustituye los ' + cartera.posiciones.length + ' fondos actuales. ¿Seguir?')) return false;
-  cartera = { version: 1, posiciones: ok }; guardar(); render();
+  var movsOk = [], ml = Array.isArray(d.movimientos) ? d.movimientos : [];
+  for (var j = 0; j < ml.length; j++) {
+    var x = ml[j], m = { fecha: String(x.fecha || ''), isin: String(x.isin || '').toUpperCase(), tipo: x.tipo,
+      externo: !!x.externo, participaciones: num(x.participaciones), importe: num(x.importe) };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(m.fecha) || !m.isin || (m.tipo !== 'compra' && m.tipo !== 'venta') ||
+        !(m.participaciones > 0) || !(m.importe >= 0)) { alert('Movimiento ' + (j + 1) + ' incompleto.'); return false; }
+    movsOk.push(m);
+  }
+  if (cartera.posiciones.length && !confirm('Esto sustituye los ' + cartera.posiciones.length + ' fondos actuales' +
+      (cartera.movimientos.length ? ' y sus movimientos' : '') + '. ¿Seguir?')) return false;
+  cartera = { version: 1, posiciones: ok, movimientos: movsOk }; guardar(); render();
   return true;
 }
 $('btnImportar').addEventListener('click', function () { if (importar($('txtImport').value)) $('dlgDatos').close(); });
@@ -469,8 +633,15 @@ $('btnExportar').addEventListener('click', function () {
 
 /* ---------------- eventos ---------------- */
 document.addEventListener('click', function (ev) {
-  var b = ev.target.closest('[data-accion],[data-isin]'); if (!b) return;
-  if (b.dataset.isin) abrirFondo(b.dataset.isin);
+  var b = ev.target.closest('[data-accion],[data-isin],[data-borrarmov]'); if (!b) return;
+  if (b.dataset.borrarmov !== undefined) {
+    var m = cartera.movimientos[+b.dataset.borrarmov];
+    if (m && confirm('¿Borrar este movimiento? (No cambia las participaciones del fondo.)')) {
+      cartera.movimientos.splice(+b.dataset.borrarmov, 1); guardar(); render();
+    }
+  }
+  else if (b.dataset.isin) abrirFondo(b.dataset.isin);
+  else if (b.dataset.accion === 'nuevoMov') abrirMov();
   else if (b.dataset.accion === 'nuevo') abrirFondo(null);
   else if (b.dataset.accion === 'importar') $('dlgDatos').showModal();
 });
