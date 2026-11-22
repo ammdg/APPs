@@ -109,30 +109,82 @@ def de_quefondos(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return parsear_quefondos(r.text)
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos)]
+# ---------------------------------------------------------------- Yahoo Finance
 
-# FT redondea a 2 decimales; Quefondos suele dar el valor liquidativo completo. Se usa el de Quefondos
-# solo si cuadra con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
+def yahoo_simbolo(sesion: requests.Session, isin: str) -> str:
+    r = sesion.get("https://query2.finance.yahoo.com/v1/finance/search",
+                   params={"q": isin, "quotesCount": 5, "newsCount": 0}, timeout=30)
+    r.raise_for_status()
+    # Solo las series "0P..." son el valor liquidativo del fondo (datos de Morningstar). Otros símbolos
+    # (p. ej. "XXXX.F") son cotizaciones en bolsa de otro producto y no valen.
+    simbolos = [q["symbol"] for q in r.json().get("quotes", []) if q.get("symbol", "").startswith("0P")]
+    if not simbolos:
+        raise SinPrecio("Yahoo: no tiene el valor liquidativo de este fondo")
+    return simbolos[0]
+
+
+def parsear_chart_yahoo(datos: dict, moneda: str) -> dict:
+    res = datos["chart"]["result"][0]
+    meta = res.get("meta", {})
+    if meta.get("currency") and meta["currency"] != moneda:
+        raise SinPrecio(f"Yahoo: moneda {meta['currency']}, no {moneda}")
+    cierres = res["indicators"]["quote"][0]["close"]
+    puntos = [(t, c) for t, c in zip(res["timestamp"], cierres) if c is not None]
+    if not puntos:
+        raise SinPrecio("Yahoo: serie vacía")
+    t, nav = puntos[-1]
+    # Yahoo guarda los precios en coma flotante de 32 bits (12.591 llega como 12.590999603...):
+    # se redondea a 7 cifras significativas, que es la precisión real de ese formato.
+    nav = float(f"{float(nav):.7g}")
+    return {"fecha": datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat(), "nav": nav,
+            "moneda": meta.get("currency"), "fuente": "yahoo"}
+
+
+def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
+    simbolo = yahoo_simbolo(sesion, isin)
+    r = sesion.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{simbolo}",
+                   params={"range": "1mo", "interval": "1d"}, timeout=30)
+    r.raise_for_status()
+    p = parsear_chart_yahoo(r.json(), moneda)
+    print(f"    (yahoo {isin} -> {simbolo})")
+    return p
+
+
+FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
+
+# FT redondea a 2 decimales; Quefondos y Yahoo (series de Morningstar) suelen dar el valor
+# liquidativo completo. Se usan solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
 TOLERANCIA_MISMO_DIA = 0.005  # 0,5 %: el redondeo de FT nunca se acerca a esto
-TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si Quefondos tiene un día más reciente, solo se descarta lo absurdo
+TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si la otra fuente tiene un día más reciente, solo se descarta lo absurdo
 
 
-def elegir(ft: dict | None, precisa: dict | None) -> tuple[dict | None, str | None]:
-    """Decide qué precio usar. Devuelve (precio, aviso)."""
-    if not ft or not precisa:
-        return ft or precisa, None
-    dif = abs(precisa["nav"] - ft["nav"]) / ft["nav"]
-    if precisa["fecha"] == ft["fecha"]:
-        if dif <= TOLERANCIA_MISMO_DIA:
-            return precisa, None
-        return ft, (f"{precisa['fuente']} da {precisa['nav']} y FT {ft['nav']} el {ft['fecha']}: "
-                    "no cuadran, se usa FT")
-    if precisa["fecha"] > ft["fecha"]:
-        if dif <= TOLERANCIA_OTRO_DIA:
-            return precisa, None
-        return ft, (f"{precisa['fuente']} da {precisa['nav']} ({precisa['fecha']}), muy lejos de FT "
-                    f"{ft['nav']} ({ft['fecha']}): se usa FT")
-    return ft, None  # FT es más reciente
+def elegir(ft: dict | None, precisas) -> tuple[dict | None, str | None]:
+    """Decide qué precio usar entre FT y las fuentes precisas (dict o lista, por preferencia).
+    Devuelve (precio, aviso)."""
+    if isinstance(precisas, dict) or precisas is None:
+        precisas = [precisas] if precisas else []
+    if not ft:
+        return (precisas[0] if precisas else None), None
+    validas, avisos = [], []
+    for precisa in precisas:
+        dif = abs(precisa["nav"] - ft["nav"]) / ft["nav"]
+        if precisa["fecha"] == ft["fecha"]:
+            if dif <= TOLERANCIA_MISMO_DIA:
+                validas.append(precisa)
+            else:
+                avisos.append(f"{precisa['fuente']} da {precisa['nav']} y FT {ft['nav']} el {ft['fecha']}: "
+                              "no cuadran")
+        elif precisa["fecha"] > ft["fecha"]:
+            if dif <= TOLERANCIA_OTRO_DIA:
+                validas.append(precisa)
+            else:
+                avisos.append(f"{precisa['fuente']} da {precisa['nav']} ({precisa['fecha']}), muy lejos de FT "
+                              f"{ft['nav']} ({ft['fecha']})")
+    aviso = "; ".join(avisos) or None
+    if not validas:
+        return ft, aviso
+    mejor = max(validas, key=lambda p: p["fecha"])  # max devuelve el primero en caso de empate
+    return mejor, aviso
 
 
 def ultimo_precio(sesion: requests.Session, fondo: dict) -> tuple[dict | None, list[str]]:
@@ -146,7 +198,8 @@ def ultimo_precio(sesion: requests.Session, fondo: dict) -> tuple[dict | None, l
             print(f"  {fondo['isin']} {nombre}: {p['fecha']} {p['nav']}")
         except Exception as e:  # cualquier fallo de una fuente: se usa la otra
             errores.append(f"{nombre}: {e}")
-    precio, aviso = elegir(obtenidos.get("ft"), obtenidos.get("quefondos"))
+    precisas = [obtenidos[n] for n, _ in FUENTES if n != "ft" and n in obtenidos]
+    precio, aviso = elegir(obtenidos.get("ft"), precisas)
     if aviso:
         errores.append(aviso)
     return precio, errores

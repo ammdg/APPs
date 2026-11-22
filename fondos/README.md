@@ -16,9 +16,10 @@ haya y su fecha; se recarga sola cada 5 minutos y al volver a abrirla.
   Pages): revela qué fondos tienes, pero no cuánto.
 - `precios.py`: cada 2 horas (lunes a sábado) el workflow `.github/workflows/fondos.yml` descarga el
   último valor liquidativo de cada ISIN y lo añade a `precios.json` (solo precios, con su fecha).
-  Fuentes: FT Markets (redondea a 2 decimales) y Quefondos (valor liquidativo completo). Se usa el de
-  Quefondos solo si cuadra con el de FT (diferencia ≤ 0,5 % el mismo día); si no, el de FT. Si una de
-  las dos falla, se usa la otra. **No son APIs oficiales**: si cambian su web, la descarga
+  Fuentes: FT Markets (redondea a 2 decimales), Quefondos y Yahoo Finance (estas dos dan el valor
+  liquidativo completo). Se usa el valor completo solo si cuadra con el de FT (diferencia ≤ 0,5 % el
+  mismo día); si no, el de FT. De Yahoo solo se usan las series de fondos (símbolos `0P...`). Si una
+  fuente falla, se usan las demás. **No son APIs oficiales**: si cambian su web, la descarga
   puede romperse; en ese caso la web avisa y puedes poner el precio a mano.
 - Tus **participaciones e importes invertidos se guardan solo en tu navegador** (`localStorage`,
   clave `fondos.v1`). No se suben a ningún sitio. Exporta una copia de vez en cuando (botón «Datos»).
