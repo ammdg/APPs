@@ -89,15 +89,6 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .danger{color:var(--down);border-color:var(--down)}
 .hint{font-size:.78rem;color:var(--muted)}
-.movs summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.movs summary::-webkit-details-marker{display:none}
-.mov{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:.85rem}
-.mov:first-child{border-top:0}
-.mov .m-main{min-width:0;display:flex;flex-direction:column}
-.mov .m-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mov .m-sub{color:var(--muted);font-size:.78rem}
-.mov .m-imp{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-.mov .m-del{background:none;border:0;color:var(--muted);font-size:1.1rem;padding:4px 6px}
 .legend{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:4px}
 .legend i{display:inline-block;width:14px;height:0;border-top:2px solid var(--chart);vertical-align:middle;margin-right:5px}
 .legend i.ap{border-top:2px dashed var(--muted)}
@@ -156,39 +147,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="list" id="lista"></div>
   </section>
 
-  <section class="card" id="movsSec" hidden>
-    <details class="movs" id="movsDet">
-      <summary><h2 id="movsTitulo">Movimientos</h2><span class="hint">ver / ocultar</span></summary>
-      <p class="hint">Con tus aportaciones y traspasos, el resultado se calcula frente al dinero que has metido y se obtiene la rentabilidad anualizada.</p>
-      <div id="movsLista"></div>
-      <div class="actions" style="margin-top:8px"><button class="ghost" type="button" data-accion="nuevoMov">+ Añadir movimiento</button></div>
-    </details>
-  </section>
 </main>
 
-<dialog id="dlgMov"><form class="dlg" method="dialog" id="formMov">
-  <h2>Nuevo movimiento</h2>
-  <div class="row2">
-    <label>Fecha<input name="fecha" type="date" required></label>
-    <label>Tipo<select name="tipo">
-      <option value="aport">Aportación (dinero nuevo)</option>
-      <option value="trasp_in">Entrada por traspaso</option>
-      <option value="trasp_out">Salida por traspaso</option>
-      <option value="retir">Reembolso (sacas dinero)</option>
-    </select></label>
-  </div>
-  <label>Fondo<select name="isin" id="movFondo"></select></label>
-  <div class="row2">
-    <label>Participaciones<input name="part" inputmode="decimal" required></label>
-    <label>Importe (€)<input name="imp" inputmode="decimal" required></label>
-  </div>
-  <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="actualizar" checked style="width:auto">
-    Actualizar también las participaciones e invertido del fondo</label>
-  <p class="hint">Desmárcalo si el fondo ya refleja esta operación (por ejemplo, al apuntar movimientos antiguos).</p>
-  <div class="dlg-foot"><span></span>
-    <div class="actions"><button class="ghost" value="cancel" formnovalidate>Cancelar</button><button class="primary" value="ok">Guardar</button></div>
-  </div>
-</form></dialog>
 
 <dialog id="dlgFondo"><form class="dlg" method="dialog" id="formFondo">
   <h2 id="dlgTitulo">Fondo</h2>
@@ -203,7 +163,6 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <label>Fecha de ese valor<input name="navf" type="date"></label>
   </div>
   <p class="hint">El precio manual solo se usa si es más reciente que el descargado automáticamente (sin fecha, solo mientras no haya ninguno descargado).</p>
-  <p class="hint">Para apuntar compras, ventas o traspasos usa «Movimientos», debajo de la lista de fondos.</p>
   <div class="dlg-foot">
     <button class="ghost danger" type="button" id="btnBorrar">Eliminar</button>
     <div class="actions"><button class="ghost" value="cancel" formnovalidate>Cancelar</button><button class="primary" value="ok">Guardar</button></div>
@@ -276,10 +235,6 @@ function historial(pos) {
 /* ---------------- movimientos ----------------
    {fecha, isin, tipo: 'compra'|'venta', participaciones, importe, externo}
    externo = dinero que entra o sale de la cartera (aportación / reembolso). Los traspasos no son externos. */
-var TIPOS = { aport: ['compra', true], trasp_in: ['compra', false], trasp_out: ['venta', false], retir: ['venta', true] };
-function etiqueta(m) {
-  return m.tipo === 'compra' ? (m.externo ? 'Aportación' : 'Entrada por traspaso') : (m.externo ? 'Reembolso' : 'Salida por traspaso');
-}
 function movs() {
   return (cartera.movimientos || []).slice().sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
 }
@@ -378,12 +333,11 @@ function render() {
     var um = unidadesMovs(), desc = filas.filter(function (f) {
       return Math.abs((um[f.pos.isin] || 0) - f.pos.participaciones) > 1e-6;
     });
-    if (desc.length) av.push('<div class="banner warn">Los movimientos no cuadran con las participaciones de: ' + desc.map(function (f) {
+    if (desc.length) av.push('<div class="banner warn">Las operaciones guardadas (importadas) no cuadran con las participaciones de: ' + desc.map(function (f) {
       return esc(f.pos.nombre) + ' (movimientos ' + nf.format(um[f.pos.isin] || 0) + ', fondo ' + nf.format(f.pos.participaciones) + ')';
-    }).join('; ') + '. La gráfica usa los movimientos.</div>');
+    }).join('; ') + '. La gráfica y lo aportado usan esas operaciones: importa una copia actualizada.</div>');
   }
   $('avisos').innerHTML = av.join('');
-  renderMovs();
 
   // reparto y lista
   var orden = filas.slice().sort(function (a, b) { return (b.valor || 0) - (a.valor || 0); });
@@ -551,46 +505,6 @@ $('btnBorrar').addEventListener('click', function () {
   guardar(); $('dlgFondo').close(); render();
 });
 
-/* ---------------- lista y alta de movimientos ---------------- */
-function nombreFondo(isin) {
-  var p = cartera.posiciones.filter(function (x) { return x.isin === isin; })[0];
-  return p ? p.nombre : isin;
-}
-function renderMovs() {
-  var ms = movs().reverse();
-  $('movsSec').hidden = !cartera.posiciones.length;
-  $('movsTitulo').textContent = 'Movimientos (' + ms.length + ')';
-  $('movsLista').innerHTML = ms.length ? ms.map(function (m) {
-    var sg = m.tipo === 'compra' ? '+' : '−';
-    return '<div class="mov"><span class="m-main"><span class="m-txt">' + esc(nombreFondo(m.isin)) + '</span>' +
-      '<span class="m-sub num">' + fFecha(m.fecha) + ' · ' + etiqueta(m) + ' · ' + nf.format(m.participaciones) + ' part.</span></span>' +
-      '<span class="m-imp ' + (m.externo ? (m.tipo === 'compra' ? 'up' : 'down') : '') + '">' + sg + eur.format(m.importe) + '</span>' +
-      '<button class="m-del" type="button" title="Borrar" data-borrarmov="' + cartera.movimientos.indexOf(m) + '">×</button></div>';
-  }).join('') : '<p class="hint">Aún no hay movimientos.</p>';
-}
-function abrirMov() {
-  var f = $('formMov'); f.reset(); f.fecha.value = hoyISO();
-  $('movFondo').innerHTML = cartera.posiciones.map(function (p) {
-    return '<option value="' + esc(p.isin) + '">' + esc(p.nombre) + '</option>';
-  }).join('');
-  $('dlgMov').showModal();
-}
-$('formMov').addEventListener('submit', function (ev) {
-  if (ev.submitter && ev.submitter.value === 'cancel') return;
-  var f = ev.target, t = TIPOS[f.tipo.value];
-  var m = { fecha: f.fecha.value, isin: f.isin.value, tipo: t[0], externo: t[1], participaciones: num(f.part.value), importe: num(f.imp.value) };
-  if (!m.fecha || !(m.participaciones > 0) || !(m.importe > 0)) { ev.preventDefault(); alert('Revisa la fecha, las participaciones y el importe.'); return; }
-  var pos = cartera.posiciones.filter(function (p) { return p.isin === m.isin; })[0];
-  if (f.actualizar.checked && pos) {
-    if (m.tipo === 'compra') { pos.participaciones += m.participaciones; pos.invertido += m.importe; }
-    else {
-      if (m.participaciones > pos.participaciones + 1e-9) { ev.preventDefault(); alert('No tienes tantas participaciones.'); return; }
-      pos.invertido -= pos.invertido * (m.participaciones / pos.participaciones); pos.participaciones -= m.participaciones;
-    }
-  }
-  cartera.movimientos.push(m); guardar(); render();
-});
-
 /* ---------------- importar / exportar ---------------- */
 function importar(texto) {
   var d;
@@ -633,15 +547,8 @@ $('btnExportar').addEventListener('click', function () {
 
 /* ---------------- eventos ---------------- */
 document.addEventListener('click', function (ev) {
-  var b = ev.target.closest('[data-accion],[data-isin],[data-borrarmov]'); if (!b) return;
-  if (b.dataset.borrarmov !== undefined) {
-    var m = cartera.movimientos[+b.dataset.borrarmov];
-    if (m && confirm('¿Borrar este movimiento? (No cambia las participaciones del fondo.)')) {
-      cartera.movimientos.splice(+b.dataset.borrarmov, 1); guardar(); render();
-    }
-  }
-  else if (b.dataset.isin) abrirFondo(b.dataset.isin);
-  else if (b.dataset.accion === 'nuevoMov') abrirMov();
+  var b = ev.target.closest('[data-accion],[data-isin]'); if (!b) return;
+  if (b.dataset.isin) abrirFondo(b.dataset.isin);
   else if (b.dataset.accion === 'nuevo') abrirFondo(null);
   else if (b.dataset.accion === 'importar') $('dlgDatos').showModal();
 });
