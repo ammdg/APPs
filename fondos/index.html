@@ -108,9 +108,21 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     </div>
   </header>
 
+  <form id="bloqueo" class="card dlg" hidden autocomplete="on">
+    <h2>Cartera cifrada</h2>
+    <p class="hint" id="bloqueoTxt">Hay una copia cifrada de tu cartera en GitHub. Escribe tu contraseña para abrirla.</p>
+    <input type="text" name="username" value="mi-cartera" autocomplete="username" hidden>
+    <label>Contraseña<input type="password" id="passAbrir" autocomplete="current-password" required></label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="recordar" checked style="width:auto">
+      Recordarla en este dispositivo</label>
+    <p class="hint down" id="bloqueoError" hidden></p>
+    <div class="actions"><button class="primary" type="submit" id="btnAbrir">Abrir</button>
+      <button class="ghost" type="button" id="btnSinCopia">Ahora no</button></div>
+  </form>
+
   <div id="vacio" class="card" hidden>
     <h2>Aún no hay fondos</h2>
-    <p class="hint">Importa tus posiciones (botón «Datos» → Importar) o añade un fondo. Todo se guarda solo en este navegador.</p>
+    <p class="hint">Importa tus posiciones (botón «Datos» → Importar) o añade un fondo.</p>
     <div class="actions"><button class="primary" type="button" data-accion="importar">Importar</button>
       <button class="ghost" type="button" data-accion="nuevo">Añadir fondo</button></div>
   </div>
@@ -181,8 +193,21 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <dialog id="dlgDatos"><form class="dlg" method="dialog">
   <h2>Tus datos</h2>
-  <p class="hint">Tus participaciones e importes se guardan en este navegador y también dentro del enlace de esta página (la parte tras «#c=», que no se envía a ningún servidor). Guarda ese enlace como marcador o en la pantalla de inicio: al abrirlo recupera tus datos aunque el navegador los borre. Ojo: quien tenga el enlace ve tu cartera. Si cambias algo, vuelve a guardar el enlace.</p>
-  <div class="actions"><button class="ghost" type="button" id="btnEnlace">Copiar enlace con mis datos</button></div>
+  <p class="hint">Tus datos se guardan en este navegador y, si creas una copia cifrada, también en GitHub: cifrada con tu contraseña (AES-256), nadie puede leerla sin ella. Si olvidas la contraseña, esa copia no se puede recuperar.</p>
+  <p class="hint" id="estadoCopia"></p>
+  <div class="actions"><button class="ghost" type="button" id="btnCifrar">Crear copia cifrada</button></div>
+  <div id="cifradoBox" hidden style="display:flex;flex-direction:column;gap:8px">
+    <input type="text" name="username" value="mi-cartera" autocomplete="username" hidden>
+    <label>Contraseña<input type="password" id="pass1" autocomplete="new-password"></label>
+    <label>Repite la contraseña<input type="password" id="pass2" autocomplete="new-password"></label>
+    <div class="actions"><button class="primary" type="button" id="btnCifrarOk">Cifrar</button></div>
+  </div>
+  <div id="cifradoRes" hidden style="display:flex;flex-direction:column;gap:8px">
+    <p class="hint">Copia cifrada lista. Envíala (archivo o texto) para guardarla en GitHub como <code>fondos/cartera.enc.json</code>.</p>
+    <textarea id="txtCifrado" readonly spellcheck="false"></textarea>
+    <div class="actions"><button class="ghost" type="button" id="btnCopiarCifrado">Copiar texto</button>
+      <button class="ghost" type="button" id="btnBajarCifrado">Descargar archivo</button></div>
+  </div>
   <label>Pega aquí una copia (JSON) para importarla<textarea id="txtImport" spellcheck="false"></textarea></label>
   <div class="actions">
     <button class="primary" type="button" id="btnImportar">Importar (sustituye)</button>
@@ -214,36 +239,98 @@ function cargar() {
   } catch (e) {}
   return { version: 1, posiciones: [], movimientos: [] };
 }
+var LS_CLAVE = 'fondos.clave';
+var remota = null;      // contenido de cartera.enc.json (cifrado), si existe
+var bloqueada = false;  // se está pidiendo la contraseña
+
 function guardar() {
-  try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {}
-  ponerEnlace();
+  cartera.actualizado = new Date().toISOString();
+  guardarLocal();
 }
-/* Los datos también van en el enlace, tras «#c=» (esa parte nunca se envía al servidor). Así un marcador
-   o un acceso en la pantalla de inicio los recupera aunque el navegador borre su almacenamiento. */
-function codificar(obj) {
-  var bytes = new TextEncoder().encode(JSON.stringify(obj)), bin = '';
-  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function guardarLocal() { try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {} }
+
+/* ---------------- copia cifrada (fondos/cartera.enc.json) ----------------
+   AES-GCM 256 con clave derivada de la contraseña (PBKDF2-SHA256, 600.000 iteraciones, sal aleatoria).
+   Sin la contraseña no se puede leer. Fuera del cifrado solo va la fecha de la copia. */
+var ITER = 600000;
+function b64(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+function deb64(t) { var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+function derivar(pass, sal, iter) {
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: sal, iterations: iter, hash: 'SHA-256' }, base,
+      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  });
 }
-function decodificar(txt) {
-  var b = txt.replace(/-/g, '+').replace(/_/g, '/'), bin = atob(b + '==='.slice((b.length + 3) % 4));
-  var bytes = new Uint8Array(bin.length);
-  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return JSON.parse(new TextDecoder().decode(bytes));
+function recordarClave(clave, sal) {
+  return crypto.subtle.exportKey('raw', clave).then(function (raw) {
+    try { localStorage.setItem(LS_CLAVE, JSON.stringify({ sal: b64(sal), clave: b64(raw) })); } catch (e) {}
+  });
 }
-function ponerEnlace() {
+function claveRecordada(sal) {
   try {
-    var h = cartera.posiciones.length ? '#c=' + codificar(cartera) : '';
-    if (location.hash !== h) history.replaceState(null, '', location.pathname + location.search + h);
-  } catch (e) {}
+    var r = JSON.parse(localStorage.getItem(LS_CLAVE));
+    if (!r || r.sal !== sal) return Promise.resolve(null);
+    return crypto.subtle.importKey('raw', deb64(r.clave), 'AES-GCM', true, ['encrypt', 'decrypt']);
+  } catch (e) { return Promise.resolve(null); }
 }
-function desdeEnlace() {
-  var m = /^#c=([A-Za-z0-9_-]+)$/.exec(location.hash);
-  if (!m) return false;
-  try { cartera = validar(decodificar(m[1])); } catch (e) { alert('El enlace no contiene una cartera válida.'); return false; }
-  try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {}
-  return true;
+function cifrar(obj, clave, sal) {
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, clave, new TextEncoder().encode(JSON.stringify(obj))).then(function (ct) {
+    return { formato: 'cartera-cifrada', v: 1, kdf: 'PBKDF2-SHA256', iter: ITER, sal: b64(sal), iv: b64(iv), datos: b64(ct),
+      actualizado: obj.actualizado || null };
+  });
 }
+function descifrar(f, clave) {
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv: deb64(f.iv) }, clave, deb64(f.datos)).then(function (pt) {
+    return JSON.parse(new TextDecoder().decode(pt));
+  });
+}
+function usarRemota(d) {
+  var nueva = validar(d);
+  nueva.actualizado = d.actualizado || remota.actualizado || null;
+  cartera = nueva; guardarLocal();
+}
+/* Lee cartera.enc.json. Si es más reciente que lo del navegador (o el navegador está vacío), la abre con la
+   clave recordada o pide la contraseña. */
+function comprobarCopia() {
+  return fetch('cartera.enc.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .catch(function () { return null; })
+    .then(function (f) {
+      remota = f && f.formato === 'cartera-cifrada' ? f : null;
+      if (!remota) { render(); return; }
+      var local = cartera.posiciones.length ? (cartera.actualizado || '') : null;
+      if (local !== null && local >= (remota.actualizado || '')) { render(); return; }
+      return claveRecordada(remota.sal).then(function (clave) {
+        if (!clave) { pedirPass(); return; }
+        return descifrar(remota, clave).then(function (d) { usarRemota(d); render(); })
+          .catch(function () { pedirPass(); });
+      });
+    });
+}
+function pedirPass() {
+  bloqueada = true;
+  $('bloqueoTxt').textContent = cartera.posiciones.length
+    ? 'En GitHub hay una copia cifrada más reciente que la de este navegador. Escribe tu contraseña para abrirla.'
+    : 'Hay una copia cifrada de tu cartera en GitHub. Escribe tu contraseña para abrirla.';
+  render();
+}
+$('bloqueo').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  var pass = $('passAbrir').value, sal = deb64(remota.sal), err = $('bloqueoError');
+  $('btnAbrir').disabled = true; err.hidden = true;
+  derivar(pass, sal, remota.iter || ITER).then(function (clave) {
+    return descifrar(remota, clave).then(function (d) {
+      usarRemota(d);
+      if ($('recordar').checked) return recordarClave(clave, sal);
+    });
+  }).then(function () {
+    bloqueada = false; $('passAbrir').value = ''; render();
+  }).catch(function () {
+    err.textContent = 'Contraseña incorrecta (o copia dañada).'; err.hidden = false;
+  }).then(function () { $('btnAbrir').disabled = false; });
+});
+$('btnSinCopia').addEventListener('click', function () { bloqueada = false; render(); });
 
 function num(v) {
   if (typeof v === 'number') return v;
@@ -318,9 +405,10 @@ function calcular() {
 }
 
 function render() {
-  var hay = cartera.posiciones.length > 0;
-  $('vacio').hidden = hay; $('resumen').hidden = !hay; $('fondosSec').hidden = !hay;
-  if (!hay) { $('graficaCard').hidden = true; $('avisos').innerHTML = ''; return; }
+  var hay = cartera.posiciones.length > 0 && !bloqueada;
+  $('bloqueo').hidden = !bloqueada;
+  $('vacio').hidden = hay || bloqueada; $('resumen').hidden = !hay; $('fondosSec').hidden = !hay;
+  if (!hay) { $('cmpCard').hidden = true; $('graficaCard').hidden = true; $('avisos').innerHTML = ''; return; }
   var filas = calcular();
   var conPrecio = filas.filter(function (f) { return !isNaN(f.valor); });
   var total = conPrecio.reduce(function (s, f) { return s + f.valor; }, 0);
@@ -376,6 +464,11 @@ function render() {
     if (desc.length) av.push('<div class="banner warn">Las operaciones guardadas (importadas) no cuadran con las participaciones de: ' + desc.map(function (f) {
       return esc(f.pos.nombre) + ' (movimientos ' + nf.format(um[f.pos.isin] || 0) + ', fondo ' + nf.format(f.pos.participaciones) + ')';
     }).join('; ') + '. La gráfica y lo aportado usan esas operaciones: importa una copia actualizada.</div>');
+  }
+  if (remota && cartera.actualizado && cartera.actualizado > (remota.actualizado || '')) {
+    av.push('<div class="banner">Has cambiado datos desde la última copia cifrada de GitHub. «Datos» → «Crear copia cifrada» y envíala para guardarla.</div>');
+  } else if (!remota && precios._cargado) {
+    av.push('<div class="banner">Tus datos solo están en este navegador. «Datos» → «Crear copia cifrada» para guardarlos cifrados en GitHub.</div>');
   }
   $('avisos').innerHTML = av.join('');
 
@@ -666,12 +759,49 @@ $('fileImport').addEventListener('change', function () {
   file.text().then(function (t) { if (importar(t)) $('dlgDatos').close(); });
   this.value = '';
 });
-$('btnEnlace').addEventListener('click', function () {
-  ponerEnlace();
-  var url = location.href;
-  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
-    .then(function () { alert('Enlace copiado. Guárdalo en un sitio seguro: contiene tu cartera.'); })
-    .catch(function () { prompt('Copia este enlace:', url); });
+function abrirDatos() {
+  $('txtImport').value = ''; $('cifradoBox').hidden = true; $('cifradoRes').hidden = true;
+  $('estadoCopia').textContent = remota
+    ? 'Copia cifrada en GitHub del ' + (remota.actualizado ? new Date(remota.actualizado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '?') + '.'
+    : 'Aún no hay copia cifrada en GitHub.';
+  $('dlgDatos').showModal();
+}
+function mostrarCifrado(f) {
+  $('txtCifrado').value = JSON.stringify(f, null, 1);
+  $('cifradoBox').hidden = true; $('cifradoRes').hidden = false;
+}
+$('btnCifrar').addEventListener('click', function () {
+  if (!cartera.posiciones.length) { alert('No hay datos que guardar.'); return; }
+  if (!cartera.actualizado) cartera.actualizado = new Date().toISOString(), guardarLocal();
+  // Con la contraseña recordada (misma sal que la copia de GitHub) no hace falta volver a escribirla.
+  var sal = remota && remota.sal;
+  (sal ? claveRecordada(sal) : Promise.resolve(null)).then(function (clave) {
+    if (clave) return cifrar(cartera, clave, deb64(sal)).then(mostrarCifrado);
+    $('cifradoRes').hidden = true; $('cifradoBox').hidden = false; $('pass1').focus();
+  });
+});
+$('btnCifrarOk').addEventListener('click', function () {
+  var p1 = $('pass1').value, p2 = $('pass2').value;
+  if (p1.length < 10) { alert('Usa una contraseña de al menos 10 caracteres.'); return; }
+  if (p1 !== p2) { alert('Las contraseñas no coinciden.'); return; }
+  var sal = crypto.getRandomValues(new Uint8Array(16)), btn = this;
+  btn.disabled = true;
+  derivar(p1, sal, ITER).then(function (clave) {
+    return recordarClave(clave, sal).then(function () { return cifrar(cartera, clave, sal); });
+  }).then(function (f) { $('pass1').value = $('pass2').value = ''; mostrarCifrado(f); })
+    .catch(function (e) { alert('No se ha podido cifrar: ' + e.message); })
+    .then(function () { btn.disabled = false; });
+});
+$('btnCopiarCifrado').addEventListener('click', function () {
+  var t = $('txtCifrado').value;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
+    .then(function () { alert('Copiado.'); }).catch(function () { $('txtCifrado').select(); });
+});
+$('btnBajarCifrado').addEventListener('click', function () {
+  var blob = new Blob([$('txtCifrado').value], { type: 'application/json' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'cartera.enc.json'; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 });
 $('btnExportar').addEventListener('click', function () {
   var blob = new Blob([JSON.stringify(cartera, null, 1)], { type: 'application/json' });
@@ -685,9 +815,9 @@ document.addEventListener('click', function (ev) {
   var b = ev.target.closest('[data-accion],[data-isin]'); if (!b) return;
   if (b.dataset.isin) abrirFondo(b.dataset.isin);
   else if (b.dataset.accion === 'nuevo') abrirFondo(null);
-  else if (b.dataset.accion === 'importar') $('dlgDatos').showModal();
+  else if (b.dataset.accion === 'importar') abrirDatos();
 });
-$('btnMenu').addEventListener('click', function () { $('txtImport').value = ''; $('dlgDatos').showModal(); });
+$('btnMenu').addEventListener('click', abrirDatos);
 $('btnRefrescar').addEventListener('click', descargarPrecios);
 $('rango').addEventListener('click', function (ev) {
   var b = ev.target.closest('button'); if (!b) return;
@@ -699,9 +829,10 @@ document.addEventListener('visibilitychange', function () { if (!document.hidden
 window.addEventListener('resize', function () { if (cartera.posiciones.length) { var f = calcular(); grafica(f); comparativa(f); } });
 setInterval(function () { if (!document.hidden) descargarPrecios(); }, 5 * 60 * 1000);
 
-// Si el enlace trae datos, mandan sobre lo guardado en el navegador.
-if (!desdeEnlace()) ponerEnlace();
+// Los enlaces antiguos con datos (#c=…) ya no se usan: se quita esa parte de la barra de direcciones.
+if (/^#c=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
 render();
+comprobarCopia();
 descargarPrecios();
 })();
 </script>
