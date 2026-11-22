@@ -247,9 +247,87 @@ def actualizar(datos: dict, fondos: list, obtener) -> tuple[bool, list[str]]:
     return cambiado, avisos
 
 
+# ---------------------------------------------------------------- histórico (carga puntual)
+
+def serie_yahoo(sesion: requests.Session, isin: str, moneda: str, desde: date) -> list:
+    simbolo = yahoo_simbolo(sesion, isin)
+    inicio = int(datetime(desde.year, desde.month, desde.day, tzinfo=timezone.utc).timestamp())
+    r = sesion.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{simbolo}",
+                   params={"period1": inicio, "period2": int(time.time()), "interval": "1d"}, timeout=30)
+    r.raise_for_status()
+    res = r.json()["chart"]["result"][0]
+    if res.get("meta", {}).get("currency") not in (None, moneda):
+        raise SinPrecio(f"Yahoo: moneda {res['meta']['currency']}")
+    cierres = res["indicators"]["quote"][0]["close"]
+    return [[datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat(), float(f"{float(c):.7g}")]
+            for t, c in zip(res["timestamp"], cierres) if c is not None]
+
+
+def parsear_historico_ft(html_tabla: str) -> list:
+    """Filas del histórico de FT: fecha, apertura, máximo, mínimo, cierre, volumen."""
+    puntos = []
+    for fila in re.findall(r"<tr[^>]*>(.*?)</tr>", html_tabla, flags=re.S):
+        celdas = [texto_plano(c).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", fila, flags=re.S)]
+        if len(celdas) < 5:
+            continue
+        try:
+            puntos.append([fecha_ft(celdas[0]).isoformat(), numero(celdas[4], ".")])
+        except (SinPrecio, ValueError):
+            continue
+    return sorted(puntos)
+
+
+def serie_ft(sesion: requests.Session, isin: str, moneda: str, desde: date) -> list:
+    r = sesion.get("https://markets.ft.com/data/funds/tearsheet/historical",
+                   params={"s": f"{isin}:{moneda}"}, timeout=30)
+    r.raise_for_status()
+    m = re.search(r'xid["\s:=]+"?(\d+)', html.unescape(r.text))
+    if not m:
+        raise SinPrecio("FT: no encuentro el identificador del fondo")
+    r = sesion.get("https://markets.ft.com/data/equities/ajax/get-historical-prices",
+                   params={"startDate": desde.strftime("%Y/%m/%d"),
+                           "endDate": date.today().strftime("%Y/%m/%d"), "symbol": m.group(1)}, timeout=30)
+    r.raise_for_status()
+    puntos = parsear_historico_ft(r.json().get("html", ""))
+    if not puntos:
+        raise SinPrecio("FT: histórico vacío")
+    return puntos
+
+
+def cargar_historico(datos: dict, fondos: list, desde: date, obtener_serie) -> bool:
+    """Añade los puntos desde `desde` que falten. No toca los días ya guardados."""
+    cambiado = False
+    for fondo in fondos:
+        reg = datos.setdefault("fondos", {}).setdefault(fondo["isin"], {"historial": []})
+        reg.setdefault("nombre", fondo["nombre"])
+        serie, fuente = obtener_serie(fondo)
+        if not serie:
+            print(f"AVISO {fondo['isin']}: sin histórico", file=sys.stderr)
+            continue
+        guardadas = {p[0]: p[1] for p in reg["historial"]}
+        nuevos = 0
+        for fecha, nav in serie:
+            if fecha < desde.isoformat() or nav <= 0:
+                continue
+            if fecha in guardadas:
+                if abs(guardadas[fecha] - nav) / nav > TOLERANCIA_MISMO_DIA:
+                    print(f"  ojo {fondo['isin']} {fecha}: guardado {guardadas[fecha]}, {fuente} {nav}")
+                continue
+            reg["historial"].append([fecha, nav])
+            nuevos += 1
+        reg["historial"].sort(key=lambda p: p[0])
+        cambiado = cambiado or nuevos > 0
+        h = [p for p in reg["historial"] if p[0] >= desde.isoformat()]
+        print(f"{fondo['isin']} {fuente}: {nuevos} días nuevos; {len(h)} desde {desde} "
+              f"({h[0][0]} {h[0][1]} … {h[-1][0]} {h[-1][1]})")
+    return cambiado
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--probar", metavar="ISIN")
+    ap.add_argument("--historico-desde", metavar="AAAA-MM-DD",
+                    help="carga una vez el histórico diario desde esa fecha (Yahoo; si no, FT)")
     args = ap.parse_args()
 
     sesion = requests.Session()
@@ -271,7 +349,23 @@ def main() -> int:
         time.sleep(1.5)
         return precio, errores
 
-    cambiado, avisos = actualizar(datos, fondos, obtener)
+    if args.historico_desde:
+        desde = date.fromisoformat(args.historico_desde)
+
+        def obtener_serie(fondo):
+            for nombre, f in (("yahoo", serie_yahoo), ("ft", serie_ft)):
+                try:
+                    return f(sesion, fondo["isin"], fondo.get("moneda", "EUR"), desde), nombre
+                except Exception as e:
+                    print(f"  {fondo['isin']} {nombre}: {str(e)[:150]}")
+                finally:
+                    time.sleep(1.5)
+            return [], None
+
+        cambiado = cargar_historico(datos, fondos, desde, obtener_serie)
+        avisos = []
+    else:
+        cambiado, avisos = actualizar(datos, fondos, obtener)
     # Solo se reescribe si hay algún precio nuevo, para no hacer un commit en cada consulta.
     if cambiado or not PRECIOS.exists():
         datos["actualizado"] = datetime.now(timezone.utc).isoformat(timespec="seconds")

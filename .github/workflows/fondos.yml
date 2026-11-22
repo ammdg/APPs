@@ -6,6 +6,11 @@ on:
     # siguiente). Se mira cada 2 horas de lunes a sábado; solo hay commit si sale un precio nuevo.
     - cron: "19 6-22/2 * * 1-6"
   workflow_dispatch:
+    inputs:
+      historico_desde:
+        description: "Opcional: cargar una vez el histórico diario desde esta fecha (AAAA-MM-DD)"
+        required: false
+        default: ""
 
 concurrency:
   group: fondos-precios
@@ -33,7 +38,14 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: python -m pytest -q test_precios.py
       - name: Descargar precios
-        run: python precios.py
+        env:
+          HISTORICO_DESDE: ${{ inputs.historico_desde }}
+        run: |
+          if [ -n "$HISTORICO_DESDE" ]; then
+            python precios.py --historico-desde "$HISTORICO_DESDE"
+          else
+            python precios.py
+          fi
 
       # La web (fondos/index.html) la publica GitHub Pages desde main: basta con guardar ahí los precios.
       - name: Publicar precios

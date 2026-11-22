@@ -105,3 +105,19 @@ def test_chart_yahoo():
     assert r["nav"] == 12.591 and r["fecha"] == "2025-11-19"
     with pytest.raises(p.SinPrecio):
         p.parsear_chart_yahoo(datos, "USD")
+
+
+def test_historico_ft():
+    tabla = ("<tr><td><span>Friday, November 20, 2026</span><span>Fri, Nov 20, 2026</span></td>"
+             "<td>1</td><td>2</td><td>0.5</td><td>1,352.48</td><td>--</td></tr>"
+             "<tr><td>Thursday, November 19, 2026</td><td>1</td><td>2</td><td>0.5</td><td>350.10</td></tr>")
+    assert p.parsear_historico_ft(tabla) == [["2026-11-19", 350.1], ["2026-11-20", 1352.48]]
+
+
+def test_cargar_historico_no_pisa_y_respeta_fecha():
+    datos = {"fondos": {"A": {"nombre": "Uno", "historial": [["2026-11-19", 10.0]]}}}
+    serie = [["2026-09-17", 8.0], ["2026-09-18", 9.0], ["2026-11-19", 10.3], ["2026-11-20", 10.5]]
+    cambiado = p.cargar_historico(datos, [{"isin": "A", "nombre": "Uno"}], date(2026, 9, 18),
+                                  lambda f: (serie, "yahoo"))
+    assert cambiado
+    assert datos["fondos"]["A"]["historial"] == [["2026-09-18", 9.0], ["2026-11-19", 10.0], ["2026-11-20", 10.5]]
