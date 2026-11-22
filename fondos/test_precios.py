@@ -92,22 +92,15 @@ def test_elegir_con_una_sola_fuente():
 def test_elegir_entre_varias_precisas():
     ft = _p("ft", "2026-11-19", 12.59)
     qf = _p("quefondos", "2026-11-18", 12.4)
-    ms = _p("morningstar", "2026-11-19", 12.591)
-    assert p.elegir(ft, [qf, ms])[0]["fuente"] == "morningstar"
-    assert p.elegir(ft, [_p("quefondos", "2026-11-19", 12.5912), ms])[0]["fuente"] == "quefondos"
-    assert p.elegir(ft, [_p("morningstar", "2026-11-19", 99)])[0]["fuente"] == "ft"
-
-
-def test_serie_morningstar():
-    r = p.parsear_serie_morningstar([[1763337600000, 12.5], [1763510400000, 12.591]])
-    assert r["nav"] == 12.591 and r["fecha"] == "2025-11-19"
-    with pytest.raises(p.SinPrecio):
-        p.parsear_serie_morningstar([])
+    yh = _p("yahoo", "2026-11-19", 12.591)
+    assert p.elegir(ft, [qf, yh])[0]["fuente"] == "yahoo"
+    assert p.elegir(ft, [_p("quefondos", "2026-11-19", 12.5912), yh])[0]["fuente"] == "quefondos"
+    assert p.elegir(ft, [_p("yahoo", "2026-11-19", 99)])[0]["fuente"] == "ft"
 
 
 def test_chart_yahoo():
     datos = {"chart": {"result": [{"meta": {"currency": "EUR"}, "timestamp": [1763337600, 1763510400, 1763596800],
-                                   "indicators": {"quote": [{"close": [12.5, 12.591, None]}]}}]}}
+                                   "indicators": {"quote": [{"close": [12.5, 12.590999603271484, None]}]}}]}}
     r = p.parsear_chart_yahoo(datos, "EUR")
     assert r["nav"] == 12.591 and r["fecha"] == "2025-11-19"
     with pytest.raises(p.SinPrecio):
