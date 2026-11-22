@@ -181,7 +181,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <dialog id="dlgDatos"><form class="dlg" method="dialog">
   <h2>Tus datos</h2>
-  <p class="hint">Tus participaciones e importes se guardan solo en este navegador (no se suben a ningún sitio). Exporta una copia de vez en cuando.</p>
+  <p class="hint">Tus participaciones e importes se guardan en este navegador y también dentro del enlace de esta página (la parte tras «#c=», que no se envía a ningún servidor). Guarda ese enlace como marcador o en la pantalla de inicio: al abrirlo recupera tus datos aunque el navegador los borre. Ojo: quien tenga el enlace ve tu cartera. Si cambias algo, vuelve a guardar el enlace.</p>
+  <div class="actions"><button class="ghost" type="button" id="btnEnlace">Copiar enlace con mis datos</button></div>
   <label>Pega aquí una copia (JSON) para importarla<textarea id="txtImport" spellcheck="false"></textarea></label>
   <div class="actions">
     <button class="primary" type="button" id="btnImportar">Importar (sustituye)</button>
@@ -213,7 +214,36 @@ function cargar() {
   } catch (e) {}
   return { version: 1, posiciones: [], movimientos: [] };
 }
-function guardar() { try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {} }
+function guardar() {
+  try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {}
+  ponerEnlace();
+}
+/* Los datos también van en el enlace, tras «#c=» (esa parte nunca se envía al servidor). Así un marcador
+   o un acceso en la pantalla de inicio los recupera aunque el navegador borre su almacenamiento. */
+function codificar(obj) {
+  var bytes = new TextEncoder().encode(JSON.stringify(obj)), bin = '';
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function decodificar(txt) {
+  var b = txt.replace(/-/g, '+').replace(/_/g, '/'), bin = atob(b + '==='.slice((b.length + 3) % 4));
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function ponerEnlace() {
+  try {
+    var h = cartera.posiciones.length ? '#c=' + codificar(cartera) : '';
+    if (location.hash !== h) history.replaceState(null, '', location.pathname + location.search + h);
+  } catch (e) {}
+}
+function desdeEnlace() {
+  var m = /^#c=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (!m) return false;
+  try { cartera = validar(decodificar(m[1])); } catch (e) { alert('El enlace no contiene una cartera válida.'); return false; }
+  try { localStorage.setItem(LS, JSON.stringify(cartera)); } catch (e) {}
+  return true;
+}
 
 function num(v) {
   if (typeof v === 'number') return v;
@@ -600,16 +630,15 @@ $('btnBorrar').addEventListener('click', function () {
 });
 
 /* ---------------- importar / exportar ---------------- */
-function importar(texto) {
-  var d;
-  try { d = JSON.parse(texto); } catch (e) { alert('El texto no es un JSON válido.'); return false; }
-  var lista = Array.isArray(d) ? d : d.posiciones;
-  if (!Array.isArray(lista)) { alert('No encuentro la lista «posiciones».'); return false; }
+/* Comprueba y normaliza una copia de la cartera. Lanza Error con un mensaje si algo falta. */
+function validar(d) {
+  var lista = Array.isArray(d) ? d : d && d.posiciones;
+  if (!Array.isArray(lista)) throw new Error('No encuentro la lista «posiciones».');
   var ok = [];
   for (var i = 0; i < lista.length; i++) {
     var p = lista[i], pos = { isin: String(p.isin || '').toUpperCase(), nombre: String(p.nombre || p.isin || ''),
       participaciones: num(p.participaciones), invertido: num(p.invertido) };
-    if (!pos.isin || isNaN(pos.participaciones) || isNaN(pos.invertido)) { alert('Fila ' + (i + 1) + ' incompleta.'); return false; }
+    if (!pos.isin || isNaN(pos.participaciones) || isNaN(pos.invertido)) throw new Error('Fila ' + (i + 1) + ' incompleta.');
     if (p.navManual && num(p.navManual.nav) > 0) pos.navManual = { nav: num(p.navManual.nav), fecha: p.navManual.fecha || null };
     ok.push(pos);
   }
@@ -618,12 +647,17 @@ function importar(texto) {
     var x = ml[j], m = { fecha: String(x.fecha || ''), isin: String(x.isin || '').toUpperCase(), tipo: x.tipo,
       externo: !!x.externo, participaciones: num(x.participaciones), importe: num(x.importe) };
     if (!/^\d{4}-\d{2}-\d{2}$/.test(m.fecha) || !m.isin || (m.tipo !== 'compra' && m.tipo !== 'venta') ||
-        !(m.participaciones > 0) || !(m.importe >= 0)) { alert('Movimiento ' + (j + 1) + ' incompleto.'); return false; }
+        !(m.participaciones > 0) || !(m.importe >= 0)) throw new Error('Movimiento ' + (j + 1) + ' incompleto.');
     movsOk.push(m);
   }
+  return { version: 1, posiciones: ok, movimientos: movsOk };
+}
+function importar(texto) {
+  var nueva;
+  try { nueva = validar(JSON.parse(texto)); } catch (e) { alert(e instanceof SyntaxError ? 'El texto no es un JSON válido.' : e.message); return false; }
   if (cartera.posiciones.length && !confirm('Esto sustituye los ' + cartera.posiciones.length + ' fondos actuales' +
       (cartera.movimientos.length ? ' y sus movimientos' : '') + '. ¿Seguir?')) return false;
-  cartera = { version: 1, posiciones: ok, movimientos: movsOk }; guardar(); render();
+  cartera = nueva; guardar(); render();
   return true;
 }
 $('btnImportar').addEventListener('click', function () { if (importar($('txtImport').value)) $('dlgDatos').close(); });
@@ -631,6 +665,13 @@ $('fileImport').addEventListener('change', function () {
   var file = this.files[0]; if (!file) return;
   file.text().then(function (t) { if (importar(t)) $('dlgDatos').close(); });
   this.value = '';
+});
+$('btnEnlace').addEventListener('click', function () {
+  ponerEnlace();
+  var url = location.href;
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+    .then(function () { alert('Enlace copiado. Guárdalo en un sitio seguro: contiene tu cartera.'); })
+    .catch(function () { prompt('Copia este enlace:', url); });
 });
 $('btnExportar').addEventListener('click', function () {
   var blob = new Blob([JSON.stringify(cartera, null, 1)], { type: 'application/json' });
@@ -658,6 +699,8 @@ document.addEventListener('visibilitychange', function () { if (!document.hidden
 window.addEventListener('resize', function () { if (cartera.posiciones.length) { var f = calcular(); grafica(f); comparativa(f); } });
 setInterval(function () { if (!document.hidden) descargarPrecios(); }, 5 * 60 * 1000);
 
+// Si el enlace trae datos, mandan sobre lo guardado en el navegador.
+if (!desdeEnlace()) ponerEnlace();
 render();
 descargarPrecios();
 })();
