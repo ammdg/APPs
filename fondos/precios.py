@@ -150,7 +150,32 @@ def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return p
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
+# ---------------------------------------------------------------- Finect (en pruebas)
+
+def de_finect(sesion: requests.Session, isin: str, moneda: str) -> dict:
+    """De momento solo informa de lo que devuelve Finect, para ver si se puede usar."""
+    notas = []
+    urls = [f"https://www.finect.com/fondos-inversion/{isin}-x"]
+    if isin == "IE000ZYRH0Q7":
+        urls.insert(0, "https://www.finect.com/fondos-inversion/LU0611475780-Jpm_global_select_equity_c_acc_eur")
+    for url in urls:
+        try:
+            r = sesion.get(url, timeout=30)
+            plano = texto_plano(r.text)
+            trozos = [plano[max(0, m.start() - 80):m.start() + 160]
+                      for m in re.finditer(r"(?i)liquidativo|\bVL\b|hist[oó]ric", plano)][:4]
+            apis = sorted(set(re.findall(r"https?://[a-z0-9.-]*finect[a-z0-9.-]*/[A-Za-z0-9./_?=&-]*", r.text)))[:15]
+            marcas = [m for m in ("__NEXT_DATA__", "__NUXT__", "__INITIAL_STATE__", "__APOLLO_STATE__", "graphql",
+                                  "application/ld+json") if m in r.text]
+            num = re.findall(r'"(?:nav|NAV|vl|price|lastPrice|value)"\s*:\s*"?[\d.,]+', r.text)[:6]
+            notas.append(f"\n    [{url} -> HTTP {r.status_code} {r.url} {len(r.text)}B marcas={marcas}"
+                         f"\n     trozos={trozos!r}\n     apis={apis}\n     num={num}]")
+        except Exception as e:
+            notas.append(f"[{url} -> {str(e)[:100]}]")
+    raise SinPrecio("Finect: " + " ".join(notas))
+
+
+FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo), ("finect", de_finect)]
 
 # FT redondea a 2 decimales; Quefondos y Yahoo (series de Morningstar) suelen dar el valor
 # liquidativo completo. Se usan solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
