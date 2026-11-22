@@ -121,3 +121,17 @@ def test_cargar_historico_no_pisa_y_respeta_fecha():
                                   lambda f: (serie, "yahoo"))
     assert cambiado
     assert datos["fondos"]["A"]["historial"] == [["2026-09-18", 9.0], ["2026-11-19", 10.0], ["2026-11-20", 10.5]]
+
+
+FINECT = (
+    '<script type="application/ld+json">{"@type":["Product"],"offers":{"@type":"Offer","price":"105.1118",'
+    '"priceCurrency":"EUR"}}</script><script>window.x="{\\"lastQuote\\":{\\"datetime\\":\\"2026-11-19T00:00:00.000Z\\",'
+    '\\"price\\":99.5},\\"totalNetAsset\\":1,\\"lastQuote\\":{\\"datetime\\":\\"2026-11-20T00:00:00.000Z\\",'
+    '\\"price\\":105.1118,\\"change\\":0.26}}";</script>'
+)
+
+
+def test_finect():
+    assert p.parsear_finect(FINECT) == {"fecha": "2026-11-20", "nav": 105.1118, "moneda": "EUR", "fuente": "finect"}
+    with pytest.raises(p.SinPrecio):
+        p.parsear_finect(FINECT.replace("105.1118,", "1,"))

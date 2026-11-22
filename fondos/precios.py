@@ -150,9 +150,42 @@ def de_yahoo(sesion: requests.Session, isin: str, moneda: str) -> dict:
     return p
 
 
-FUENTES = [("ft", de_ft), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
+# ---------------------------------------------------------------- Finect
 
-# FT redondea a 2 decimales; Quefondos y Yahoo (series de Morningstar) suelen dar el valor
+def parsear_finect(pagina: str) -> dict:
+    """Precio: el de la ficha schema.org (offers.price). Fecha: la de "lastQuote" con ese mismo precio,
+    dentro de los datos internos de la página (vienen como JSON escapado)."""
+    precio = moneda = None
+    for ld in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', pagina, flags=re.S):
+        try:
+            oferta = json.loads(ld).get("offers") or {}
+        except (ValueError, AttributeError):
+            continue
+        if oferta.get("price"):
+            precio, moneda = float(oferta["price"]), oferta.get("priceCurrency")
+            break
+    if not precio:
+        raise SinPrecio("Finect: no aparece el precio")
+    plano = pagina.replace('\\"', '"')
+    for f, p in re.findall(r'"lastQuote":\{"datetime":"(\d{4}-\d{2}-\d{2})T[^"]*","price":([\d.]+)', plano):
+        if abs(float(p) - precio) < 1e-9:
+            return {"fecha": f, "nav": precio, "moneda": moneda, "fuente": "finect"}
+    raise SinPrecio("Finect: no aparece la fecha del precio")
+
+
+def de_finect(sesion: requests.Session, isin: str, moneda: str) -> dict:
+    # Finect redirige ISIN-<cualquier texto> a la ficha del fondo.
+    r = sesion.get(f"https://www.finect.com/fondos-inversion/{isin}-x", timeout=30)
+    r.raise_for_status()
+    if isin not in r.url:
+        raise SinPrecio(f"Finect: redirige a otra página ({r.url})")
+    return parsear_finect(r.text)
+
+
+# Tras FT, por preferencia en caso de empate de fecha.
+FUENTES = [("ft", de_ft), ("finect", de_finect), ("quefondos", de_quefondos), ("yahoo", de_yahoo)]
+
+# FT redondea a 2 decimales; Finect, Quefondos y Yahoo (series de Morningstar) suelen dar el valor
 # liquidativo completo. Se usan solo si cuadran con el de FT, para no fiarse a ciegas de una página que podría leerse mal.
 TOLERANCIA_MISMO_DIA = 0.005  # 0,5 %: el redondeo de FT nunca se acerca a esto
 TOLERANCIA_OTRO_DIA = 0.05  # 5 %: si la otra fuente tiene un día más reciente, solo se descarta lo absurdo
