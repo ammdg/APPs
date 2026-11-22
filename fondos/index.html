@@ -402,12 +402,20 @@ function comparativa(filas) {
   var pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
   var x = function (i) { return pl + i / (fechas.length - 1) * (W - pl - pr); };
   var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
-  var pf = function (v) { return pct.format(v).replace(/\u00a0/g, ' '); };
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  var html = '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>' +
-    '<text x="' + (W - pr + 4) + '" y="' + (y(0) + 4).toFixed(1) + '" font-size="10" fill="var(--muted)">0 %</text>' +
-    '<text x="' + (W - pr + 4) + '" y="' + (pt + 8) + '" font-size="10" fill="var(--muted)">' + pf(mx - pad) + '</text>' +
-    '<text x="' + (W - pr + 4) + '" y="' + (H - pb) + '" font-size="10" fill="var(--muted)">' + pf(mn + pad) + '</text>';
+  // Líneas horizontales de escala en valores redondos (0,5 %, 1 %, 2 %, 5 %…), unas 4-7 en total.
+  var paso = [0.001, 0.002, 0.0025, 0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1].filter(function (p) {
+    return (mx - mn) / p <= 7;
+  })[0] || 1;
+  var decs = paso < 0.01 ? 1 : 0;
+  var html = '';
+  for (var t = Math.ceil(mn / paso) * paso; t <= mx + 1e-12; t += paso) {
+    var yy = y(t).toFixed(1), cero = Math.abs(t) < paso / 2;
+    html += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--' + (cero ? 'muted' : 'line') + ')"' +
+      (cero ? ' stroke-dasharray="3 4"' : '') + '/>' +
+      '<text x="' + (W - pr + 4) + '" y="' + (+yy + 3.5).toFixed(1) + '" font-size="10" fill="var(--muted)">' +
+      (cero ? '0 %' : (t > 0 ? '+' : '−') + (Math.abs(t) * 100).toFixed(decs).replace('.', ',') + ' %') + '</text>';
+  }
   series.forEach(function (s) {
     var d = s.v.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join('');
     html += '<path d="' + d + '" fill="none" stroke="' + s.f.color + '" stroke-width="1.8" stroke-linejoin="round"/>';
