@@ -328,10 +328,14 @@
     [
      "2026-11-19",
      44769.8
+    ],
+    [
+     "2026-11-22",
+     44778.96
     ]
    ],
    "nombre": "Groupama Trésorerie IC",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "IE00BH65QK91": {
@@ -1437,5 +1441,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-22T12:20:06+00:00"
+ "actualizado": "2026-11-23T07:13:17+00:00"
 }
