@@ -327,6 +327,20 @@ def serie_ft(sesion: requests.Session, isin: str, moneda: str, desde: date) -> l
     return puntos
 
 
+def combinar_series(principal: list, relleno: list) -> list:
+    """Une dos series [[fecha, nav], ...]: manda la principal (más decimales) y la otra solo rellena los
+    días que le faltan. Un día de relleno se descarta si se aleja más de un 5 % del día anterior."""
+    puntos = {f: v for f, v in principal}
+    for f, v in relleno:
+        if f in puntos:
+            continue
+        previos = [puntos[d] for d in sorted(puntos) if d < f]
+        if previos and abs(v / previos[-1] - 1) > 0.05:
+            continue
+        puntos[f] = v
+    return sorted([f, v] for f, v in puntos.items())
+
+
 def cargar_historico(datos: dict, fondos: list, desde: date, obtener_serie) -> bool:
     """Añade los puntos desde `desde` que falten. No toca los días ya guardados."""
     cambiado = False
@@ -386,14 +400,15 @@ def main() -> int:
         desde = date.fromisoformat(args.historico_desde)
 
         def obtener_serie(fondo):
+            series = {}
             for nombre, f in (("yahoo", serie_yahoo), ("ft", serie_ft)):
                 try:
-                    return f(sesion, fondo["isin"], fondo.get("moneda", "EUR"), desde), nombre
+                    series[nombre] = f(sesion, fondo["isin"], fondo.get("moneda", "EUR"), desde)
                 except Exception as e:
                     print(f"  {fondo['isin']} {nombre}: {str(e)[:150]}")
                 finally:
                     time.sleep(1.5)
-            return [], None
+            return combinar_series(series.get("yahoo", []), series.get("ft", [])), "+".join(series) or None
 
         cambiado = cargar_historico(datos, fondos, desde, obtener_serie)
         avisos = []

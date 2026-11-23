@@ -135,3 +135,10 @@ def test_finect():
     assert p.parsear_finect(FINECT) == {"fecha": "2026-11-20", "nav": 105.1118, "moneda": "EUR", "fuente": "finect"}
     with pytest.raises(p.SinPrecio):
         p.parsear_finect(FINECT.replace("105.1118,", "1,"))
+
+
+def test_combinar_series_rellena_huecos():
+    yahoo = [["2026-09-21", 100.0], ["2026-09-23", 101.0]]
+    ft = [["2026-09-04", 99.0], ["2026-09-21", 100.1], ["2026-09-22", 100.5], ["2026-09-24", 300.0]]
+    assert p.combinar_series(yahoo, ft) == [["2026-09-04", 99.0], ["2026-09-21", 100.0],
+                                            ["2026-09-22", 100.5], ["2026-09-23", 101.0]]
