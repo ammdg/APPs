@@ -224,7 +224,7 @@
     ]
    ],
    "nombre": "iShares Developed World Index (IE) Acc EUR S",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "FR0000989626": {
@@ -902,10 +902,14 @@
     [
      "2026-11-19",
      132.32
+    ],
+    [
+     "2026-11-20",
+     132.31
     ]
    ],
    "nombre": "DNCA Invest Alpha Bonds A EUR",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "LU1598719752": {
@@ -1136,7 +1140,7 @@
     ]
    ],
    "nombre": "Cobas International Fund-P Acc EUR",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "IE00B42W4L06": {
@@ -1586,7 +1590,7 @@
     ]
    ],
    "nombre": "iShares Emerging Markets Index (IE) Acc EUR S",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "LU0329355670": {
@@ -1813,5 +1817,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-23T13:44:23+00:00"
+ "actualizado": "2026-11-23T18:25:08+00:00"
 }
