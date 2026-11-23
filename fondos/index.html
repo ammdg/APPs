@@ -95,6 +95,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .cmp-leg{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:8px;font-size:.8rem}
 .cmp-leg .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
 .cmp-leg .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);font-size:.85rem;padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);z-index:10}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-120%)}
 </style>
 </head>
@@ -103,7 +104,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <header class="top">
     <h1>Mi cartera</h1>
     <div class="actions">
-      <button class="ghost" id="btnRefrescar" type="button">Actualizar</button>
+      <button class="ghost" id="btnRefrescar" type="button">Recargar precios</button>
       <button class="ghost" id="btnMenu" type="button">Datos</button>
     </div>
   </header>
@@ -170,6 +171,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </section>
 
 </main>
+<div class="toast" id="toast" role="status" hidden></div>
 
 
 <dialog id="dlgFondo"><form class="dlg" method="dialog" id="formFondo">
@@ -668,13 +670,32 @@ function grafica(filas) {
 }
 
 /* ---------------- precios.json ---------------- */
-function descargarPrecios() {
-  $('btnRefrescar').disabled = true;
+var toastTimer;
+function toast(msg) {
+  var t = $('toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 4000);
+}
+/* Vuelve a leer precios.json (lo actualiza cada 2 horas la descarga automática de GitHub).
+   `manual`: lo ha pedido el botón, así que se dice si había precios nuevos o no. */
+function descargarPrecios(manual) {
+  manual = manual === true;
+  var btn = $('btnRefrescar'), antes = precios.actualizado;
+  btn.disabled = true; if (manual) btn.textContent = 'Comprobando…';
   return fetch('precios.json?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function (d) { d.fondos = d.fondos || {}; d._cargado = true; precios = d; })
-    .catch(function () { $('estado').textContent = 'No se han podido cargar los precios (¿sin conexión?).'; })
-    .then(function () { $('btnRefrescar').disabled = false; render(); });
+    .then(function (d) {
+      d.fondos = d.fondos || {}; d._cargado = true; precios = d;
+      if (manual) {
+        var cuando = d.actualizado ? new Date(d.actualizado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '?';
+        toast(d.actualizado !== antes ? 'Precios nuevos cargados (descargados el ' + cuando + ').'
+          : 'No hay precios nuevos. Los últimos se descargaron el ' + cuando + '; se buscan cada 2 horas de lunes a sábado.');
+      }
+    })
+    .catch(function () {
+      $('estado').textContent = 'No se han podido cargar los precios (¿sin conexión?).';
+      if (manual) toast('No se han podido cargar los precios. ¿Hay conexión?');
+    })
+    .then(function () { btn.disabled = false; btn.textContent = 'Recargar precios'; render(); });
 }
 
 /* ---------------- editar fondo ---------------- */
@@ -818,7 +839,7 @@ document.addEventListener('click', function (ev) {
   else if (b.dataset.accion === 'importar') abrirDatos();
 });
 $('btnMenu').addEventListener('click', abrirDatos);
-$('btnRefrescar').addEventListener('click', descargarPrecios);
+$('btnRefrescar').addEventListener('click', function () { descargarPrecios(true); });
 $('rango').addEventListener('click', function (ev) {
   var b = ev.target.closest('button'); if (!b) return;
   rangoDias = +b.dataset.d;
