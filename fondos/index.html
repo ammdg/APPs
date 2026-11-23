@@ -647,9 +647,7 @@ function grafica(filas) {
     '<circle id="cur" r="4" fill="var(--chart)" visibility="hidden"/>';
   $('leyenda').hidden = !conMovs;
   if (conMovs) {
-    var res = (s[s.length - 1][1] - s[0][1]) - (s[s.length - 1][2] - s[0][2]);
-    $('notaGrafica').innerHTML = 'Resultado en el periodo (sin contar lo aportado): <span class="' + signo(res) + '">' + fEur(res, true) + '</span>. ' +
-      'Valor con las participaciones que tenías cada día.';
+    $('notaGrafica').textContent = '';
   } else {
     var cambio = s[s.length - 1][1] - s[0][1];
     $('notaGrafica').innerHTML = 'Variación en el periodo: <span class="' + signo(cambio) + '">' + fEur(cambio, true) + ' (' + pct.format(cambio / s[0][1]) + ')</span>. ' +
