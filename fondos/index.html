@@ -352,6 +352,14 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&
 function historial(pos) {
   var auto = (precios.fondos[pos.isin] && precios.fondos[pos.isin].historial) || [];
   var h = auto.slice();
+  // Antes del primer precio descargado, el de tus propias órdenes (importe / participaciones), para que la
+  // gráfica de evolución pueda empezar el día de la primera compra.
+  var primero = h.length ? h[0][0] : '9999-99-99';
+  (cartera.movimientos || []).forEach(function (m) {
+    if (m.isin === pos.isin && m.fecha < primero && m.participaciones > 0 && m.importe > 0 &&
+        !h.some(function (p) { return p[0] === m.fecha; })) h.push([m.fecha, m.importe / m.participaciones, 'orden']);
+  });
+  h.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
   if (pos.navManual && pos.navManual.nav > 0) {
     var f = pos.navManual.fecha || '0000-00-00';
     h = h.filter(function (p) { return p[0] !== f; });
