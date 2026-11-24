@@ -448,6 +448,10 @@
     [
      "2026-11-22",
      44778.96
+    ],
+    [
+     "2026-11-23",
+     44782.54
     ]
    ],
    "nombre": "Groupama Trésorerie IC",
@@ -909,7 +913,7 @@
     ]
    ],
    "nombre": "DNCA Invest Alpha Bonds A EUR",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "LU1598719752": {
@@ -1817,5 +1821,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-23T18:25:08+00:00"
+ "actualizado": "2026-11-24T04:50:48+00:00"
 }
