@@ -95,6 +95,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .cmp-leg{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:8px;font-size:.8rem}
 .cmp-leg .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
 .cmp-leg .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.cmp-leg .ops{grid-column:1 / -1;color:var(--ink2);border-top:1px solid var(--line);padding-top:6px;margin-top:2px}
+.cmp-ley2{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:6px}
+.cmp-ley2 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);font-size:.85rem;padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);z-index:10}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-120%)}
 </style>
@@ -160,6 +163,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <section class="card" id="cmpCard" hidden>
     <div class="chart-head"><h2>Comparativa de fondos</h2><span class="hint" id="cmpFecha"></span></div>
     <div style="position:relative"><svg class="chart" id="cmp" style="height:260px" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+    <div class="cmp-ley2" id="cmpLeyOps" hidden><span><i style="background:#16A34A"></i>Compra (aportación o traspaso de entrada)</span><span><i style="background:#DC2626"></i>Venta o traspaso de salida</span></div>
     <div class="cmp-leg" id="cmpLeyenda"></div>
     <p class="chart-note" id="cmpNota"></p>
   </section>
@@ -223,7 +227,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 (function () {
 'use strict';
 var LS = 'fondos.v1';
-var COLORES = ['#1F4E8C', '#D97706', '#0F7B4F', '#9333EA', '#DC2626', '#0891B2', '#65A30D', '#DB2777', '#6B7280', '#B45309'];
+// Sin verde ni rojo puros: se reservan para los puntos de compra y venta de la comparativa.
+var COLORES = ['#1F4E8C', '#D97706', '#A16207', '#9333EA', '#4F46E5', '#0891B2', '#65A30D', '#DB2777', '#6B7280', '#B45309'];
 var eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 var pct = new Intl.NumberFormat('es-ES', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'always' });
 var nf = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 6 });
@@ -505,6 +510,10 @@ function render() {
 
 /* Variación porcentual de cada fondo desde el primer día en que todos tienen valor liquidativo publicado
    (ese día = 0 %). Los días sin precio de un fondo se usa su último precio anterior. */
+function nombreCorto(isin) {
+  var p = cartera.posiciones.filter(function (x) { return x.isin === isin; })[0];
+  return p ? p.nombre.split(' ').slice(0, 3).join(' ') : isin;
+}
 function comparativa(filas) {
   var fs = filas.map(function (f) {
     return { f: f, h: f.h.filter(function (p) { return p[0] !== '0000-00-00'; }) };
@@ -549,6 +558,27 @@ function comparativa(filas) {
     var d = s.v.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join('');
     html += '<path d="' + d + '" fill="none" stroke="' + s.f.color + '" stroke-width="1.8" stroke-linejoin="round"/>';
   });
+  // Puntos de tus operaciones sobre la línea de cada fondo: verde = entra dinero en el fondo (aportación o
+  // traspaso de entrada), rojo = sale (venta o traspaso de salida). Varias del mismo día y tipo, un solo punto.
+  var idxDe = function (f) { for (var i = 0; i < fechas.length; i++) if (fechas[i] >= f) return i; return -1; };
+  var ops = {}, opsDia = {};
+  movs().forEach(function (m) {
+    var sr = series.filter(function (x) { return x.f.pos.isin === m.isin; })[0], i = idxDe(m.fecha);
+    if (!sr || i < 0) return;
+    var k = m.isin + '|' + i + '|' + m.tipo;
+    if (!ops[k]) ops[k] = { s: sr, i: i, tipo: m.tipo, imp: 0, n: 0 };
+    ops[k].imp += m.importe; ops[k].n++;
+    (opsDia[i] = opsDia[i] || []).push(m);
+  });
+  Object.keys(ops).forEach(function (k) {
+    var o = ops[k];
+    var cx = x(o.i).toFixed(1), cy = y(o.s.v[o.i]).toFixed(1);
+    html += '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="none" stroke="' + o.s.f.color + '" stroke-width="2"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="5" fill="' + (o.tipo === 'compra' ? '#16A34A' : '#DC2626') +
+      '" stroke="var(--surface)" stroke-width="1.5"><title>' +
+      esc(o.s.f.pos.nombre) + ' · ' + fFecha(fechas[o.i]) + ' · ' + (o.tipo === 'compra' ? '+' : '−') + eur.format(o.imp) + '</title></circle>';
+  });
+  $('cmpLeyOps').hidden = !Object.keys(ops).length;
   html += '<text x="' + pl + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)">' + fFecha(base) + '</text>' +
     '<text x="' + (W - pr) + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)" text-anchor="end">' + fFecha(fechas[fechas.length - 1]) + '</text>' +
     '<line id="cmpCur" y1="' + pt + '" y2="' + (H - pb) + '" stroke="var(--muted)" visibility="hidden"/>';
@@ -558,11 +588,15 @@ function comparativa(filas) {
     $('cmpLeyenda').innerHTML = series.slice().sort(function (a, b) { return b.v[i] - a.v[i]; }).map(function (s) {
       return '<span class="n"><span class="dot" style="background:' + s.f.color + '"></span>' + esc(s.f.pos.nombre) + '</span>' +
         '<span class="v ' + signo(s.v[i]) + '">' + pct.format(s.v[i]) + '</span>';
-    }).join('');
+    }).join('') + (opsDia[i] ? '<span class="ops">Operaciones: ' + opsDia[i].map(function (m) {
+      return '<span class="' + (m.tipo === 'compra' ? 'up' : 'down') + '">' + (m.tipo === 'compra' ? '+' : '−') + eur.format(m.importe) + '</span> ' +
+        esc(nombreCorto(m.isin));
+    }).join(' · ') + '</span>' : '');
   }
   leyenda(fechas.length - 1);
   $('cmpNota').textContent = 'Variación del valor liquidativo de cada fondo desde el ' + fFecha(base) +
-    ', primer día con precio de todos (0 %). No depende de cuánto tengas en cada uno. Toca la gráfica para ver otro día.';
+    ', primer día con precio de todos (0 %). No depende de cuánto tengas en cada uno. Toca la gráfica para ver otro día' +
+    (Object.keys(ops).length ? ' y sus operaciones.' : '.');
   var cur = svg.querySelector('#cmpCur');
   function mover(ev) {
     var r = svg.getBoundingClientRect();
