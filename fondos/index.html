@@ -50,7 +50,7 @@ h1,h2{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-.01em}
 h2{font-size:1rem}
 .num{font-variant-numeric:tabular-nums}
 .up{color:var(--up)} .down{color:var(--down)}
-.app{max-width:560px;margin:0 auto;padding:14px 16px 56px;display:flex;flex-direction:column;gap:18px}
+.app{max-width:900px;margin:0 auto;padding:14px 16px 56px;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .top h1{font-size:1.15rem}
 .ghost{background:transparent;border:1px solid var(--line);color:var(--ink2);border-radius:999px;padding:6px 14px;font-size:.85rem;font-weight:500}
@@ -162,7 +162,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
   <section class="card" id="cmpCard" hidden>
     <div class="chart-head"><h2>Comparativa de fondos</h2><span class="hint" id="cmpFecha"></span></div>
-    <div style="position:relative"><svg class="chart" id="cmp" style="height:260px" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+    <div style="position:relative"><svg class="chart" id="cmp" style="height:400px" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
     <div class="cmp-ley2" id="cmpLeyOps" hidden><span><i style="background:#16A34A"></i>Compra (aportación o traspaso de entrada)</span><span><i style="background:#DC2626"></i>Venta o traspaso de salida</span></div>
     <div class="cmp-leg" id="cmpLeyenda"></div>
     <p class="chart-note" id="cmpNota"></p>
@@ -537,7 +537,7 @@ function comparativa(filas) {
     });
     return { f: x.f, v: out };
   });
-  var svg = $('cmp'), W = svg.clientWidth || 500, H = 260, pl = 4, pr = 40, pt = 10, pb = 18;
+  var svg = $('cmp'), W = svg.clientWidth || 500, H = 400, pl = 4, pr = 40, pt = 10, pb = 18;
   var todos = [0]; series.forEach(function (s) { todos = todos.concat(s.v); });
   var mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
   if (mx - mn < 0.002) { mx += 0.001; mn -= 0.001; }
