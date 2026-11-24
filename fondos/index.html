@@ -92,7 +92,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .legend{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:4px}
 .legend i{display:inline-block;width:14px;height:0;border-top:2px solid var(--chart);vertical-align:middle;margin-right:5px}
 .legend i.ap{border-top:2px dashed var(--muted)}
-.cmp-leg{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:8px;font-size:.8rem}
+.card.ancha{align-self:center;width:min(1600px,calc(100vw - 32px))}
+.cmp-wrap{position:relative}
+.cmp-scroll{overflow-x:auto;overflow-y:hidden;margin-right:42px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.cmp-scroll svg{display:block;height:400px}
+.cmp-eje{position:absolute;top:0;right:0;width:42px;height:400px;pointer-events:none}
+.cmp-leg{max-width:720px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:8px;font-size:.8rem}
 .cmp-leg .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
 .cmp-leg .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
 .cmp-leg .ops{grid-column:1 / -1;color:var(--ink2);border-top:1px solid var(--line);padding-top:6px;margin-top:2px}
@@ -160,9 +165,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <p class="chart-note" id="notaGrafica"></p>
   </section>
 
-  <section class="card" id="cmpCard" hidden>
+  <section class="card ancha" id="cmpCard" hidden>
     <div class="chart-head"><h2>Comparativa de fondos</h2><span class="hint" id="cmpFecha"></span></div>
-    <div style="position:relative"><svg class="chart" id="cmp" style="height:400px" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+    <div class="cmp-wrap"><div class="cmp-scroll" id="cmpScroll"><svg id="cmp" role="img" aria-label="Variación porcentual de cada fondo desde la misma fecha"></svg></div>
+      <svg class="cmp-eje" id="cmpEje" aria-hidden="true"></svg></div>
+    <p class="hint" id="cmpDesliza" hidden>Desliza la gráfica a los lados para ver todo el periodo.</p>
     <div class="cmp-ley2" id="cmpLeyOps" hidden><span><i style="background:#16A34A"></i>Compra (aportación o traspaso de entrada)</span><span><i style="background:#DC2626"></i>Venta o traspaso de salida</span></div>
     <div class="cmp-leg" id="cmpLeyenda"></div>
     <p class="chart-note" id="cmpNota"></p>
@@ -537,7 +544,10 @@ function comparativa(filas) {
     });
     return { f: x.f, v: out };
   });
-  var svg = $('cmp'), W = svg.clientWidth || 500, H = 400, pl = 4, pr = 40, pt = 10, pb = 18;
+  var svg = $('cmp'), caja = $('cmpScroll'), visible = caja.clientWidth || 500;
+  var W = Math.max(visible, fechas.length * 16), H = 400, pl = 4, pr = 8, pt = 10, pb = 18;
+  svg.style.width = W + 'px';
+  $('cmpDesliza').hidden = W <= visible + 1;
   var todos = [0]; series.forEach(function (s) { todos = todos.concat(s.v); });
   var mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
   if (mx - mn < 0.002) { mx += 0.001; mn -= 0.001; }
@@ -546,14 +556,17 @@ function comparativa(filas) {
   var y = function (v) { return pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb); };
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   // Líneas horizontales de escala cada 1 %. Si hay muchas, solo se rotulan las de 0 % y múltiplos de 5 %.
-  var nLineas = Math.floor(mx * 100) - Math.ceil(mn * 100) + 1, html = '';
+  var nLineas = Math.floor(mx * 100) - Math.ceil(mn * 100) + 1, html = '', eje = '';
   for (var k = Math.ceil(mn * 100); k <= Math.floor(mx * 100); k++) {
     var yy = y(k / 100).toFixed(1), cero = k === 0, rotulo = nLineas <= 12 || k % 5 === 0;
     html += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--' + (cero ? 'muted' : 'line') + ')"' +
       (cero ? ' stroke-dasharray="3 4"' : (k % 5 === 0 ? '' : ' stroke-opacity=".6"')) + '/>' +
-      (rotulo ? '<text x="' + (W - pr + 4) + '" y="' + (+yy + 3.5).toFixed(1) + '" font-size="10" fill="var(--muted)">' +
-        (cero ? '0 %' : (k > 0 ? '+' : '−') + Math.abs(k) + ' %') + '</text>' : '');
+      '';
+    // Los rótulos van en un eje aparte, fijo a la derecha, para que se vean aunque la gráfica se desplace.
+    if (rotulo) eje += '<text x="4" y="' + (+yy + 3.5).toFixed(1) + '" font-size="10" fill="var(--muted)">' +
+      (cero ? '0 %' : (k > 0 ? '+' : '−') + Math.abs(k) + ' %') + '</text>';
   }
+  $('cmpEje').setAttribute('viewBox', '0 0 42 ' + H); $('cmpEje').innerHTML = eje;
   series.forEach(function (s) {
     var d = s.v.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join('');
     html += '<path d="' + d + '" fill="none" stroke="' + s.f.color + '" stroke-width="1.8" stroke-linejoin="round"/>';
@@ -583,6 +596,7 @@ function comparativa(filas) {
     '<text x="' + (W - pr) + '" y="' + (H - 3) + '" font-size="11" fill="var(--muted)" text-anchor="end">' + fFecha(fechas[fechas.length - 1]) + '</text>' +
     '<line id="cmpCur" y1="' + pt + '" y2="' + (H - pb) + '" stroke="var(--muted)" visibility="hidden"/>';
   svg.innerHTML = html;
+  caja.scrollLeft = caja.scrollWidth;  // empieza mostrando lo más reciente
   function leyenda(i) {
     $('cmpFecha').textContent = fFecha(fechas[i]);
     $('cmpLeyenda').innerHTML = series.slice().sort(function (a, b) { return b.v[i] - a.v[i]; }).map(function (s) {
