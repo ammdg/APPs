@@ -464,6 +464,10 @@
     [
      "2026-11-24",
      44786.06
+    ],
+    [
+     "2026-11-25",
+     44789.59
     ]
    ],
    "nombre": "Groupama Trésorerie IC",
@@ -699,10 +703,14 @@
     [
      "2026-11-24",
      105.144
+    ],
+    [
+     "2026-11-25",
+     105.26
     ]
    ],
    "nombre": "Vanguard Global Short-Term Bond Index Inv EUR Hedged Acc",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "LU1694789451": {
@@ -941,7 +949,7 @@
     ]
    ],
    "nombre": "DNCA Invest Alpha Bonds A EUR",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "LU1598719752": {
@@ -1412,10 +1420,14 @@
     [
      "2026-11-24",
      420.8505
+    ],
+    [
+     "2026-11-25",
+     423.44
     ]
    ],
    "nombre": "Vanguard Global Small-Cap Index Fund EUR Acc",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "IE000QAZP7L2": {
@@ -1881,5 +1893,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-25T17:22:56+00:00"
+ "actualizado": "2026-11-26T01:49:30+00:00"
 }
