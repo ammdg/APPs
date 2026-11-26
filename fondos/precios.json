@@ -229,10 +229,14 @@
     [
      "2026-11-24",
      12.004
+    ],
+    [
+     "2026-11-25",
+     11.98
     ]
    ],
    "nombre": "iShares Developed World Index (IE) Acc EUR S",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "FR0000989626": {
@@ -706,11 +710,11 @@
     ],
     [
      "2026-11-25",
-     105.26
+     105.2554
     ]
    ],
    "nombre": "Vanguard Global Short-Term Bond Index Inv EUR Hedged Acc",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "LU1694789451": {
@@ -1185,10 +1189,14 @@
     [
      "2026-11-24",
      172.27
+    ],
+    [
+     "2026-11-25",
+     172.24
     ]
    ],
    "nombre": "Cobas International Fund-P Acc EUR",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "IE00B42W4L06": {
@@ -1423,11 +1431,11 @@
     ],
     [
      "2026-11-25",
-     423.44
+     423.4437
     ]
    ],
    "nombre": "Vanguard Global Small-Cap Index Fund EUR Acc",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "IE000QAZP7L2": {
@@ -1655,10 +1663,14 @@
     [
      "2026-11-24",
      12.61
+    ],
+    [
+     "2026-11-25",
+     12.26
     ]
    ],
    "nombre": "iShares Emerging Markets Index (IE) Acc EUR S",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "LU0329355670": {
@@ -1886,6 +1898,10 @@
     [
      "2026-11-24",
      355.53
+    ],
+    [
+     "2026-11-25",
+     356.75
     ]
    ],
    "nombre": "Robeco QI EM Active Equities D EUR",
@@ -1893,5 +1909,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-26T01:49:30+00:00"
+ "actualizado": "2026-11-26T17:02:38+00:00"
 }
