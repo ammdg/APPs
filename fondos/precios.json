@@ -232,11 +232,11 @@
     ],
     [
      "2026-11-25",
-     11.98
+     11.982
     ]
    ],
    "nombre": "iShares Developed World Index (IE) Acc EUR S",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "FR0000989626": {
@@ -472,6 +472,10 @@
     [
      "2026-11-25",
      44789.59
+    ],
+    [
+     "2026-11-26",
+     44793.23
     ]
    ],
    "nombre": "Groupama Trésorerie IC",
@@ -711,10 +715,14 @@
     [
      "2026-11-25",
      105.2554
+    ],
+    [
+     "2026-11-26",
+     105.23
     ]
    ],
    "nombre": "Vanguard Global Short-Term Bond Index Inv EUR Hedged Acc",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "LU1694789451": {
@@ -950,6 +958,10 @@
     [
      "2026-11-24",
      132.38
+    ],
+    [
+     "2026-11-25",
+     132.51
     ]
    ],
    "nombre": "DNCA Invest Alpha Bonds A EUR",
@@ -1196,7 +1208,7 @@
     ]
    ],
    "nombre": "Cobas International Fund-P Acc EUR",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "IE00B42W4L06": {
@@ -1432,10 +1444,14 @@
     [
      "2026-11-25",
      423.4437
+    ],
+    [
+     "2026-11-26",
+     424.65
     ]
    ],
    "nombre": "Vanguard Global Small-Cap Index Fund EUR Acc",
-   "fuente": "finect",
+   "fuente": "ft",
    "moneda": "EUR"
   },
   "IE000QAZP7L2": {
@@ -1666,11 +1682,11 @@
     ],
     [
      "2026-11-25",
-     12.26
+     12.264
     ]
    ],
    "nombre": "iShares Emerging Markets Index (IE) Acc EUR S",
-   "fuente": "ft",
+   "fuente": "finect",
    "moneda": "EUR"
   },
   "LU0329355670": {
@@ -1909,5 +1925,5 @@
    "moneda": "EUR"
   }
  },
- "actualizado": "2026-11-26T17:02:38+00:00"
+ "actualizado": "2026-11-27T01:48:13+00:00"
 }
